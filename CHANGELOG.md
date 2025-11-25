@@ -86,6 +86,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `foundry_start_task` - Start working on a task
   - `foundry_progress` - Get spec/phase progress
 - Unit tests for task operations (30 tests)
+- Documentation query module (`foundry_mcp.core.docs`):
+  - `DocsQuery` - Query interface for codebase documentation (codebase.json)
+  - `find_class` - Find class by name (exact or substring match)
+  - `find_function` - Find function by name (exact or substring match)
+  - `find_classes_in_file` / `find_functions_in_file` - File-scoped queries
+  - `trace_calls` - Trace call graph (callers, callees, or both) with configurable depth
+  - `get_callers` / `get_callees` - Direct caller/callee lookups
+  - `impact_analysis` - Analyze change impact with direct/indirect impacts and scores
+  - `get_dependencies` / `get_reverse_dependencies` - Module dependency queries
+  - `get_metadata` / `get_stats` - Documentation metadata and statistics
+  - QueryResult, CallGraphEntry, ImpactResult, DocsQueryResponse dataclasses
+  - Auto-discovery of codebase.json in common locations
+  - Indexed lookups for fast queries on large codebases
+- Testing module (`foundry_mcp.core.testing`):
+  - `TestRunner` - Pytest-based test runner with preset support
+  - `run_tests` - Run tests with configurable timeout, markers, fail-fast
+  - `discover_tests` - Discover tests without running (--collect-only)
+  - `get_presets` - Get available test preset configurations
+  - Test presets: quick (60s, fail-fast), full (300s), unit, integration, smoke
+  - TestResult, TestRunResult, DiscoveredTest, TestDiscoveryResult dataclasses
+  - Schema versioning (1.0.0) and execution_id tracking
+- MCP documentation tools (`foundry_mcp.tools.docs`):
+  - `foundry_find_class` - Find class in documentation
+  - `foundry_find_function` - Find function in documentation
+  - `foundry_trace_calls` - Trace call graph with direction and depth
+  - `foundry_impact_analysis` - Analyze change impact
+  - `foundry_get_callers` - Get caller functions
+  - `foundry_get_callees` - Get callee functions
+  - `foundry_docs_stats` - Get documentation statistics
+- MCP testing tools (`foundry_mcp.tools.testing`):
+  - `foundry_run_tests` - Full-featured test execution
+  - `foundry_discover_tests` - Test discovery
+  - `foundry_test_presets` - List available presets
+  - `foundry_run_quick_tests` - Quick test preset shortcut
+  - `foundry_run_unit_tests` - Unit test preset shortcut
+  - All tools include schema_version and execution_id in responses
+  - Workspace parameter support for arbitrary repository roots
 
 ## [0.1.0] - 2025-01-25
 
