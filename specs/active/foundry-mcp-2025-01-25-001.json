@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T21:14:32.373208Z",
+  "last_updated": "2025-11-25T21:15:59.541966Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 1,
+    "progress_percentage": 3,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -78,7 +78,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 11,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Establish the foundry-mcp repo structure, package configuration, and extract core spec CRUD operations",
         "risk_level": "low",
@@ -112,7 +112,7 @@
         "task-1-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -162,7 +162,7 @@
     "task-1-2": {
       "type": "task",
       "title": "src/foundry_mcp/__init__.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-files",
       "children": [],
       "dependencies": {
@@ -173,12 +173,18 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/__init__.py",
         "task_category": "implementation",
         "estimated_hours": 0.25,
-        "details": "Package init with version and public exports"
+        "details": "Package init with version and public exports",
+        "started_at": "2025-11-25T21:15:28.611166Z",
+        "status_note": "Creating package init with version and public exports",
+        "completed_at": "2025-11-25T21:15:59.536390Z",
+        "needs_journaling": false,
+        "actual_hours": 0.009,
+        "journaled_at": "2025-11-25T21:15:59.540333Z"
       }
     },
     "task-1-3": {
@@ -1929,6 +1935,15 @@
       "content": "Created pyproject.toml with foundry-mcp package configuration including: hatchling build system, fastmcp and mcp dependencies, foundry-mcp script entry point pointing to foundry_mcp.server:main, Python 3.10+ requirement, MIT license, and proper package metadata. File created at pyproject.toml.",
       "metadata": {},
       "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2025-11-25T21:15:59.540324Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/__init__.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/__init__.py with package version 0.1.0, imports for create_server and main from server module, and __all__ exports list. Created necessary directory structure src/foundry_mcp/.",
+      "metadata": {},
+      "task_id": "task-1-2"
     }
   ]
 }
