@@ -33,6 +33,18 @@ from foundry_mcp.core.progress import (
     get_task_counts_by_status,
 )
 
+from foundry_mcp.core.validation import (
+    Diagnostic,
+    ValidationResult,
+    FixAction,
+    FixReport,
+    SpecStats,
+    validate_spec,
+    get_fix_actions,
+    apply_fixes,
+    calculate_stats,
+)
+
 __all__ = [
     "find_specs_directory",
     "find_spec_file",
@@ -58,4 +70,13 @@ __all__ = [
     "get_progress_summary",
     "list_phases",
     "get_task_counts_by_status",
+    "Diagnostic",
+    "ValidationResult",
+    "FixAction",
+    "FixReport",
+    "SpecStats",
+    "validate_spec",
+    "get_fix_actions",
+    "apply_fixes",
+    "calculate_stats",
 ]
