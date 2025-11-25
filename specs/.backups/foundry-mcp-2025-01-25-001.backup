@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T21:32:14.919787Z",
+  "last_updated": "2025-11-25T21:34:07.818244Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 15,
+    "progress_percentage": 18,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -71,19 +71,21 @@
     "phase-1": {
       "type": "phase",
       "title": "Repository Setup & Core Infrastructure",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-1-files",
         "phase-1-verify"
       ],
       "total_tasks": 11,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Establish the foundry-mcp repo structure, package configuration, and extract core spec CRUD operations",
         "risk_level": "low",
         "estimated_hours": 6,
-        "repo_notes": "Follow top-level repo_structure for package layout and shared utilities"
+        "repo_notes": "Follow top-level repo_structure for package layout and shared utilities",
+        "needs_journaling": true,
+        "completed_at": "2025-11-25T21:34:07.810530Z"
       },
       "dependencies": {
         "blocks": [
@@ -437,7 +439,7 @@
     "phase-1-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-1",
       "children": [
         "verify-1-1",
@@ -451,8 +453,12 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-25T21:34:07.810527Z",
+        "journaled_at": "2025-11-25T21:34:07.818219Z"
+      }
     },
     "verify-1-1": {
       "type": "verify",
@@ -481,15 +487,21 @@
     "verify-1-2": {
       "type": "verify",
       "title": "Core spec operations work",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_spec.py -v",
-        "expected": "All spec CRUD tests pass"
+        "expected": "All spec CRUD tests pass",
+        "started_at": "2025-11-25T21:32:40.555285Z",
+        "status_note": "Creating and running core spec operation tests",
+        "completed_at": "2025-11-25T21:34:07.810395Z",
+        "needs_journaling": false,
+        "actual_hours": 0.024,
+        "journaled_at": "2025-11-25T21:34:07.814638Z"
       }
     },
     "phase-2": {
@@ -2077,6 +2089,24 @@
       "content": "Verification passed. Installed package with pip install -e . and ran import test: python -c \"from foundry_mcp.server import create_server, main; print('Server imported successfully')\". Output: \"Server imported successfully\". All imports resolve correctly.",
       "metadata": {},
       "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2025-11-25T21:34:07.814632Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Core spec operations work",
+      "author": "claude-code",
+      "content": "Verification passed. Created tests/unit/test_core/test_spec.py with 14 test cases covering: find_specs_directory (2 tests), find_spec_file (3 tests), load_spec (2 tests), list_specs (2 tests), get_node (2 tests), update_node (3 tests). All 14 tests passing. Fixed macOS symlink resolution issue in fixture.",
+      "metadata": {},
+      "task_id": "verify-1-2"
+    },
+    {
+      "timestamp": "2025-11-25T21:34:07.818214Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
     }
   ]
 }
