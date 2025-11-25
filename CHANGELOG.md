@@ -123,6 +123,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `foundry_run_unit_tests` - Unit test preset shortcut
   - All tools include schema_version and execution_id in responses
   - Workspace parameter support for arbitrary repository roots
+- MCP resources (`foundry_mcp.resources.specs`):
+  - `foundry://specs/` - List all specifications
+  - `foundry://specs/{status}/` - List specs by status (active, pending, completed, archived)
+  - `foundry://specs/{status}/{spec_id}` - Get specific spec with full hierarchy
+  - `foundry://specs/{spec_id}/journal` - Get journal entries for a spec
+  - `foundry://templates/` - List available spec templates
+  - `foundry://templates/{template_id}` - Get specific template
+  - Built-in templates: basic, feature, bugfix
+  - Workspace sandbox validation for security
+  - Schema versioning (1.0.0) for all responses
+- MCP workflow prompts (`foundry_mcp.prompts.workflows`):
+  - `start_feature` - Guide new feature setup with template selection
+  - `debug_test` - Systematic test debugging workflow
+  - `complete_phase` - Phase completion checklist and guidance
+  - `review_spec` - Comprehensive spec status review
+  - All prompts include available tools and contextual guidance
 
 ## [0.1.0] - 2025-01-25
 
