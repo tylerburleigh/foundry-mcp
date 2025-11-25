@@ -45,6 +45,24 @@ from foundry_mcp.core.validation import (
     calculate_stats,
 )
 
+from foundry_mcp.core.journal import (
+    JournalEntry,
+    BlockerInfo,
+    ResolvedBlocker,
+    add_journal_entry,
+    get_journal_entries,
+    get_latest_journal_entry,
+    mark_blocked,
+    unblock,
+    get_blocker_info,
+    get_resolved_blockers,
+    list_blocked_tasks,
+    update_task_status,
+    mark_task_journaled,
+    find_unjournaled_tasks,
+    save_journal,
+)
+
 __all__ = [
     "find_specs_directory",
     "find_spec_file",
@@ -79,4 +97,19 @@ __all__ = [
     "get_fix_actions",
     "apply_fixes",
     "calculate_stats",
+    "JournalEntry",
+    "BlockerInfo",
+    "ResolvedBlocker",
+    "add_journal_entry",
+    "get_journal_entries",
+    "get_latest_journal_entry",
+    "mark_blocked",
+    "unblock",
+    "get_blocker_info",
+    "get_resolved_blockers",
+    "list_blocked_tasks",
+    "update_task_status",
+    "mark_task_journaled",
+    "find_unjournaled_tasks",
+    "save_journal",
 ]

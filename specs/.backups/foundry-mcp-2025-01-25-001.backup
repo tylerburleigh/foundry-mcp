@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T22:47:15.885821Z",
+  "last_updated": "2025-11-25T22:49:23.073276Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,9 +41,9 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 36,
+    "progress_percentage": 37,
     "status": "active",
-    "current_phase": "phase-2"
+    "current_phase": "phase-3"
   },
   "hierarchy": {
     "spec-root": {
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 22,
+      "completed_tasks": 23,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -875,7 +875,7 @@
         "phase-3-verify"
       ],
       "total_tasks": 7,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Implement spec validation, auto-fixing, and journal/blocker management",
         "risk_level": "medium",
@@ -904,7 +904,7 @@
         "task-3-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -951,7 +951,7 @@
     "task-3-2": {
       "type": "task",
       "title": "src/foundry_mcp/core/journal.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [],
       "dependencies": {
@@ -962,7 +962,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/journal.py",
         "task_category": "implementation",
@@ -972,7 +972,13 @@
           "Extract mark_blocked and unblock from sdd_update/status.py",
           "Handle blocker metadata and timestamps",
           "Define on-disk journal layout (status folders + journal.json NDJSON) shared with resources"
-        ]
+        ],
+        "started_at": "2025-11-25T22:47:50.554009Z",
+        "status_note": "Starting journal core module implementation",
+        "completed_at": "2025-11-25T22:49:23.068717Z",
+        "needs_journaling": false,
+        "actual_hours": 0.026,
+        "journaled_at": "2025-11-25T22:49:23.073250Z"
       }
     },
     "task-3-3": {
@@ -2314,6 +2320,15 @@
       "content": "Created src/foundry_mcp/core/validation.py with all required functionality:\n- validate_spec() function that validates spec data and returns ValidationResult with structured Diagnostic objects\n- get_fix_actions() function that generates FixAction objects from validation diagnostics\n- apply_fixes() function that applies fix actions to spec files with backup and dry-run support\n- calculate_stats() function that calculates SpecStats including totals, status counts, depth, verification coverage\n- All diagnostics emit structured format (code, message, severity, category, location, suggested_fix, auto_fixable) for MCP consumption\n- Updated core/__init__.py to export all new classes and functions\n- Verified imports work correctly",
       "metadata": {},
       "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2025-11-25T22:49:23.073245Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/journal.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/journal.py with all required functionality:\n- add_journal_entry() function for creating journal entries with timestamps, entry types, task references\n- get_journal_entries() and get_latest_journal_entry() for retrieving journal entries with filtering\n- mark_blocked() function with blocker metadata (type, description, ticket, timestamp)\n- unblock() function that moves blocker info to resolved_blockers history\n- get_blocker_info() and get_resolved_blockers() for querying blocker status\n- list_blocked_tasks() to find all blocked tasks in a spec\n- update_task_status() with automatic progress recalculation\n- mark_task_journaled() and find_unjournaled_tasks() for journaling workflow\n- save_journal() for persisting changes with backup support\n- Data classes: JournalEntry, BlockerInfo, ResolvedBlocker for structured data\n- Updated core/__init__.py to export all new classes and functions\n- Verified imports work correctly",
+      "metadata": {},
+      "task_id": "task-3-2"
     }
   ]
 }
