@@ -1,0 +1,1421 @@
+{
+  "spec_id": "foundry-mcp-2025-01-25-001",
+  "title": "Foundry MCP Server",
+  "generated": "2025-01-25T12:00:00Z",
+  "last_updated": "2025-11-25T17:19:26.527532Z",
+  "metadata": {
+    "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
+    "objectives": [
+      "Create new PyPI package foundry-mcp with FastMCP 2.0",
+      "Full parity with claude-sdd-toolkit CLI (~30 MCP tools)",
+      "Include doc-query and run-tests functionality",
+      "MCP resources for spec file access",
+      "Workflow prompts for common tasks"
+    ],
+    "complexity": "high",
+    "estimated_hours": 40
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Foundry MCP Server",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5",
+        "phase-6"
+      ],
+      "total_tasks": 43,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Repository Setup & Core Infrastructure",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Establish the foundry-mcp repo structure, package configuration, and extract core spec CRUD operations",
+        "risk_level": "low",
+        "estimated_hours": 6
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2",
+          "phase-3",
+          "phase-5"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "task-1-5",
+        "task-1-6"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-1-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "pyproject.toml",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-1-2",
+          "task-1-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "pyproject.toml",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "details": [
+          "Create pyproject.toml with package name foundry-mcp",
+          "Add FastMCP and MCP dependencies",
+          "Configure hatchling build system",
+          "Add foundry-mcp script entry point",
+          "Set Python 3.10+ requirement"
+        ]
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/__init__.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/__init__.py",
+        "task_category": "implementation",
+        "estimated_hours": 0.25,
+        "details": "Package init with version and public exports"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/server.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-1-5",
+          "task-1-6"
+        ],
+        "blocked_by": [
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/server.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Create FastMCP server instance",
+          "Import and register tool modules",
+          "Create main() entry point",
+          "Basic error handling"
+        ]
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/spec.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-1-5"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/spec.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Extract load_spec from claude-sdd-toolkit common/spec.py",
+          "Extract save_spec with atomic write and backup",
+          "Extract find_spec_path across status folders",
+          "Extract list_specs with filtering",
+          "Adapt to standalone package (remove external dependencies)"
+        ]
+      }
+    },
+    "task-1-5": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/queries.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-3",
+          "task-1-4"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/queries.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Implement foundry_find_specs MCP tool",
+          "Implement foundry_list_specs MCP tool",
+          "Add proper JSON schema for inputs/outputs",
+          "Register tools with FastMCP server"
+        ]
+      }
+    },
+    "task-1-6": {
+      "type": "task",
+      "title": "README.md",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "README.md",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "details": [
+          "Project overview and tagline",
+          "Installation instructions (pip, uvx)",
+          "Claude Desktop configuration",
+          "Basic usage examples"
+        ]
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Server starts without errors",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -c \"from foundry_mcp.server import mcp; print('Server imported successfully')\"",
+        "expected": "Server imports and initializes without errors"
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Core spec operations work",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_spec.py -v",
+        "expected": "All spec CRUD tests pass"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Task Operations (Discovery & Status)",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-4"
+        ],
+        "depends": []
+      },
+      "total_tasks": 9,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Implement the core task workflow - finding tasks, preparing context, updating status",
+        "risk_level": "medium",
+        "estimated_hours": 10
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/task.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2",
+        "task-2-1-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-3",
+          "task-2-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/task.py",
+        "task_category": "implementation",
+        "estimated_hours": 4
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "Extract get_next_task from sdd_next/discovery.py",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Find next actionable task based on status and dependencies"
+      }
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "Extract prepare_task with context gathering",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Prepare task with full context including dependencies, file info, journal"
+      }
+    },
+    "task-2-1-3": {
+      "type": "subtask",
+      "title": "Extract check_dependencies for dependency analysis",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Analyze task dependencies and blockers"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/progress.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/progress.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Extract calculate_progress from common/progress.py",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Calculate progress percentages at all hierarchy levels"
+      }
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Extract recalculate_parent_status",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Propagate status changes up the hierarchy"
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/tasks.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-2-1",
+          "task-2-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/tasks.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Implement foundry_prepare_task MCP tool",
+          "Implement foundry_next_task MCP tool",
+          "Implement foundry_task_info MCP tool",
+          "Implement foundry_check_deps MCP tool",
+          "Implement foundry_update_status MCP tool",
+          "Implement foundry_complete_task MCP tool",
+          "Implement foundry_start_task MCP tool",
+          "Implement foundry_progress MCP tool"
+        ]
+      }
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_task.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-2-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_task.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": "Unit tests for task discovery, status updates, and progress calculation"
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-2-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Task tools respond correctly",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_task.py -v",
+        "expected": "All task operation tests pass"
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "MCP tools are registered and callable",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "MCP inspector shows all task tools registered with correct schemas",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Validation & Journaling",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-4"
+        ],
+        "depends": []
+      },
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Implement spec validation, auto-fixing, and journal/blocker management",
+        "risk_level": "medium",
+        "estimated_hours": 6
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3",
+        "task-3-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/validation.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-3-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/validation.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Extract validate_spec from sdd_validate/",
+          "Extract get_fix_actions for auto-fix suggestions",
+          "Extract apply_fixes for applying fixes",
+          "Extract calculate_stats for spec statistics"
+        ]
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/journal.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-3-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/journal.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Extract add_journal_entry from sdd_update/journal.py",
+          "Extract mark_blocked and unblock from sdd_update/status.py",
+          "Handle blocker metadata and timestamps"
+        ]
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/validation.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-3-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/validation.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Implement foundry_validate_spec MCP tool",
+          "Implement foundry_fix_spec MCP tool",
+          "Implement foundry_stats MCP tool"
+        ]
+      }
+    },
+    "task-3-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/journal.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-3-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/journal.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Implement foundry_add_journal MCP tool",
+          "Implement foundry_mark_blocked MCP tool",
+          "Implement foundry_unblock MCP tool"
+        ]
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-3-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Validation detects spec issues",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_validation.py -v",
+        "expected": "Validation correctly identifies and can fix common spec issues"
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Journal entries are persisted correctly",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_journal.py -v",
+        "expected": "Journal entries are added, blockers are tracked"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Planning, Lifecycle & Rendering",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-2",
+          "phase-3"
+        ],
+        "blocks": [
+          "phase-6"
+        ],
+        "depends": []
+      },
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Implement spec creation, lifecycle management, and markdown rendering",
+        "risk_level": "low",
+        "estimated_hours": 5
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1",
+        "task-4-2",
+        "task-4-3",
+        "task-4-4"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-4-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/rendering.py",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-4-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/rendering.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Extract render_spec_to_markdown from sdd_render/renderer.py",
+          "Support basic and enhanced rendering modes",
+          "Generate progress visualization with status icons"
+        ]
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/lifecycle.py",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [
+        "task-4-2-1",
+        "task-4-2-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-4-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/lifecycle.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5
+      }
+    },
+    "task-4-2-1": {
+      "type": "subtask",
+      "title": "Implement move_spec between status folders",
+      "status": "pending",
+      "parent": "task-4-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Move specs between pending/active/completed/archived"
+      }
+    },
+    "task-4-2-2": {
+      "type": "subtask",
+      "title": "Implement complete_spec and archive_spec",
+      "status": "pending",
+      "parent": "task-4-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Mark spec complete with timestamp, archive completed specs"
+      }
+    },
+    "task-4-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/rendering.py",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-4-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/rendering.py",
+        "task_category": "implementation",
+        "estimated_hours": 0.5,
+        "details": "Implement foundry_render_spec MCP tool"
+      }
+    },
+    "task-4-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/lifecycle.py",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-4-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/lifecycle.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Implement foundry_move_spec MCP tool",
+          "Implement foundry_complete_spec MCP tool",
+          "Implement foundry_archive_spec MCP tool",
+          "Implement foundry_create_spec MCP tool",
+          "Implement foundry_list_templates MCP tool"
+        ]
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1",
+        "verify-4-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-4-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Rendering produces valid markdown",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_rendering.py -v",
+        "expected": "Rendered markdown is valid and contains all spec information"
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Lifecycle operations work correctly",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_lifecycle.py -v",
+        "expected": "Specs move between folders correctly, completion timestamps added"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Documentation & Testing Tools",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-5-files",
+        "phase-5-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-6"
+        ],
+        "depends": []
+      },
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Add doc-query and run-tests functionality for full toolkit parity",
+        "risk_level": "medium",
+        "estimated_hours": 8
+      }
+    },
+    "phase-5-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3",
+        "task-5-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-5-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/docs.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-5-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/docs.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Extract documentation query functions from doc_query/",
+          "Implement find_class, find_function",
+          "Implement trace_calls for call graph",
+          "Implement impact_analysis for change impact"
+        ]
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/testing.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-5-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/testing.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Extract pytest runner from run_tests/",
+          "Implement run_tests with presets",
+          "Implement discover_tests for test discovery"
+        ]
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/docs.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-5-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/docs.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Implement foundry_find_class MCP tool",
+          "Implement foundry_find_function MCP tool",
+          "Implement foundry_trace_calls MCP tool",
+          "Implement foundry_impact_analysis MCP tool"
+        ]
+      }
+    },
+    "task-5-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/testing.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-5-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/testing.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Implement foundry_run_tests MCP tool",
+          "Implement foundry_discover_tests MCP tool",
+          "Add progress reporting for long-running tests"
+        ]
+      }
+    },
+    "phase-5-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "verify-5-1",
+        "verify-5-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-5-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Doc-query tools return results",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Documentation queries return expected class/function information",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-5-2": {
+      "type": "verify",
+      "title": "Test runner executes correctly",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "foundry_run_tests executes pytest and returns results",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-6": {
+      "type": "phase",
+      "title": "MCP Resources, Prompts & Publishing",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-6-files",
+        "phase-6-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-4",
+          "phase-5"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Complete MCP primitives (resources, prompts), test, and publish to PyPI",
+        "risk_level": "low",
+        "estimated_hours": 5
+      }
+    },
+    "phase-6-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [
+        "task-6-1",
+        "task-6-2",
+        "task-6-3",
+        "task-6-4"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-6-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/resources/specs.py",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/resources/specs.py",
+        "task_category": "implementation",
+        "estimated_hours": 1.5,
+        "details": [
+          "Implement foundry://specs/ resource (list specs)",
+          "Implement foundry://specs/{status}/{spec_id} resource",
+          "Implement foundry://specs/{spec_id}/journal resource",
+          "Implement foundry://templates/ resource"
+        ]
+      }
+    },
+    "task-6-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/prompts/workflows.py",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/prompts/workflows.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Implement start_feature prompt",
+          "Implement debug_test prompt",
+          "Implement complete_phase prompt"
+        ]
+      }
+    },
+    "task-6-3": {
+      "type": "task",
+      "title": "tests/integration/test_mcp_tools.py",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-6-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/integration/test_mcp_tools.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Integration tests for MCP tool registration",
+          "Test tool input/output schemas",
+          "Test resource access",
+          "Test prompt expansion"
+        ]
+      }
+    },
+    "task-6-4": {
+      "type": "task",
+      "title": "Finalize README and publish to PyPI",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-6-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Update README with full tool documentation",
+          "Add CHANGELOG.md",
+          "Build and publish to PyPI with hatch",
+          "Test installation with pip install foundry-mcp"
+        ],
+        "file_path": "task-6-4.md"
+      }
+    },
+    "phase-6-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [
+        "verify-6-1",
+        "verify-6-2",
+        "verify-6-3"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-6-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-6-1": {
+      "type": "verify",
+      "title": "All integration tests pass",
+      "status": "pending",
+      "parent": "phase-6-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "cd foundry-mcp && python -m pytest tests/integration/ -v",
+        "expected": "All MCP integration tests pass"
+      }
+    },
+    "verify-6-2": {
+      "type": "verify",
+      "title": "Claude Desktop integration works",
+      "status": "pending",
+      "parent": "phase-6-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "Foundry MCP server starts in Claude Desktop, tools are visible and callable",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-6-3": {
+      "type": "verify",
+      "title": "Package installs from PyPI",
+      "status": "pending",
+      "parent": "phase-6-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "manual",
+        "expected": "pip install foundry-mcp works, foundry-mcp command starts server",
+        "command": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  }
+}

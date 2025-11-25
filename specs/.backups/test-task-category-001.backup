@@ -1,0 +1,101 @@
+{
+  "spec_id": "test-task-category-001",
+  "generated": "2025-10-27T10:00:00Z",
+  "last_updated": "2025-10-27T10:00:00Z",
+  "metadata": {
+    "title": "Test Task Category Auto-Fix",
+    "description": "Testing automatic task_category inference"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Test Task Category",
+      "status": "pending",
+      "parent": null,
+      "children": ["phase-1"],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1: Testing",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": ["task-1", "task-2", "task-3", "task-4"],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1": {
+      "type": "task",
+      "title": "src/auth/login.py",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/auth/login.py",
+        "estimated_hours": 2
+      }
+    },
+    "task-2": {
+      "type": "task",
+      "title": "Analyze current authentication flow",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 3
+      }
+    },
+    "task-3": {
+      "type": "task",
+      "title": "Refactor authentication middleware",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/middleware/auth.py",
+        "estimated_hours": 4
+      }
+    },
+    "task-4": {
+      "type": "task",
+      "title": "Research OAuth 2.0 providers",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "estimated_hours": 2
+      }
+    }
+  }
+}
