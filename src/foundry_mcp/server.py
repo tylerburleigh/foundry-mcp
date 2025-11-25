@@ -43,7 +43,6 @@ def create_server(config: Optional[ServerConfig] = None) -> FastMCP:
     # Create FastMCP server
     mcp = FastMCP(
         name=config.server_name,
-        version=config.server_version,
     )
 
     # Register tools
