@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T23:44:18.949853Z",
+  "last_updated": "2025-11-25T23:46:30.807365Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 77,
+    "progress_percentage": 79,
     "status": "active",
     "current_phase": "phase-6"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 45,
+      "completed_tasks": 46,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1791,7 +1791,7 @@
         "phase-6-verify"
       ],
       "total_tasks": 14,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Complete MCP primitives (resources, prompts), test, and publish to PyPI",
         "risk_level": "low",
@@ -1823,7 +1823,7 @@
         "task-6-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1872,7 +1872,7 @@
     "task-6-2": {
       "type": "task",
       "title": "src/foundry_mcp/prompts/workflows.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-files",
       "children": [],
       "dependencies": {
@@ -1883,7 +1883,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/prompts/workflows.py",
         "task_category": "implementation",
@@ -1892,7 +1892,13 @@
           "Implement start_feature prompt",
           "Implement debug_test prompt",
           "Implement complete_phase prompt"
-        ]
+        ],
+        "started_at": "2025-11-25T23:44:46.487265Z",
+        "status_note": "Starting MCP prompts implementation",
+        "completed_at": "2025-11-25T23:46:30.799976Z",
+        "needs_journaling": false,
+        "actual_hours": 0.029,
+        "journaled_at": "2025-11-25T23:46:30.805188Z"
       }
     },
     "task-6-3": {
@@ -2782,6 +2788,15 @@
       "content": "Created src/foundry_mcp/resources/specs.py with MCP resources for spec access. Implemented: foundry://specs/ (list all specs), foundry://specs/{status}/ (list by status), foundry://specs/{status}/{spec_id} (get specific spec), foundry://specs/{spec_id}/journal (get journal entries), foundry://templates/ (list templates), foundry://templates/{template_id} (get template). Added workspace sandbox validation and builtin templates (basic, feature, bugfix). Updated server.py to register docs tools, testing tools, and spec resources. All imports verified working.",
       "metadata": {},
       "task_id": "task-6-1"
+    },
+    {
+      "timestamp": "2025-11-25T23:46:30.805183Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/prompts/workflows.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/prompts/workflows.py with MCP prompts for SDD workflows. Implemented: start_feature (new feature setup with template selection), debug_test (systematic test debugging workflow), complete_phase (phase completion checklist), review_spec (comprehensive spec review). All prompts provide structured guidance with available tools and context. Updated server.py to register workflow prompts. All imports verified working.",
+      "metadata": {},
+      "task_id": "task-6-2"
     }
   ]
 }

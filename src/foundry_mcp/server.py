@@ -27,6 +27,7 @@ from foundry_mcp.tools.lifecycle import register_lifecycle_tools
 from foundry_mcp.tools.docs import register_docs_tools
 from foundry_mcp.tools.testing import register_testing_tools
 from foundry_mcp.resources.specs import register_spec_resources
+from foundry_mcp.prompts.workflows import register_workflow_prompts
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,9 @@ def create_server(config: Optional[ServerConfig] = None) -> FastMCP:
     # Register resources
     _register_resources(mcp, config)
     register_spec_resources(mcp, config)
+
+    # Register prompts
+    register_workflow_prompts(mcp, config)
 
     logger.info(f"Server created: {config.server_name} v{config.server_version}")
 
