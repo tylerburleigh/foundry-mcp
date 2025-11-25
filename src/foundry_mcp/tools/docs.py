@@ -1,0 +1,431 @@
+"""
+Documentation tools for foundry-mcp.
+
+Provides MCP tools for querying codebase documentation.
+"""
+
+import json
+import logging
+from dataclasses import asdict
+from typing import Optional
+
+from mcp.server.fastmcp import FastMCP
+
+from foundry_mcp.config import ServerConfig
+from foundry_mcp.core.observability import mcp_tool
+from foundry_mcp.core.docs import (
+    DocsQuery,
+    SCHEMA_VERSION,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
+    """
+    Register documentation tools with the FastMCP server.
+
+    Args:
+        mcp: FastMCP server instance
+        config: Server configuration
+    """
+
+    def _get_query(workspace: Optional[str] = None) -> DocsQuery:
+        """Get a DocsQuery instance for the given workspace."""
+        from pathlib import Path
+        ws = Path(workspace) if workspace else (config.specs_dir.parent if config.specs_dir else None)
+        return DocsQuery(workspace=ws)
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_find_class")
+    def foundry_find_class(
+        name: str,
+        exact: bool = True,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Find a class by name in codebase documentation.
+
+        Searches loaded codebase.json for class definitions matching
+        the given name.
+
+        Args:
+            name: Class name to search for
+            exact: If True, exact match; if False, substring match
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with matching classes and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.find_class(name, exact)
+
+            return json.dumps({
+                "success": result.success,
+                "schema_version": result.schema_version,
+                "query_type": result.query_type,
+                "count": result.count,
+                "results": [
+                    {
+                        "name": r.name,
+                        "file_path": r.file_path,
+                        "line_number": r.line_number,
+                        "data": r.data,
+                    }
+                    for r in result.results
+                ],
+                "error": result.error,
+            })
+
+        except Exception as e:
+            logger.error(f"Error finding class: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_find_function")
+    def foundry_find_function(
+        name: str,
+        exact: bool = True,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Find a function by name in codebase documentation.
+
+        Searches loaded codebase.json for function definitions matching
+        the given name.
+
+        Args:
+            name: Function name to search for
+            exact: If True, exact match; if False, substring match
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with matching functions and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.find_function(name, exact)
+
+            return json.dumps({
+                "success": result.success,
+                "schema_version": result.schema_version,
+                "query_type": result.query_type,
+                "count": result.count,
+                "results": [
+                    {
+                        "name": r.name,
+                        "file_path": r.file_path,
+                        "line_number": r.line_number,
+                        "data": r.data,
+                    }
+                    for r in result.results
+                ],
+                "error": result.error,
+            })
+
+        except Exception as e:
+            logger.error(f"Error finding function: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_trace_calls")
+    def foundry_trace_calls(
+        function_name: str,
+        direction: str = "both",
+        max_depth: int = 3,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Trace function calls in the call graph.
+
+        Follows caller/callee relationships to show function dependencies.
+
+        Args:
+            function_name: Function to trace from
+            direction: "callers" (who calls this), "callees" (what this calls), or "both"
+            max_depth: Maximum traversal depth (default: 3)
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with call graph entries and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.trace_calls(function_name, direction, max_depth)
+
+            return json.dumps({
+                "success": result.success,
+                "schema_version": result.schema_version,
+                "query_type": result.query_type,
+                "count": result.count,
+                "results": [
+                    {
+                        "caller": entry.caller,
+                        "callee": entry.callee,
+                        "caller_file": entry.caller_file,
+                        "callee_file": entry.callee_file,
+                    }
+                    for entry in result.results
+                ],
+                "metadata": result.metadata,
+                "error": result.error,
+            })
+
+        except Exception as e:
+            logger.error(f"Error tracing calls: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_impact_analysis")
+    def foundry_impact_analysis(
+        target: str,
+        target_type: str = "auto",
+        max_depth: int = 3,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Analyze impact of changing a class or function.
+
+        Identifies direct and indirect impacts of modifying the target,
+        including affected files and an impact score.
+
+        Args:
+            target: Name of class or function to analyze
+            target_type: "class", "function", or "auto" (detect from name)
+            max_depth: Maximum depth for impact propagation (default: 3)
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with impact analysis and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.impact_analysis(target, target_type, max_depth)
+
+            if result.success and result.results:
+                impact = result.results[0]
+                return json.dumps({
+                    "success": True,
+                    "schema_version": result.schema_version,
+                    "query_type": result.query_type,
+                    "target": impact.target,
+                    "target_type": impact.target_type,
+                    "impact_score": impact.impact_score,
+                    "direct_impacts": impact.direct_impacts,
+                    "indirect_impacts": impact.indirect_impacts,
+                    "affected_files": impact.affected_files,
+                    "metadata": result.metadata,
+                })
+            else:
+                return json.dumps({
+                    "success": False,
+                    "schema_version": result.schema_version,
+                    "error": result.error or "No impact analysis available",
+                })
+
+        except Exception as e:
+            logger.error(f"Error analyzing impact: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_get_callers")
+    def foundry_get_callers(
+        function_name: str,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Get functions that call the specified function.
+
+        Args:
+            function_name: Function to find callers for
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with caller functions and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.get_callers(function_name)
+
+            return json.dumps({
+                "success": result.success,
+                "schema_version": result.schema_version,
+                "query_type": result.query_type,
+                "count": result.count,
+                "callers": [r.name for r in result.results],
+                "results": [
+                    {
+                        "name": r.name,
+                        "file_path": r.file_path,
+                    }
+                    for r in result.results
+                ],
+                "metadata": result.metadata,
+                "error": result.error,
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting callers: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_get_callees")
+    def foundry_get_callees(
+        function_name: str,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Get functions called by the specified function.
+
+        Args:
+            function_name: Function to find callees for
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with callee functions and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.get_callees(function_name)
+
+            return json.dumps({
+                "success": result.success,
+                "schema_version": result.schema_version,
+                "query_type": result.query_type,
+                "count": result.count,
+                "callees": [r.name for r in result.results],
+                "results": [
+                    {
+                        "name": r.name,
+                        "file_path": r.file_path,
+                    }
+                    for r in result.results
+                ],
+                "metadata": result.metadata,
+                "error": result.error,
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting callees: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_docs_stats")
+    def foundry_docs_stats(
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Get documentation statistics.
+
+        Returns counts of classes, functions, files, and dependencies
+        in the loaded documentation.
+
+        Args:
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with documentation statistics and schema_version
+        """
+        try:
+            query = _get_query(workspace)
+            if not query.load():
+                return json.dumps({
+                    "success": False,
+                    "schema_version": SCHEMA_VERSION,
+                    "error": "Documentation not loaded. Run 'sdd doc generate' first.",
+                })
+
+            result = query.get_stats()
+
+            if result.success and result.results:
+                stats = result.results[0]
+                return json.dumps({
+                    "success": True,
+                    "schema_version": result.schema_version,
+                    "stats": stats,
+                })
+            else:
+                return json.dumps({
+                    "success": False,
+                    "schema_version": result.schema_version,
+                    "error": result.error or "No stats available",
+                })
+
+        except Exception as e:
+            logger.error(f"Error getting docs stats: {e}")
+            return json.dumps({
+                "success": False,
+                "schema_version": SCHEMA_VERSION,
+                "error": str(e),
+            })
+
+    logger.debug("Registered docs tools: foundry_find_class, foundry_find_function, "
+                 "foundry_trace_calls, foundry_impact_analysis, foundry_get_callers, "
+                 "foundry_get_callees, foundry_docs_stats")
