@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T23:02:11.891484Z",
+  "last_updated": "2025-11-25T23:04:11.355972Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 44,
+    "progress_percentage": 46,
     "status": "active",
     "current_phase": "phase-3"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 26,
+      "completed_tasks": 27,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -875,7 +875,7 @@
         "phase-3-verify"
       ],
       "total_tasks": 7,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Implement spec validation, auto-fixing, and journal/blocker management",
         "risk_level": "medium",
@@ -1082,7 +1082,7 @@
     "phase-3-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-3",
       "children": [
         "verify-3-1",
@@ -1096,21 +1096,27 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-3-1": {
       "type": "verify",
       "title": "Validation detects spec issues",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "cd foundry-mcp && python -m pytest tests/unit/test_core/test_validation.py -v",
-        "expected": "Validation correctly identifies and can fix common spec issues"
+        "expected": "Validation correctly identifies and can fix common spec issues",
+        "started_at": "2025-11-25T23:02:56.490043Z",
+        "status_note": "Creating validation unit tests",
+        "completed_at": "2025-11-25T23:04:11.349249Z",
+        "needs_journaling": false,
+        "actual_hours": 0.021,
+        "journaled_at": "2025-11-25T23:04:11.354097Z"
       }
     },
     "verify-3-2": {
@@ -2387,6 +2393,15 @@
       "content": "All child tasks in group phase-3-files have been completed.",
       "metadata": {},
       "task_id": "phase-3-files"
+    },
+    {
+      "timestamp": "2025-11-25T23:04:11.354091Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validation detects spec issues",
+      "author": "claude-code",
+      "content": "Created comprehensive unit test suite for validation module with 29 tests all passing. Tests cover: validate_spec (13 tests - valid spec, missing fields, empty hierarchy, missing spec-root, invalid spec_id format, invalid status/node type, count mismatches, bidirectional dependencies, missing file_path, missing verification_type, orphaned nodes, parent/child mismatches), get_fix_actions (4 tests - count fixes, bidirectional fixes, auto_apply, no fixes for valid), apply_fixes (3 tests - dry_run, backup creation, fix application), calculate_stats (5 tests - basic stats, status counts, progress, file size, max depth), Diagnostic structure (1 test), validation constants (3 tests). Committed as ebb7870.",
+      "metadata": {},
+      "task_id": "verify-3-1"
     }
   ]
 }
