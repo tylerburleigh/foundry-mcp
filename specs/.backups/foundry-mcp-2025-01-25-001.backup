@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T21:38:37.027242Z",
+  "last_updated": "2025-11-25T21:40:34.919526Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,9 +41,9 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 18,
+    "progress_percentage": 20,
     "status": "active",
-    "current_phase": "phase-1"
+    "current_phase": "phase-2"
   },
   "hierarchy": {
     "spec-root": {
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 12,
+      "completed_tasks": 13,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -515,7 +515,7 @@
         "phase-2-verify"
       ],
       "total_tasks": 10,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Implement the core task workflow - finding tasks, preparing context, updating status",
         "risk_level": "medium",
@@ -545,7 +545,7 @@
         "task-2-5"
       ],
       "total_tasks": 8,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -574,7 +574,7 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/core/task.py",
         "task_category": "implementation",
@@ -602,13 +602,19 @@
     "task-2-1-2": {
       "type": "subtask",
       "title": "Extract prepare_task with context gathering",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Prepare task with full context including dependencies, file info, journal"
+        "details": "Prepare task with full context including dependencies, file info, journal",
+        "started_at": "2025-11-25T21:38:57.787831Z",
+        "status_note": "Starting extraction of prepare_task function",
+        "completed_at": "2025-11-25T21:40:34.913723Z",
+        "needs_journaling": false,
+        "actual_hours": 0.027,
+        "journaled_at": "2025-11-25T21:40:34.919484Z"
       }
     },
     "task-2-1-3": {
@@ -2132,6 +2138,15 @@
       "content": "Created src/foundry_mcp/core/task.py with get_next_task function extracted from sdd_next/discovery.py. Also extracted helper functions is_unblocked and is_in_current_phase that it depends on. Updated core/__init__.py to export all three functions. Verified imports work correctly with python3 test.",
       "metadata": {},
       "task_id": "task-2-1-1"
+    },
+    {
+      "timestamp": "2025-11-25T21:40:34.919472Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Extract prepare_task with context gathering",
+      "author": "claude-code",
+      "content": "Added prepare_task function to task.py with full context gathering including get_previous_sibling, get_parent_context, get_phase_context, and get_task_journal_summary. Also added check_dependencies function. All functions exported from core/__init__.py. Verified imports work correctly.",
+      "metadata": {},
+      "task_id": "task-2-1-2"
     }
   ]
 }

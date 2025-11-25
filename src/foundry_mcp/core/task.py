@@ -1,9 +1,12 @@
 """
 Task discovery and dependency operations for SDD workflows.
-Provides finding next tasks and dependency checking.
+Provides finding next tasks, dependency checking, and task preparation.
 """
 
-from typing import Optional, Dict, Any, Tuple
+from pathlib import Path
+from typing import Optional, Dict, Any, Tuple, List
+
+from foundry_mcp.core.spec import load_spec, find_spec_file, get_node
 
 
 def is_unblocked(spec_data: Dict[str, Any], task_id: str, task_data: Dict[str, Any]) -> bool:
@@ -148,3 +151,457 @@ def get_next_task(spec_data: Dict[str, Any]) -> Optional[Tuple[str, Dict[str, An
 
     # No actionable tasks found in any phase
     return None
+
+
+def check_dependencies(spec_data: Dict[str, Any], task_id: str) -> Dict[str, Any]:
+    """
+    Check dependency status for a task.
+
+    Args:
+        spec_data: JSON spec file data
+        task_id: Task identifier
+
+    Returns:
+        Dictionary with dependency analysis including:
+        - task_id: The task being checked
+        - can_start: Whether the task is unblocked
+        - blocked_by: List of blocking task info
+        - soft_depends: List of soft dependency info
+        - blocks: List of tasks this blocks
+    """
+    hierarchy = spec_data.get("hierarchy", {})
+    task = hierarchy.get(task_id)
+
+    if not task:
+        return {"error": f"Task {task_id} not found"}
+
+    deps = task.get("dependencies", {})
+    blocked_by = deps.get("blocked_by", [])
+    depends = deps.get("depends", [])
+    blocks = deps.get("blocks", [])
+
+    result = {
+        "task_id": task_id,
+        "can_start": is_unblocked(spec_data, task_id, task),
+        "blocked_by": [],
+        "soft_depends": [],
+        "blocks": []
+    }
+
+    # Get info for blocking tasks
+    for dep_id in blocked_by:
+        dep_task = hierarchy.get(dep_id)
+        if dep_task:
+            result["blocked_by"].append({
+                "id": dep_id,
+                "title": dep_task.get("title", ""),
+                "status": dep_task.get("status", ""),
+                "file": dep_task.get("metadata", {}).get("file_path", "")
+            })
+
+    # Get info for soft dependencies
+    for dep_id in depends:
+        dep_task = hierarchy.get(dep_id)
+        if dep_task:
+            result["soft_depends"].append({
+                "id": dep_id,
+                "title": dep_task.get("title", ""),
+                "status": dep_task.get("status", ""),
+                "file": dep_task.get("metadata", {}).get("file_path", "")
+            })
+
+    # Get info for tasks this blocks
+    for dep_id in blocks:
+        dep_task = hierarchy.get(dep_id)
+        if dep_task:
+            result["blocks"].append({
+                "id": dep_id,
+                "title": dep_task.get("title", ""),
+                "status": dep_task.get("status", ""),
+                "file": dep_task.get("metadata", {}).get("file_path", "")
+            })
+
+    return result
+
+
+def _get_sibling_ids(
+    hierarchy: Dict[str, Dict[str, Any]],
+    parent_id: str,
+    parent_node: Dict[str, Any],
+) -> List[str]:
+    """Return sibling IDs for a parent, falling back to scanning the hierarchy."""
+    children = parent_node.get("children", [])
+    if isinstance(children, list) and children:
+        return [child_id for child_id in children if child_id in hierarchy]
+
+    return [
+        node_id
+        for node_id, node in hierarchy.items()
+        if node.get("parent") == parent_id
+    ]
+
+
+def _get_latest_journal_excerpt(
+    journal_entries: List[Dict[str, Any]],
+    task_id: str,
+) -> Optional[Dict[str, Any]]:
+    """Return the most recent journal entry for the given task."""
+    if not journal_entries:
+        return None
+
+    filtered = [
+        entry for entry in journal_entries if entry.get("task_id") == task_id
+    ]
+    if not filtered:
+        return None
+
+    filtered.sort(key=lambda entry: entry.get("timestamp") or "", reverse=True)
+    latest = filtered[0]
+    summary = (latest.get("content") or "").strip()
+
+    return {
+        "timestamp": latest.get("timestamp"),
+        "entry_type": latest.get("entry_type"),
+        "summary": summary,
+    }
+
+
+def _find_phase_node(hierarchy: Dict[str, Dict[str, Any]], task_node: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Walk ancestor chain to find the nearest phase node."""
+    current = task_node
+    while current:
+        parent_id = current.get("parent")
+        if not parent_id:
+            return None
+        parent = hierarchy.get(parent_id)
+        if not parent:
+            return None
+        if parent.get("type") == "phase":
+            return parent
+        current = parent
+    return None
+
+
+def get_previous_sibling(spec_data: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Return metadata about the previous sibling for the given task.
+
+    Args:
+        spec_data: Loaded JSON spec dictionary.
+        task_id: ID of the current task.
+
+    Returns:
+        Dictionary describing the previous sibling or None when the task is
+        first in its group / has no siblings.
+    """
+    if not spec_data:
+        return None
+
+    hierarchy = spec_data.get("hierarchy", {})
+    task = hierarchy.get(task_id)
+    if not task:
+        return None
+
+    parent_id = task.get("parent")
+    if not parent_id:
+        return None
+
+    parent = hierarchy.get(parent_id, {})
+    sibling_ids = _get_sibling_ids(hierarchy, parent_id, parent)
+    if not sibling_ids:
+        return None
+
+    try:
+        task_index = sibling_ids.index(task_id)
+    except ValueError:
+        return None
+
+    if task_index == 0:
+        return None
+
+    previous_id = sibling_ids[task_index - 1]
+    previous_task = hierarchy.get(previous_id)
+    if not previous_task:
+        return None
+
+    metadata = previous_task.get("metadata", {}) or {}
+    journal_excerpt = _get_latest_journal_excerpt(
+        spec_data.get("journal", []),
+        previous_id,
+    )
+
+    return {
+        "id": previous_id,
+        "title": previous_task.get("title", ""),
+        "status": previous_task.get("status", ""),
+        "type": previous_task.get("type", ""),
+        "file_path": metadata.get("file_path"),
+        "completed_at": metadata.get("completed_at"),
+        "journal_excerpt": journal_excerpt,
+    }
+
+
+def get_parent_context(spec_data: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Return contextual information about the parent node for a task.
+
+    Args:
+        spec_data: Loaded JSON spec dictionary.
+        task_id: ID of the current task.
+
+    Returns:
+        Dictionary with parent metadata or None if the task has no parent.
+    """
+    if not spec_data:
+        return None
+
+    hierarchy = spec_data.get("hierarchy", {})
+    task = hierarchy.get(task_id)
+    if not task:
+        return None
+
+    parent_id = task.get("parent")
+    if not parent_id:
+        return None
+
+    parent = hierarchy.get(parent_id)
+    if not parent:
+        return None
+
+    parent_metadata = parent.get("metadata", {}) or {}
+    description = (
+        parent_metadata.get("description")
+        or parent_metadata.get("note")
+        or parent.get("description")
+    )
+
+    children_ids = _get_sibling_ids(hierarchy, parent_id, parent)
+    children_entries = [
+        {
+            "id": child_id,
+            "title": hierarchy.get(child_id, {}).get("title", ""),
+            "status": hierarchy.get(child_id, {}).get("status", ""),
+        }
+        for child_id in children_ids
+    ]
+
+    position_label = None
+    if children_ids and task_id in children_ids:
+        index = children_ids.index(task_id) + 1
+        total = len(children_ids)
+        label = "subtasks" if parent.get("type") == "task" else "children"
+        position_label = f"{index} of {total} {label}"
+
+    remaining_tasks = None
+    completed_tasks = parent.get("completed_tasks")
+    total_tasks = parent.get("total_tasks")
+    if isinstance(completed_tasks, int) and isinstance(total_tasks, int):
+        remaining_tasks = max(total_tasks - completed_tasks, 0)
+
+    return {
+        "id": parent_id,
+        "title": parent.get("title", ""),
+        "type": parent.get("type", ""),
+        "status": parent.get("status", ""),
+        "description": description,
+        "completed_tasks": completed_tasks,
+        "total_tasks": total_tasks,
+        "remaining_tasks": remaining_tasks,
+        "position_label": position_label,
+        "children": children_entries,
+    }
+
+
+def get_phase_context(spec_data: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Return phase-level context for a task, including progress metrics.
+
+    Args:
+        spec_data: Loaded JSON spec dictionary.
+        task_id: ID of the current task.
+
+    Returns:
+        Dictionary with phase data or None if the task does not belong to a phase.
+    """
+    if not spec_data:
+        return None
+
+    hierarchy = spec_data.get("hierarchy", {})
+    task = hierarchy.get(task_id)
+    if not task:
+        return None
+
+    phase_node = _find_phase_node(hierarchy, task)
+    if not phase_node:
+        return None
+
+    phase_id = None
+    for node_id, node in hierarchy.items():
+        if node is phase_node:
+            phase_id = node_id
+            break
+
+    phase_metadata = phase_node.get("metadata", {}) or {}
+    summary = (
+        phase_metadata.get("description")
+        or phase_metadata.get("note")
+        or phase_node.get("description")
+    )
+    blockers = phase_node.get("dependencies", {}).get("blocked_by", []) or []
+
+    completed = phase_node.get("completed_tasks")
+    total = phase_node.get("total_tasks")
+    percentage = None
+    if isinstance(completed, int) and isinstance(total, int) and total > 0:
+        percentage = int((completed / total) * 100)
+
+    spec_root = hierarchy.get("spec-root", {})
+    sequence_index = None
+    phase_list = spec_root.get("children", [])
+    if isinstance(phase_list, list) and phase_id in phase_list:
+        sequence_index = phase_list.index(phase_id) + 1
+
+    return {
+        "id": phase_id,
+        "title": phase_node.get("title", ""),
+        "status": phase_node.get("status", ""),
+        "sequence_index": sequence_index,
+        "completed_tasks": completed,
+        "total_tasks": total,
+        "percentage": percentage,
+        "summary": summary,
+        "blockers": blockers,
+    }
+
+
+def get_task_journal_summary(
+    spec_data: Dict[str, Any],
+    task_id: str,
+    max_entries: int = 3,
+) -> Dict[str, Any]:
+    """
+    Return a compact summary of journal entries for a task.
+
+    Args:
+        spec_data: Loaded JSON spec dictionary.
+        task_id: Task identifier.
+        max_entries: Maximum entries to include in summary.
+
+    Returns:
+        Dictionary with entry_count and entries[]
+    """
+    if not spec_data or not task_id:
+        return {"entry_count": 0, "entries": []}
+
+    journal = spec_data.get("journal", []) or []
+    filtered = [
+        entry for entry in journal
+        if entry.get("task_id") == task_id
+    ]
+
+    if not filtered:
+        return {"entry_count": 0, "entries": []}
+
+    filtered.sort(key=lambda entry: entry.get("timestamp") or "", reverse=True)
+    entries = []
+    for entry in filtered[:max_entries]:
+        summary = (entry.get("content") or "").strip()
+        entries.append({
+            "timestamp": entry.get("timestamp"),
+            "entry_type": entry.get("entry_type"),
+            "title": entry.get("title"),
+            "summary": summary,
+            "author": entry.get("author"),
+        })
+
+    return {
+        "entry_count": len(filtered),
+        "entries": entries,
+    }
+
+
+def prepare_task(
+    spec_id: str,
+    specs_dir: Path,
+    task_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Prepare complete context for task implementation.
+
+    Combines task discovery, dependency checking, and context gathering.
+
+    Args:
+        spec_id: Specification ID
+        specs_dir: Path to specs directory
+        task_id: Optional task ID (auto-discovers if not provided)
+
+    Returns:
+        Complete task preparation data with context.
+    """
+    result = {
+        "success": False,
+        "task_id": task_id,
+        "task_data": None,
+        "dependencies": None,
+        "spec_complete": False,
+        "context": None,
+        "error": None
+    }
+
+    # Find and load spec
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if not spec_path:
+        result["error"] = f"Spec file not found for {spec_id}"
+        return result
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if not spec_data:
+        result["error"] = "Failed to load spec"
+        return result
+
+    # Get task ID if not provided
+    if not task_id:
+        next_task = get_next_task(spec_data)
+        if not next_task:
+            # Check if spec is complete
+            hierarchy = spec_data.get("hierarchy", {})
+            all_tasks = [
+                node for node in hierarchy.values()
+                if node.get("type") in ["task", "subtask", "verify"]
+            ]
+            completed = sum(1 for t in all_tasks if t.get("status") == "completed")
+            pending = sum(1 for t in all_tasks if t.get("status") == "pending")
+
+            if pending == 0 and completed > 0:
+                result["success"] = True
+                result["spec_complete"] = True
+                return result
+            else:
+                result["error"] = "No actionable tasks found"
+                return result
+
+        task_id, _ = next_task
+        result["task_id"] = task_id
+
+    # Get task info
+    task_data = get_node(spec_data, task_id)
+    if not task_data:
+        result["error"] = f"Task {task_id} not found"
+        return result
+
+    result["task_data"] = task_data
+
+    # Check dependencies
+    deps = check_dependencies(spec_data, task_id)
+    result["dependencies"] = deps
+
+    # Gather context
+    result["context"] = {
+        "previous_sibling": get_previous_sibling(spec_data, task_id),
+        "parent_task": get_parent_context(spec_data, task_id),
+        "phase": get_phase_context(spec_data, task_id),
+        "task_journal": get_task_journal_summary(spec_data, task_id),
+    }
+
+    result["success"] = True
+    return result
