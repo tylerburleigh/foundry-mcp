@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T21:25:01.969281Z",
+  "last_updated": "2025-11-25T21:26:46.070865Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 6,
+    "progress_percentage": 8,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -78,7 +78,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 11,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Establish the foundry-mcp repo structure, package configuration, and extract core spec CRUD operations",
         "risk_level": "low",
@@ -112,7 +112,7 @@
         "task-1-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -378,7 +378,7 @@
     "task-1-9": {
       "type": "task",
       "title": "src/foundry_mcp/core/observability.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-files",
       "children": [],
       "dependencies": {
@@ -393,7 +393,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/observability.py",
         "task_category": "implementation",
@@ -403,7 +403,13 @@
           "Emit latency + status metrics to standard logger with tool/resource labels",
           "Add audit log helper for security events (auth, rate limit, resource access)",
           "Document how observability hooks integrate with FastMCP middleware"
-        ]
+        ],
+        "started_at": "2025-11-25T21:25:31.155294Z",
+        "status_note": "Creating observability.py with structured logging, metrics, and audit helpers",
+        "completed_at": "2025-11-25T21:26:46.066436Z",
+        "needs_journaling": false,
+        "actual_hours": 0.021,
+        "journaled_at": "2025-11-25T21:26:46.070834Z"
       }
     },
     "phase-1-verify": {
@@ -1989,6 +1995,15 @@
       "content": "Created src/foundry_mcp/config.py with: ServerConfig dataclass supporting env vars + TOML file overrides, workspace configuration (roots, specs_dir, journals_path), logging configuration with structured JSON output, API key authentication (validate_api_key, require_auth decorator), metrics decorators (log_call, timed), global config management (get_config, set_config). Documented API key rotation/revocation flow in module docstring.",
       "metadata": {},
       "task_id": "task-1-8"
+    },
+    {
+      "timestamp": "2025-11-25T21:26:46.070825Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/observability.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/observability.py with: MetricsCollector class emitting structured metrics (counter, gauge, timer) with tool/resource labels, AuditLogger class for security events (auth, rate limit, resource access, tool invocation), mcp_tool and mcp_resource decorators for FastMCP handler observability, convenience functions (get_metrics, get_audit_logger, audit_log). Module docstring documents FastMCP middleware integration patterns.",
+      "metadata": {},
+      "task_id": "task-1-9"
     }
   ]
 }
