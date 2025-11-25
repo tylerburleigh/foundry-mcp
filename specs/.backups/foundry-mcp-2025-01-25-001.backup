@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T23:48:48.276718Z",
+  "last_updated": "2025-11-25T23:50:08.453012Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 81,
+    "progress_percentage": 82,
     "status": "active",
     "current_phase": "phase-6"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 48,
+      "completed_tasks": 49,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1791,7 +1791,7 @@
         "phase-6-verify"
       ],
       "total_tasks": 14,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Complete MCP primitives (resources, prompts), test, and publish to PyPI",
         "risk_level": "low",
@@ -1823,7 +1823,7 @@
         "task-6-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2024,7 +2024,7 @@
     "task-6-7": {
       "type": "task",
       "title": "src/foundry_mcp/core/capabilities.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-files",
       "children": [],
       "dependencies": {
@@ -2040,7 +2040,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/capabilities.py",
         "task_category": "implementation",
@@ -2049,7 +2049,13 @@
           "Implement MCP Notifications for resource updates (foundry/specs/updated)",
           "Implement MCP Sampling for server-side AI requests (impact analysis)",
           "Update capabilities manifest with notification/sampling support"
-        ]
+        ],
+        "started_at": "2025-11-25T23:49:10.024728Z",
+        "status_note": "Implementing notifications and sampling capabilities",
+        "completed_at": "2025-11-25T23:50:08.447372Z",
+        "needs_journaling": false,
+        "actual_hours": 0.016,
+        "journaled_at": "2025-11-25T23:50:08.452987Z"
       }
     },
     "task-6-8": {
@@ -2827,6 +2833,15 @@
       "content": "Created mcp/capabilities_manifest.json with machine-readable list of all capabilities. Documented 40+ tools organized by category (spec_management, query, task, validation, journal, rendering, lifecycle, docs, testing), 8 resources (foundry://specs/* and foundry://templates/* URIs plus legacy specs://* URIs marked deprecated), 4 prompts with parameter schemas. Included auth_required flags (all false), rate_limit specs for test execution tools (10 rpm), and schema_version 1.0.0.",
       "metadata": {},
       "task_id": "task-6-6"
+    },
+    {
+      "timestamp": "2025-11-25T23:50:08.452982Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/capabilities.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/capabilities.py with MCP Notifications and Sampling support. Implemented: NotificationManager (emit resource/spec/task updates, handler registration, pause/resume), SamplingManager (server-side AI requests, impact analysis helper, usage stats), CapabilitiesRegistry (central registry with enable/disable, manifest loading). Added notification methods: notifications/resources/updated, foundry/specs/updated, foundry/tasks/updated. Provides global accessors get_capabilities_registry(), get_notification_manager(), get_sampling_manager(). All imports verified.",
+      "metadata": {},
+      "task_id": "task-6-7"
     }
   ]
 }
