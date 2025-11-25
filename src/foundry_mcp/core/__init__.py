@@ -24,6 +24,15 @@ from foundry_mcp.core.task import (
     prepare_task,
 )
 
+from foundry_mcp.core.progress import (
+    recalculate_progress,
+    update_node_status,
+    update_parent_status,
+    get_progress_summary,
+    list_phases,
+    get_task_counts_by_status,
+)
+
 __all__ = [
     "find_specs_directory",
     "find_spec_file",
@@ -43,4 +52,10 @@ __all__ = [
     "get_phase_context",
     "get_task_journal_summary",
     "prepare_task",
+    "recalculate_progress",
+    "update_node_status",
+    "update_parent_status",
+    "get_progress_summary",
+    "list_phases",
+    "get_task_counts_by_status",
 ]
