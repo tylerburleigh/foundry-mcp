@@ -1,0 +1,291 @@
+"""
+Rendering tools for foundry-mcp.
+
+Provides MCP tools for spec rendering and visualization.
+"""
+
+import json
+import logging
+from typing import Optional
+
+from mcp.server.fastmcp import FastMCP
+
+from foundry_mcp.config import ServerConfig
+from foundry_mcp.core.observability import mcp_tool
+from foundry_mcp.core.spec import (
+    find_specs_directory,
+    load_spec,
+)
+from foundry_mcp.core.rendering import (
+    render_spec_to_markdown,
+    render_progress_bar,
+    render_task_list,
+    get_status_icon,
+    RenderOptions,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def register_rendering_tools(mcp: FastMCP, config: ServerConfig) -> None:
+    """
+    Register rendering tools with the FastMCP server.
+
+    Args:
+        mcp: FastMCP server instance
+        config: Server configuration
+    """
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_render_spec")
+    def foundry_render_spec(
+        spec_id: str,
+        mode: str = "basic",
+        include_journal: bool = False,
+        max_depth: int = 0,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Render a specification to human-readable markdown.
+
+        Generates formatted documentation with progress visualization,
+        task hierarchy, and optional journal summary.
+
+        Args:
+            spec_id: Specification ID
+            mode: Rendering mode ("basic" or "enhanced")
+            include_journal: Whether to include recent journal entries
+            max_depth: Maximum depth to render (0 = unlimited)
+            workspace: Optional workspace path
+
+        Returns:
+            JSON object with markdown content and render metadata
+        """
+        try:
+            if workspace:
+                specs_dir = find_specs_directory(workspace)
+            else:
+                specs_dir = config.specs_dir or find_specs_directory()
+
+            if not specs_dir:
+                return json.dumps({
+                    "success": False,
+                    "error": "No specs directory found"
+                })
+
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Spec not found: {spec_id}"
+                })
+
+            options = RenderOptions(
+                mode=mode,
+                include_metadata=True,
+                include_progress=True,
+                include_dependencies=True,
+                include_journal=include_journal,
+                max_depth=max_depth,
+            )
+
+            result = render_spec_to_markdown(spec_data, options)
+
+            return json.dumps({
+                "success": True,
+                "spec_id": result.spec_id,
+                "title": result.title,
+                "markdown": result.markdown,
+                "total_sections": result.total_sections,
+                "total_tasks": result.total_tasks,
+                "completed_tasks": result.completed_tasks,
+                "progress_percentage": (
+                    result.completed_tasks / result.total_tasks * 100
+                    if result.total_tasks > 0 else 0
+                ),
+            })
+
+        except Exception as e:
+            logger.error(f"Error rendering spec: {e}")
+            return json.dumps({
+                "success": False,
+                "error": str(e)
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_render_progress")
+    def foundry_render_progress(
+        spec_id: str,
+        bar_width: int = 20,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Get a visual progress summary for a specification.
+
+        Returns ASCII progress bars for the spec and each phase.
+
+        Args:
+            spec_id: Specification ID
+            bar_width: Width of progress bars in characters
+            workspace: Optional workspace path
+
+        Returns:
+            JSON object with progress visualization
+        """
+        try:
+            if workspace:
+                specs_dir = find_specs_directory(workspace)
+            else:
+                specs_dir = config.specs_dir or find_specs_directory()
+
+            if not specs_dir:
+                return json.dumps({
+                    "success": False,
+                    "error": "No specs directory found"
+                })
+
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Spec not found: {spec_id}"
+                })
+
+            hierarchy = spec_data.get("hierarchy", {})
+            root = hierarchy.get("spec-root", {})
+            metadata = spec_data.get("metadata", {})
+
+            total_tasks = root.get("total_tasks", 0)
+            completed_tasks = root.get("completed_tasks", 0)
+
+            # Overall progress
+            overall_bar = render_progress_bar(completed_tasks, total_tasks, bar_width)
+            overall_icon = get_status_icon(root.get("status", "pending"))
+
+            # Phase progress
+            phases = []
+            for phase_id in root.get("children", []):
+                phase = hierarchy.get(phase_id, {})
+                phase_total = phase.get("total_tasks", 0)
+                phase_completed = phase.get("completed_tasks", 0)
+                phase_status = phase.get("status", "pending")
+                phase_icon = get_status_icon(phase_status)
+                phase_bar = render_progress_bar(phase_completed, phase_total, bar_width)
+
+                phases.append({
+                    "id": phase_id,
+                    "title": phase.get("title", "Untitled"),
+                    "status": phase_status,
+                    "icon": phase_icon,
+                    "progress_bar": phase_bar,
+                    "completed": phase_completed,
+                    "total": phase_total,
+                })
+
+            return json.dumps({
+                "success": True,
+                "spec_id": spec_id,
+                "title": metadata.get("title") or root.get("title", "Untitled"),
+                "overall": {
+                    "status": root.get("status", "pending"),
+                    "icon": overall_icon,
+                    "progress_bar": overall_bar,
+                    "completed": completed_tasks,
+                    "total": total_tasks,
+                },
+                "phases": phases,
+            })
+
+        except Exception as e:
+            logger.error(f"Error rendering progress: {e}")
+            return json.dumps({
+                "success": False,
+                "error": str(e)
+            })
+
+    @mcp.tool()
+    @mcp_tool(tool_name="foundry_list_tasks")
+    def foundry_list_tasks(
+        spec_id: str,
+        status_filter: Optional[str] = None,
+        include_completed: bool = True,
+        workspace: Optional[str] = None
+    ) -> str:
+        """
+        Get a flat list of all tasks in a specification.
+
+        Args:
+            spec_id: Specification ID
+            status_filter: Optional filter by status (pending, in_progress, completed, blocked)
+            include_completed: Whether to include completed tasks
+            workspace: Optional workspace path
+
+        Returns:
+            JSON object with task list
+        """
+        try:
+            if workspace:
+                specs_dir = find_specs_directory(workspace)
+            else:
+                specs_dir = config.specs_dir or find_specs_directory()
+
+            if not specs_dir:
+                return json.dumps({
+                    "success": False,
+                    "error": "No specs directory found"
+                })
+
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Spec not found: {spec_id}"
+                })
+
+            # Generate task list markdown
+            task_list_md = render_task_list(spec_data, status_filter, include_completed)
+
+            # Also extract raw task data
+            hierarchy = spec_data.get("hierarchy", {})
+            tasks = []
+
+            for node_id, node in hierarchy.items():
+                node_type = node.get("type", "")
+                if node_type not in ("task", "subtask", "verify"):
+                    continue
+
+                status = node.get("status", "pending")
+
+                if status_filter and status != status_filter:
+                    continue
+
+                if not include_completed and status == "completed":
+                    continue
+
+                tasks.append({
+                    "id": node_id,
+                    "title": node.get("title", "Untitled"),
+                    "type": node_type,
+                    "status": status,
+                    "icon": get_status_icon(status),
+                    "file_path": node.get("metadata", {}).get("file_path"),
+                    "parent": node.get("parent"),
+                })
+
+            return json.dumps({
+                "success": True,
+                "spec_id": spec_id,
+                "count": len(tasks),
+                "tasks": tasks,
+                "markdown": task_list_md,
+            })
+
+        except Exception as e:
+            logger.error(f"Error listing tasks: {e}")
+            return json.dumps({
+                "success": False,
+                "error": str(e)
+            })
+
+    logger.debug("Registered rendering tools: foundry_render_spec, foundry_render_progress, "
+                 "foundry_list_tasks")
