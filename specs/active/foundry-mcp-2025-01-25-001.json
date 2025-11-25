@@ -2,7 +2,7 @@
   "spec_id": "foundry-mcp-2025-01-25-001",
   "title": "Foundry MCP Server",
   "generated": "2025-01-25T12:00:00Z",
-  "last_updated": "2025-11-25T22:52:36.748087Z",
+  "last_updated": "2025-11-25T23:02:11.891484Z",
   "metadata": {
     "description": "Create Foundry MCP, a standalone MCP server for Spec-Driven Development published to PyPI. Extracts and refactors core business logic from claude-sdd-toolkit into an agent-agnostic MCP server.",
     "objectives": [
@@ -41,7 +41,7 @@
       "Configuration file + env overrides to support multi-tenant hosting",
       "Server-side middleware enforces manifest rate limits and emits audit logs"
     ],
-    "progress_percentage": 43,
+    "progress_percentage": 44,
     "status": "active",
     "current_phase": "phase-3"
   },
@@ -60,7 +60,7 @@
         "phase-6"
       ],
       "total_tasks": 58,
-      "completed_tasks": 25,
+      "completed_tasks": 26,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -875,7 +875,7 @@
         "phase-3-verify"
       ],
       "total_tasks": 7,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Implement spec validation, auto-fixing, and journal/blocker management",
         "risk_level": "medium",
@@ -894,7 +894,7 @@
     "phase-3-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "task-3-1",
@@ -904,8 +904,12 @@
         "task-3-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 4,
-      "metadata": {},
+      "completed_tasks": 5,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-25T23:02:11.882734Z",
+        "journaled_at": "2025-11-25T23:02:11.891440Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-3-verify"
@@ -1049,7 +1053,7 @@
     "task-3-5": {
       "type": "task",
       "title": "CHANGELOG.md (Phase 3)",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [],
       "dependencies": {
@@ -1058,7 +1062,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "CHANGELOG.md",
         "estimated_hours": 0.25,
@@ -1066,7 +1070,13 @@
           "Document validation/journal schema changes",
           "Capture new MCP tools and structured error outputs",
           "Link to any migration notes for existing specs"
-        ]
+        ],
+        "started_at": "2025-11-25T23:01:26.446454Z",
+        "status_note": "Starting CHANGELOG.md update for Phase 3",
+        "completed_at": "2025-11-25T23:02:11.882569Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-25T23:02:11.887319Z"
       }
     },
     "phase-3-verify": {
@@ -2359,6 +2369,24 @@
       "content": "Created src/foundry_mcp/tools/journal.py with MCP tools:\n- foundry_add_journal: Adds journal entries with entry_type (status_change, deviation, blocker, decision, note) and optional task_id\n- foundry_get_journal: Retrieves journal entries with filtering by task_id, entry_type, and limit\n- foundry_mark_blocked: Marks tasks as blocked with blocker metadata (type, description, ticket)\n- foundry_unblock: Unblocks tasks, moves blocker info to resolved_blockers, adds journal entry\n- foundry_list_blocked: Lists all blocked tasks in a spec\n- foundry_unjournaled_tasks: Finds completed tasks needing journal entries\n- Updated tools/__init__.py to export register_journal_tools\n- Verified imports work correctly",
       "metadata": {},
       "task_id": "task-3-4"
+    },
+    {
+      "timestamp": "2025-11-25T23:02:11.887314Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: CHANGELOG.md (Phase 3)",
+      "author": "claude-code",
+      "content": "Updated CHANGELOG.md with Phase 3 features including validation module (Diagnostic schema, validate_spec, get_fix_actions, apply_fixes, calculate_stats), journal module (add_journal_entry, get_journal_entries, mark_blocked, unblock, list_blocked_tasks, find_unjournaled_tasks), and their MCP tool wrappers (foundry_validate_spec, foundry_fix_spec, foundry_spec_stats, foundry_validate_and_fix, foundry_add_journal, foundry_get_journal, foundry_mark_blocked, foundry_unblock, foundry_list_blocked, foundry_unjournaled_tasks). Committed as 7e28188.",
+      "metadata": {},
+      "task_id": "task-3-5"
+    },
+    {
+      "timestamp": "2025-11-25T23:02:11.891432Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
     }
   ]
 }
