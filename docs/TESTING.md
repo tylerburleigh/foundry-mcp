@@ -7,6 +7,7 @@ A comprehensive guide for developers to test the foundry-mcp MCP server.
 - [Prerequisites](#prerequisites)
 - [Test Directory Structure](#test-directory-structure)
 - [Running Tests with Pytest](#running-tests-with-pytest)
+- [Parity Testing](#parity-testing)
 - [Manual MCP Testing](#manual-mcp-testing)
 - [End-to-End Workflow Testing](#end-to-end-workflow-testing)
 - [Troubleshooting](#troubleshooting)
@@ -83,6 +84,15 @@ tests/
 │   ├── test_notifications_sampling.py
 │   ├── test_prepare_task_cli.py
 │   └── test_fallback_integration.py
+├── parity/                 # Parity tests (foundry-mcp vs sdd-toolkit)
+│   ├── conftest.py         # Shared fixtures
+│   ├── test_lifecycle.py   # Lifecycle operation parity
+│   ├── test_spec_operations.py
+│   ├── test_task_operations.py
+│   ├── test_validation.py
+│   ├── test_progress_tracking.py
+│   ├── fixtures/           # Test spec fixtures
+│   └── harness/            # Adapter and comparator utilities
 ├── skills/                 # Skill-specific tests
 │   └── llm_doc_gen/
 ├── doc_query/              # Documentation query tests
@@ -194,6 +204,261 @@ pytest --ff
 
 # Generate coverage report
 pytest --cov=foundry_mcp --cov-report=html
+```
+
+---
+
+## Parity Testing
+
+Parity tests ensure that foundry-mcp produces equivalent results to sdd-toolkit for shared operations. This helps maintain compatibility between the Python library and the CLI tool.
+
+### Parity Testing Overview
+
+Parity tests compare the output of foundry-mcp core functions against sdd-toolkit CLI commands. Both systems operate on the same spec format, so their results should be functionally equivalent.
+
+**Key concepts:**
+- **Adapters**: Thin wrappers that normalize API calls for each system
+- **Comparators**: Utilities that compare normalized results
+- **Fixtures**: Sample specs used for testing
+- **Test categories**: Spec operations, task operations, lifecycle, validation, progress tracking
+
+**Test directory structure:**
+```
+tests/parity/
+├── conftest.py           # Shared pytest fixtures
+├── test_spec_operations.py
+├── test_task_operations.py
+├── test_lifecycle.py
+├── test_validation.py
+├── test_progress_tracking.py
+├── fixtures/
+│   └── sample_specs/     # Test spec fixtures
+│       ├── simple_spec.json
+│       ├── completed_spec.json
+│       ├── multi_phase_spec.json
+│       ├── with_dependencies.json
+│       └── with_blockers.json
+└── harness/
+    ├── base.py           # Base adapter interface
+    ├── foundry_adapter.py # Foundry-mcp adapter
+    ├── sdd_adapter.py    # SDD-toolkit CLI adapter
+    ├── comparators.py    # Result comparison utilities
+    ├── normalizers.py    # Response normalization
+    └── fixture_manager.py # Fixture setup utilities
+```
+
+### Running Parity Tests
+
+```bash
+# Run all parity tests
+pytest tests/parity/ -v -m parity
+
+# Run parity tests for specific category
+pytest tests/parity/test_lifecycle.py -v -m parity
+pytest tests/parity/test_spec_operations.py -v -m parity
+pytest tests/parity/test_task_operations.py -v -m parity
+pytest tests/parity/test_validation.py -v -m parity
+pytest tests/parity/test_progress_tracking.py -v -m parity
+
+# Run only parity-marked tests (excludes standalone foundry tests)
+pytest -m parity
+
+# Run parity tests with detailed output
+pytest tests/parity/ -v --tb=short -m parity
+
+# Run parity tests excluding slow ones
+pytest tests/parity/ -v -m "parity and not slow"
+```
+
+**Quick verification:**
+```bash
+# Check parity marker is registered
+pytest --markers | grep parity
+
+# Discover parity tests
+pytest tests/parity/ --collect-only -m parity
+```
+
+### Adding New Parity Tests
+
+#### Step 1: Create or reuse a fixture
+
+Fixtures are sample specs in `tests/parity/fixtures/sample_specs/`. Use existing ones or create new ones:
+
+```json
+{
+  "spec_id": "parity-test-example",
+  "title": "Example Spec",
+  "metadata": {
+    "title": "Example Spec",
+    "description": "For parity testing",
+    "version": "1.0.0"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Example Spec",
+      "status": "in_progress",
+      "children": ["phase-1"]
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Phase 1",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": ["task-1-1"]
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "First task",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": []
+    }
+  }
+}
+```
+
+#### Step 2: Write the parity test
+
+```python
+import pytest
+from .harness.comparators import ResultComparator
+from .harness.fixture_manager import FixtureManager
+from .harness.foundry_adapter import FoundryMcpAdapter
+from .harness.sdd_adapter import SddToolkitAdapter
+
+
+class TestMyOperation:
+    """Parity tests for my operation."""
+
+    @pytest.mark.parity
+    def test_my_operation_parity(self, test_dir):
+        """Test that my_operation produces equivalent results."""
+        # Setup isolated copies for each system
+        foundry_root = test_dir / "foundry"
+        foundry_fixture = FixtureManager(foundry_root)
+        foundry_fixture.setup("simple_spec", status="active")
+        foundry = FoundryMcpAdapter(foundry_root / "specs")
+
+        sdd_root = test_dir / "sdd"
+        sdd_fixture = FixtureManager(sdd_root)
+        sdd_fixture.setup("simple_spec", status="active")
+        sdd = SddToolkitAdapter(sdd_root / "specs")
+
+        # Execute operation on both systems
+        foundry_result = foundry.my_operation("parity-test-simple")
+        sdd_result = sdd.my_operation("parity-test-simple")
+
+        # Compare results
+        ResultComparator.assert_success(
+            foundry_result, sdd_result, "my_operation"
+        )
+
+    @pytest.mark.parity
+    def test_my_operation_error_parity(self, test_dir):
+        """Test that error handling is equivalent."""
+        # Setup fixtures...
+
+        # Execute with invalid input
+        foundry_result = foundry.my_operation("nonexistent")
+        sdd_result = sdd.my_operation("nonexistent")
+
+        # Both should error
+        ResultComparator.assert_both_error(
+            foundry_result, sdd_result, "my_operation(nonexistent)"
+        )
+```
+
+#### Step 3: Add adapter methods if needed
+
+For new operations, add methods to both adapters:
+
+**foundry_adapter.py:**
+```python
+def my_operation(self, spec_id: str) -> Dict[str, Any]:
+    """Perform my operation."""
+    try:
+        spec_data = load_spec(spec_id, self.specs_dir)
+        if spec_data is None:
+            return {"success": False, "error": f"Spec not found: {spec_id}"}
+
+        result = core_my_operation(spec_data)
+        return {
+            "success": True,
+            "result_field": result.value,
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+```
+
+**sdd_adapter.py:**
+```python
+def my_operation(self, spec_id: str) -> Dict[str, Any]:
+    """Perform my operation via CLI."""
+    return self._run_sdd("my-operation", spec_id)
+```
+
+#### Step 4: Use appropriate fixtures
+
+| Fixture | Use case |
+|---------|----------|
+| `both_adapters` | Read-only tests on same data |
+| `isolated_adapters` | Tests that modify state |
+| `fixture_manager` | Custom fixture setup |
+| `test_dir` | Base temporary directory |
+
+### Troubleshooting Parity Failures
+
+#### Common failure patterns
+
+| Error Pattern | Cause | Solution |
+|---------------|-------|----------|
+| `'DataclassType' object has no attribute 'get'` | Foundry returns dataclass, not dict | Convert dataclass to dict in adapter |
+| `Key mismatch for 'field'` | Different response keys | Normalize keys in adapter response |
+| `sdd-toolkit failed: unrecognized arguments` | CLI doesn't support that flag | Update sdd_adapter to use correct CLI syntax |
+| `Spec not found` | Fixture not set up correctly | Check FixtureManager.setup() call |
+| `'list' object has no attribute 'get'` | Result is list, expected dict | Wrap list in success response dict |
+
+#### Debugging strategies
+
+```bash
+# Run single failing test with full output
+pytest tests/parity/test_spec_operations.py::TestListSpecs::test_list_all_specs_parity -v --tb=long -s
+
+# Check adapter output directly
+python -c "
+from pathlib import Path
+import tempfile
+from tests.parity.harness.fixture_manager import FixtureManager
+from tests.parity.harness.foundry_adapter import FoundryMcpAdapter
+
+test_dir = Path(tempfile.mkdtemp())
+fixture = FixtureManager(test_dir)
+fixture.setup('simple_spec', status='active')
+adapter = FoundryMcpAdapter(test_dir / 'specs')
+result = adapter.my_operation('parity-test-simple')
+print(result)
+"
+
+# Compare CLI output directly
+sdd --json --path /tmp/test my-operation parity-test-simple
+```
+
+#### Known limitations
+
+Some operations have expected differences:
+
+- **CLI argument differences**: sdd-toolkit may not support all flags (e.g., `--type` for get-journal)
+- **Response format variations**: Some CLI commands return lists directly vs. wrapped dicts
+- **Completion requirements**: sdd-toolkit complete-spec requires all tasks done; foundry-mcp can force
+
+Mark tests as expected failures for known issues:
+```python
+@pytest.mark.parity
+@pytest.mark.xfail(reason="CLI doesn't support --type argument")
+def test_get_journal_by_type_parity(self, both_adapters):
+    ...
 ```
 
 ---

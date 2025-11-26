@@ -6,7 +6,7 @@
     "description": "Implement a comprehensive parity testing framework to verify behavioral equivalence between foundry-mcp MCP tools and sdd-toolkit CLI commands",
     "created_at": "2025-01-26T00:00:00Z",
     "version": "1.0.0",
-    "status": "active",
+    "status": "completed",
     "priority": "high",
     "tags": [
       "testing",
@@ -15,14 +15,14 @@
     ],
     "generated": "2025-01-26T00:00:00Z",
     "last_updated": "2025-01-26T00:00:00Z",
-    "progress_percentage": 94,
+    "progress_percentage": 100,
     "current_phase": "phase-5"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Parity Testing Framework",
-      "status": "in_progress",
+      "status": "completed",
       "children": [
         "phase-1",
         "phase-2",
@@ -30,7 +30,7 @@
         "phase-4",
         "phase-5"
       ],
-      "completed_tasks": 16,
+      "completed_tasks": 17,
       "total_tasks": 17,
       "metadata": {},
       "parent": null,
@@ -654,16 +654,20 @@
       "type": "phase",
       "title": "Integration and Documentation",
       "description": "Integrate with CI and document the parity testing approach",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-5-1",
         "task-5-2",
         "task-5-3"
       ],
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "total_tasks": 3,
-      "metadata": {},
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-26T18:42:31.432735Z",
+        "journaled_at": "2025-11-26T18:42:31.437938Z"
+      },
       "dependencies": {
         "blocks": [],
         "blocked_by": [],
@@ -735,7 +739,7 @@
       "type": "task",
       "title": "Update TESTING.md with parity section",
       "description": "Document parity testing in the testing runbook",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5",
       "children": [],
       "dependencies": {
@@ -755,9 +759,15 @@
           "Troubleshooting Parity Failures"
         ],
         "file_path": "task-5-3.md",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "started_at": "2025-11-26T18:39:45.523767Z",
+        "status_note": "Adding parity testing documentation",
+        "completed_at": "2025-11-26T18:42:31.432571Z",
+        "needs_journaling": false,
+        "actual_hours": 0.046,
+        "journaled_at": "2025-11-26T18:42:31.435492Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     }
   },
@@ -941,8 +951,26 @@
       "content": "Ran parity test suite: improved from 18 passing (44%) to 27 passing (66%). Fixed issues:\n\n1. Updated save_spec calls to use new signature (spec_id, spec_data, specs_dir)  \n2. Fixed validate_spec to properly access ValidationResult dataclass attributes\n3. Fixed spec_stats to properly access SpecStats dataclass attributes\n\nRemaining 14 failures are known issues requiring:\n- CLI argument differences (sdd-toolkit doesn't support --type for get-journal)\n- Return type normalization for list-based outputs (list_specs, list_blocked, get_journal return lists not dicts)\n- Diagnostic dataclass has different attributes than expected\n- apply_fixes API requires FixActions list, not just spec_data\n\nThese issues are documented and tracked for future iteration. The core parity testing infrastructure is working with 27 tests passing covering the main operations: lifecycle (9), progress (4), spec operations (5), task operations (7), validation (2).",
       "metadata": {},
       "task_id": "task-5-2"
+    },
+    {
+      "timestamp": "2025-11-26T18:42:31.435487Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Update TESTING.md with parity section",
+      "author": "claude-code",
+      "content": "Updated docs/TESTING.md with comprehensive parity testing section. Added:\n1. Parity Testing Overview - explained key concepts (adapters, comparators, fixtures), test categories, and directory structure\n2. Running Parity Tests - commands for running all parity tests, by category, with markers\n3. Adding New Parity Tests - step-by-step guide with code examples for fixtures, tests, adapters\n4. Troubleshooting Parity Failures - common error patterns table, debugging strategies, known limitations\n\nAlso updated Test Directory Structure section to include the tests/parity/ directory.\n\nAll 4 specified sections from task metadata implemented: Parity Testing Overview, Running Parity Tests, Adding New Parity Tests, Troubleshooting Parity Failures.",
+      "metadata": {},
+      "task_id": "task-5-3"
+    },
+    {
+      "timestamp": "2025-11-26T18:42:31.437931Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Integration and Documentation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-5 have been completed.",
+      "metadata": {},
+      "task_id": "phase-5"
     }
   ],
-  "last_updated": "2025-11-26T18:39:11.690099Z",
+  "last_updated": "2025-11-26T18:42:31.437957Z",
   "generated": "2025-01-26T00:00:00Z"
 }
