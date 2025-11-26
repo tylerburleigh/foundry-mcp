@@ -143,6 +143,8 @@ FOUNDRY_MCP_AUTO_VALIDATE=true
 ## Implementation Notes
 
 ### Response Schema Standardization Guardrails
+Reference: `specs/completed/response-schema-standardization-2025-11-26-001.json` (authoritative contract) and `src/foundry_mcp/core/responses.py` (helper implementation). As of that rollout, all shipped tool modules—`tasks.py`, `queries.py`, `docs.py`, `testing.py`, `journal.py`, `validation.py`, `server.py`, `lifecycle.py`, and `rendering.py`—already import and return `success_response` / `error_response`. Keep the backlog honest by applying the same pattern to every new adapter listed above.
+
 To avoid another retrofit cycle, every new MCP operation or adapter should:
 
 1. **Use the shared helpers** once `foundry_mcp.core.responses` lands (`success_response` / `error_response`). No tool should shape ad-hoc dicts.
@@ -150,6 +152,8 @@ To avoid another retrofit cycle, every new MCP operation or adapter should:
 3. **Document `meta` usage** when adding pagination, warnings, or telemetry flags so downstream clients can rely on consistent naming.
 4. **Add regression tests** (or extend `tests/integration/test_mcp_tools.py`) that assert the response envelope before marking an operation “covered.”
 5. **Note deviations in specs**: if an operation legitimately streams multiple payloads, capture the exception rationale in its spec so future refactors don’t “fix” it.
+
+Helper-level enforcement lives in `tests/test_responses.py`; adapter-level coverage should extend the relevant suites (typically `tests/integration/test_mcp_tools.py`) whenever you claim a new operation from this backlog.
 
 ### LLM-Powered Features
 For operations requiring AI (review, llm-doc-gen, create-pr, fidelity-review, render with insights):
