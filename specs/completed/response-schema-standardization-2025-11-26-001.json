@@ -1330,7 +1330,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Document meta/warnings contract",
       "author": "claude-code",
-      "content": "Added comprehensive module docstring documenting: (1) base response schema contract (success/data/error), (2) meta payload convention with _meta reserved key for version, pagination, and timing, (3) _warnings reserved key for non-fatal issues, (4) multi-payload tools convention for nesting multiple payloads under named keys.",
+      "content": "Added comprehensive module docstring documenting: (1) base response schema contract (success/data/error), (2) meta payload conventions for version/request_id/pagination/rate_limit/telemetry, (3) meta.warnings usage for non-fatal issues, (4) multi-payload tools convention for nesting multiple payloads under named keys.",
       "metadata": {},
       "task_id": "task-1-1-4"
     },
@@ -1348,7 +1348,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Document response contract in responses.py docstrings",
       "author": "claude-code",
-      "content": "Verified documentation is already comprehensive from task-1-1-4 work. Module docstring covers: (1) Response Schema Contract with JSON structure, (2) Meta Payload Convention with _meta and _warnings reserved keys, (3) Multi-Payload Tools section. All functions (success_response, error_response) and ToolResponse dataclass have complete docstrings with Args, Returns, and Example sections.",
+      "content": "Verified documentation is already comprehensive from task-1-1-4 work. Module docstring covers: (1) Response Schema Contract with JSON structure, (2) Meta Payload conventions for request_id, warnings, pagination, rate limits, and telemetry, (3) Multi-Payload Tools section. All functions (success_response, error_response) and ToolResponse dataclass have complete docstrings with Args, Returns, and Example sections.",
       "metadata": {},
       "task_id": "task-1-3"
     },

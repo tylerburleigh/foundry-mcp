@@ -258,6 +258,13 @@ pytest
 foundry-mcp
 ```
 
+### Developer Documentation
+
+| Document | Description |
+|----------|-------------|
+| [MCP Best Practices](docs/mcp_best_practices/README.md) | Comprehensive guide for building reliable MCP tools |
+| [Response Schema Guide](docs/codebase_standards/mcp_response_schema.md) | Canonical response contract and helper usage |
+
 ## License
 
 MIT

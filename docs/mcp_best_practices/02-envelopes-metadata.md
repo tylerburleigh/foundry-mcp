@@ -285,6 +285,7 @@ Performance metrics:
 
 ## Related Documents
 
+- [Response Schema Reference](../codebase_standards/mcp_response_schema.md) - Canonical response contract
 - [Versioned Contracts](./01-versioned-contracts.md) - Schema versioning
 - [Serialization Helpers](./03-serialization-helpers.md) - Helper functions
 - [Error Semantics](./07-error-semantics.md) - Error handling patterns

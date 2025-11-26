@@ -173,7 +173,7 @@ When introducing unstable features, mark them clearly:
 
 - [Envelopes & Metadata](./02-envelopes-metadata.md) - Response structure standards
 - [Spec-Driven Development](./09-spec-driven-development.md) - Documenting contracts
-- [Response Schema Reference](../mcp_response_schema.md) - Canonical contract
+- [Response Schema Reference](../codebase_standards/mcp_response_schema.md) - Canonical contract
 
 ---
 

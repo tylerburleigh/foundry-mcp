@@ -1,0 +1,3137 @@
+{
+  "spec_id": "mcp-best-practices-remediation-2025-11-26-001",
+  "title": "MCP Best Practices Gap Remediation",
+  "status": "draft",
+  "generated": "2025-11-26T23:30:00Z",
+  "last_updated": "2025-11-26T23:39:34.309305Z",
+  "metadata": {
+    "description": "Implement missing MCP best practices across foundry-mcp codebase",
+    "objectives": [
+      "Close critical security gaps (prompt injection, data redaction, input limits)",
+      "Implement resilience patterns (timeouts, retries, circuit breakers)",
+      "Add cursor-based pagination for all list operations",
+      "Enhance error handling with machine-readable error codes",
+      "Create tool discovery and capability negotiation endpoints",
+      "Establish feature flag infrastructure for safe rollouts"
+    ],
+    "doc_references": [
+      "docs/mcp_best_practices/README.md#L24-L77",
+      "docs/codebase_standards/mcp_response_schema.md",
+      "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+      "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
+      "docs/mcp_best_practices/07-error-semantics.md#L11-L274",
+      "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
+      "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
+      "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
+      "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
+      "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+      "docs/mcp_best_practices/14-feature-flags.md#L10-L330",
+      "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
+    ],
+    "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades."
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "MCP Best Practices Gap Remediation",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5",
+        "phase-6",
+        "phase-7",
+        "phase-8"
+      ],
+      "total_tasks": 102,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement missing MCP best practices across foundry-mcp codebase",
+        "objectives": [
+          "Close critical security gaps (prompt injection, data redaction, input limits)",
+          "Implement resilience patterns (timeouts, retries, circuit breakers)",
+          "Add cursor-based pagination for all list operations",
+          "Enhance error handling with machine-readable error codes",
+          "Create tool discovery and capability negotiation endpoints",
+          "Establish feature flag infrastructure for safe rollouts"
+        ],
+        "doc_references": [
+          "docs/mcp_best_practices/README.md#L24-L77",
+          "docs/codebase_standards/mcp_response_schema.md",
+          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
+          "docs/mcp_best_practices/07-error-semantics.md#L11-L274",
+          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
+          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
+          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
+          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
+          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "docs/mcp_best_practices/14-feature-flags.md#L10-L330",
+          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
+        ]
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Security & Input Hygiene",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-docs",
+        "phase-1-verify"
+      ],
+      "total_tasks": 15,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
+        "risk_level": "high",
+        "doc_references": [
+          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
+        ]
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4"
+      ],
+      "total_tasks": 11,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-1-verify",
+          "phase-1-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/security.py (NEW)",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-1-1",
+        "task-1-1-2",
+        "task-1-1-3",
+        "task-1-1-4"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-1-2",
+          "task-1-3",
+          "task-1-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/security.py",
+        "task_category": "implementation",
+        "estimated_hours": 3
+      }
+    },
+    "task-1-1-1": {
+      "type": "subtask",
+      "title": "Define input size limit constants",
+      "status": "pending",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "MAX_INPUT_SIZE=100KB, MAX_ARRAY_LENGTH=1000, MAX_STRING_LENGTH=10000"
+      }
+    },
+    "task-1-1-2": {
+      "type": "subtask",
+      "title": "Implement prompt injection detection patterns",
+      "status": "pending",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Detect patterns: 'ignore previous instructions', 'system:', '<|...|>', '[INST]'"
+      }
+    },
+    "task-1-1-3": {
+      "type": "subtask",
+      "title": "Create detect_prompt_injection() function",
+      "status": "pending",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Returns bool and optionally logs suspicious patterns"
+      }
+    },
+    "task-1-1-4": {
+      "type": "subtask",
+      "title": "Create validate_input_size() decorator",
+      "status": "pending",
+      "parent": "task-1-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Decorator to validate input size limits on tool parameters"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/observability.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-2-1",
+        "task-1-2-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-1-4"
+        ],
+        "blocked_by": [
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/observability.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-1-2-1": {
+      "type": "subtask",
+      "title": "Add SENSITIVE_PATTERNS regex list for redaction",
+      "status": "pending",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Patterns for passwords, API keys, tokens, emails, SSNs"
+      }
+    },
+    "task-1-2-2": {
+      "type": "subtask",
+      "title": "Create redact_sensitive_data() function",
+      "status": "pending",
+      "parent": "task-1-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Recursively redact sensitive values in dicts/strings before logging"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/validation.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-3-1",
+        "task-1-3-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/validation.py",
+        "task_category": "implementation",
+        "estimated_hours": 1
+      }
+    },
+    "task-1-3-1": {
+      "type": "subtask",
+      "title": "Import and use security constants",
+      "status": "pending",
+      "parent": "task-1-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Import MAX_INPUT_SIZE, MAX_ARRAY_LENGTH from security module"
+      }
+    },
+    "task-1-3-2": {
+      "type": "subtask",
+      "title": "Add input size validation to validate_spec_json()",
+      "status": "pending",
+      "parent": "task-1-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Validate spec file size before parsing"
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_security.py (NEW)",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [
+        "task-1-4-1",
+        "task-1-4-2",
+        "task-1-4-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-1",
+          "task-1-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_security.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-1-4-1": {
+      "type": "subtask",
+      "title": "Test prompt injection detection",
+      "status": "pending",
+      "parent": "task-1-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-4-2": {
+      "type": "subtask",
+      "title": "Test sensitive data redaction",
+      "status": "pending",
+      "parent": "task-1-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-4-3": {
+      "type": "subtask",
+      "title": "Test input size validation",
+      "status": "pending",
+      "parent": "task-1-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-1-files",
+          "phase-1-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Security tests pass",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_security.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Phase 1 fidelity review",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-1",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Feature Flags Infrastructure",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-docs",
+        "phase-2-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 13,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
+        "risk_level": "low",
+        "doc_references": [
+          "docs/mcp_best_practices/14-feature-flags.md#L10-L330"
+        ]
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3"
+      ],
+      "total_tasks": 9,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify",
+          "phase-2-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/feature_flags.py (NEW)",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-1-1",
+        "task-2-1-2",
+        "task-2-1-3",
+        "task-2-1-4",
+        "task-2-1-5"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-2-2",
+          "task-2-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/feature_flags.py",
+        "task_category": "implementation",
+        "estimated_hours": 4
+      }
+    },
+    "task-2-1-1": {
+      "type": "subtask",
+      "title": "Define FlagState enum (EXPERIMENTAL, BETA, STABLE, DEPRECATED)",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-1-2": {
+      "type": "subtask",
+      "title": "Create FeatureFlag dataclass",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Fields: name, description, state, default_enabled, created_at, expires_at, owner, percentage_rollout"
+      }
+    },
+    "task-2-1-3": {
+      "type": "subtask",
+      "title": "Implement FeatureFlagRegistry class",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Methods: register(), is_enabled(), get_flags_for_capabilities(), evaluate_percentage()"
+      }
+    },
+    "task-2-1-4": {
+      "type": "subtask",
+      "title": "Create @feature_flag decorator",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Gates tool execution based on flag state, returns FEATURE_DISABLED error when not enabled"
+      }
+    },
+    "task-2-1-5": {
+      "type": "subtask",
+      "title": "Create flag_override context manager for testing",
+      "status": "pending",
+      "parent": "task-2-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_feature_flags.py (NEW)",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-2-1",
+        "task-2-2-2",
+        "task-2-2-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-2-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_feature_flags.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-2-2-1": {
+      "type": "subtask",
+      "title": "Test flag registration and lookup",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-2-2": {
+      "type": "subtask",
+      "title": "Test percentage rollout evaluation",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-2-3": {
+      "type": "subtask",
+      "title": "Test flag override context manager",
+      "status": "pending",
+      "parent": "task-2-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-2-files",
+          "phase-2-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Feature flag tests pass",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_feature_flags.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Phase 2 fidelity review",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-2",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Enhanced Error Handling",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-docs",
+        "phase-3-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-4",
+          "phase-5"
+        ],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 10,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Make errors machine-readable and actionable for clients and LLMs",
+        "risk_level": "low",
+        "doc_references": [
+          "docs/codebase_standards/mcp_response_schema.md",
+          "docs/mcp_best_practices/07-error-semantics.md#L11-L274"
+        ]
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify",
+          "phase-3-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/responses.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-1-1",
+        "task-3-1-2",
+        "task-3-1-3",
+        "task-3-1-4"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-3-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/responses.py",
+        "task_category": "implementation",
+        "estimated_hours": 3
+      }
+    },
+    "task-3-1-1": {
+      "type": "subtask",
+      "title": "Create ErrorCode enum",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "VALIDATION_ERROR, NOT_FOUND, RATE_LIMIT_EXCEEDED, UNAUTHORIZED, FORBIDDEN, CONFLICT, INTERNAL_ERROR, UNAVAILABLE, FEATURE_DISABLED"
+      }
+    },
+    "task-3-1-2": {
+      "type": "subtask",
+      "title": "Create ErrorType enum",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "validation, authentication, authorization, not_found, conflict, rate_limit, internal, unavailable"
+      }
+    },
+    "task-3-1-3": {
+      "type": "subtask",
+      "title": "Add error_code, error_type, remediation to ErrorResponse",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1-4": {
+      "type": "subtask",
+      "title": "Create specialized error helpers",
+      "status": "pending",
+      "parent": "task-3-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "validation_error(), not_found_error(), rate_limit_error(), unauthorized_error(), forbidden_error(), conflict_error(), internal_error(), unavailable_error()"
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_responses.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [
+        "task-3-2-1",
+        "task-3-2-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-3-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_responses.py",
+        "task_category": "implementation",
+        "estimated_hours": 1
+      }
+    },
+    "task-3-2-1": {
+      "type": "subtask",
+      "title": "Test ErrorCode and ErrorType enums",
+      "status": "pending",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-2-2": {
+      "type": "subtask",
+      "title": "Test specialized error helper functions",
+      "status": "pending",
+      "parent": "task-3-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-3-files",
+          "phase-3-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Response tests pass",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_responses.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Phase 3 fidelity review",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-3",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Resilience Infrastructure",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-docs",
+        "phase-4-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-7"
+        ],
+        "blocked_by": [
+          "phase-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 12,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Prevent hung operations and handle external dependency failures gracefully",
+        "risk_level": "medium",
+        "doc_references": [
+          "docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
+          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
+        ]
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1",
+        "task-4-2"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-4-verify",
+          "phase-4-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/resilience.py (NEW)",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [
+        "task-4-1-1",
+        "task-4-1-2",
+        "task-4-1-3",
+        "task-4-1-4",
+        "task-4-1-5"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-4-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/resilience.py",
+        "task_category": "implementation",
+        "estimated_hours": 5
+      }
+    },
+    "task-4-1-1": {
+      "type": "subtask",
+      "title": "Define timeout budget constants",
+      "status": "pending",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "FAST_TIMEOUT=5s, MEDIUM_TIMEOUT=30s, SLOW_TIMEOUT=120s, BACKGROUND_TIMEOUT=600s"
+      }
+    },
+    "task-4-1-2": {
+      "type": "subtask",
+      "title": "Create @with_timeout decorator for async functions",
+      "status": "pending",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Uses asyncio.wait_for, returns timeout error via error helpers"
+      }
+    },
+    "task-4-1-3": {
+      "type": "subtask",
+      "title": "Implement retry_with_backoff() function",
+      "status": "pending",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Exponential backoff with jitter, configurable max_retries, retryable_exceptions"
+      }
+    },
+    "task-4-1-4": {
+      "type": "subtask",
+      "title": "Implement CircuitBreaker class",
+      "status": "pending",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "States: CLOSED, OPEN, HALF_OPEN. Track failures, auto-reset after cooldown"
+      }
+    },
+    "task-4-1-5": {
+      "type": "subtask",
+      "title": "Create health_check() utility function",
+      "status": "pending",
+      "parent": "task-4-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Check dependency health with timeout, return structured status"
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_resilience.py (NEW)",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [
+        "task-4-2-1",
+        "task-4-2-2",
+        "task-4-2-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-4-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_resilience.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-4-2-1": {
+      "type": "subtask",
+      "title": "Test timeout decorator",
+      "status": "pending",
+      "parent": "task-4-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-4-2-2": {
+      "type": "subtask",
+      "title": "Test retry with exponential backoff",
+      "status": "pending",
+      "parent": "task-4-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-4-2-3": {
+      "type": "subtask",
+      "title": "Test circuit breaker state transitions",
+      "status": "pending",
+      "parent": "task-4-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1",
+        "verify-4-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-4-files",
+          "phase-4-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Resilience tests pass",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_resilience.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Phase 4 fidelity review",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-4",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Pagination System",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-5-files",
+        "phase-5-docs",
+        "phase-5-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-6"
+        ],
+        "blocked_by": [
+          "phase-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 15,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Handle large datasets without overwhelming responses",
+        "risk_level": "medium",
+        "doc_references": [
+          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
+        ]
+      }
+    },
+    "phase-5-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3",
+        "task-5-4"
+      ],
+      "total_tasks": 11,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-5-verify",
+          "phase-5-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/pagination.py (NEW)",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-1-1",
+        "task-5-1-2",
+        "task-5-1-3",
+        "task-5-1-4"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-5-2",
+          "task-5-3",
+          "task-5-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/pagination.py",
+        "task_category": "implementation",
+        "estimated_hours": 3
+      }
+    },
+    "task-5-1-1": {
+      "type": "subtask",
+      "title": "Define pagination constants",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "DEFAULT_PAGE_SIZE=100, MAX_PAGE_SIZE=1000"
+      }
+    },
+    "task-5-1-2": {
+      "type": "subtask",
+      "title": "Create encode_cursor() function",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Base64 encode cursor with last_id, timestamp, version for versioning"
+      }
+    },
+    "task-5-1-3": {
+      "type": "subtask",
+      "title": "Create decode_cursor() function",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Decode and validate cursor, handle invalid/expired cursors gracefully"
+      }
+    },
+    "task-5-1-4": {
+      "type": "subtask",
+      "title": "Create paginated_response() helper",
+      "status": "pending",
+      "parent": "task-5-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Wraps data with meta.pagination: cursor, has_more, page_size, total_count"
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/responses.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-5-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/responses.py",
+        "task_category": "refactoring",
+        "estimated_hours": 1
+      }
+    },
+    "task-5-2-1": {
+      "type": "subtask",
+      "title": "Integrate paginated_response into success_response",
+      "status": "pending",
+      "parent": "task-5-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Add optional pagination parameter to success_response()"
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/queries.py",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-3-1",
+        "task-5-3-2",
+        "task-5-3-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-5-4"
+        ],
+        "blocked_by": [
+          "task-5-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/queries.py",
+        "task_category": "refactoring",
+        "estimated_hours": 2
+      }
+    },
+    "task-5-3-1": {
+      "type": "subtask",
+      "title": "Add pagination to foundry_list_specs",
+      "status": "pending",
+      "parent": "task-5-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Add cursor and page_size parameters, return paginated response"
+      }
+    },
+    "task-5-3-2": {
+      "type": "subtask",
+      "title": "Add pagination to foundry_list_tasks",
+      "status": "pending",
+      "parent": "task-5-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-4": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_pagination.py (NEW)",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [
+        "task-5-4-1",
+        "task-5-4-2",
+        "task-5-4-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-5-1",
+          "task-5-3"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_pagination.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-5-4-1": {
+      "type": "subtask",
+      "title": "Test cursor encoding/decoding",
+      "status": "pending",
+      "parent": "task-5-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-4-2": {
+      "type": "subtask",
+      "title": "Test paginated_response helper",
+      "status": "pending",
+      "parent": "task-5-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-4-3": {
+      "type": "subtask",
+      "title": "Test paginated list tools",
+      "status": "pending",
+      "parent": "task-5-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-5-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "verify-5-1",
+        "verify-5-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-5-files",
+          "phase-5-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Pagination tests pass",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_pagination.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-5-2": {
+      "type": "verify",
+      "title": "Phase 5 fidelity review",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-5",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-6": {
+      "type": "phase",
+      "title": "Tool Discovery & Lifecycle",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-6-files",
+        "phase-6-docs",
+        "phase-6-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-8"
+        ],
+        "blocked_by": [
+          "phase-5"
+        ],
+        "depends": []
+      },
+      "total_tasks": 16,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable clients to discover tools and negotiate capabilities",
+        "risk_level": "low",
+        "doc_references": [
+          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+        ]
+      }
+    },
+    "phase-6-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [
+        "task-6-1",
+        "task-6-2",
+        "task-6-3",
+        "task-6-4",
+        "task-6-5"
+      ],
+      "total_tasks": 12,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-6-verify",
+          "phase-6-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/discovery.py (NEW)",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [
+        "task-6-1-1",
+        "task-6-1-2",
+        "task-6-1-3",
+        "task-6-1-4"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-6-2",
+          "task-6-5"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/discovery.py",
+        "task_category": "implementation",
+        "estimated_hours": 4
+      }
+    },
+    "task-6-1-1": {
+      "type": "subtask",
+      "title": "Create ToolMetadata dataclass",
+      "status": "pending",
+      "parent": "task-6-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "name, description, category, version, deprecated, rate_limit, examples, related_tools, tags"
+      }
+    },
+    "task-6-1-2": {
+      "type": "subtask",
+      "title": "Create ToolRegistry class",
+      "status": "pending",
+      "parent": "task-6-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "register(), list_tools(), get_tool_schema(), list_categories()"
+      }
+    },
+    "task-6-1-3": {
+      "type": "subtask",
+      "title": "Create Capabilities dataclass and get_capabilities()",
+      "status": "pending",
+      "parent": "task-6-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "response_version, streaming, batch_operations, max_batch_size, rate_limit_headers, feature_flags"
+      }
+    },
+    "task-6-1-4": {
+      "type": "subtask",
+      "title": "Create @deprecated_tool decorator",
+      "status": "pending",
+      "parent": "task-6-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Adds deprecation warning to meta.warnings, documents replacement and removal_version"
+      }
+    },
+    "task-6-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/discovery.py (NEW)",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [
+        "task-6-2-1",
+        "task-6-2-2",
+        "task-6-2-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-6-3",
+          "task-6-4",
+          "task-6-5"
+        ],
+        "blocked_by": [
+          "task-6-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/discovery.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-6-2-1": {
+      "type": "subtask",
+      "title": "Implement foundry_list_tools endpoint",
+      "status": "pending",
+      "parent": "task-6-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Parameters: category, tag, include_deprecated. Returns paginated tool list"
+      }
+    },
+    "task-6-2-2": {
+      "type": "subtask",
+      "title": "Implement foundry_get_tool_schema endpoint",
+      "status": "pending",
+      "parent": "task-6-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Returns JSON Schema for tool inputs"
+      }
+    },
+    "task-6-2-3": {
+      "type": "subtask",
+      "title": "Implement foundry_get_capabilities endpoint",
+      "status": "pending",
+      "parent": "task-6-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Returns server capabilities including feature flags"
+      }
+    },
+    "task-6-3": {
+      "type": "task",
+      "title": "tests/unit/test_tools/test_discovery.py (NEW)",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [
+        "task-6-3-1",
+        "task-6-3-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-6-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_tools/test_discovery.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-6-3-1": {
+      "type": "subtask",
+      "title": "Test discovery endpoints",
+      "status": "pending",
+      "parent": "task-6-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-6-3-2": {
+      "type": "subtask",
+      "title": "Test deprecation decorator and warnings",
+      "status": "pending",
+      "parent": "task-6-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-6-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [
+        "verify-6-1",
+        "verify-6-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-6-files",
+          "phase-6-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-6-1": {
+      "type": "verify",
+      "title": "Discovery tests pass",
+      "status": "pending",
+      "parent": "phase-6-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_tools/test_discovery.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-6-2": {
+      "type": "verify",
+      "title": "Phase 6 fidelity review",
+      "status": "pending",
+      "parent": "phase-6-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-6",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-7": {
+      "type": "phase",
+      "title": "Concurrency & LLM Patterns",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-7-files",
+        "phase-7-docs",
+        "phase-7-verify"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-8"
+        ],
+        "blocked_by": [
+          "phase-4"
+        ],
+        "depends": []
+      },
+      "total_tasks": 11,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable safe parallelism and LLM-optimized responses",
+        "risk_level": "low",
+        "doc_references": [
+          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
+          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+        ]
+      }
+    },
+    "phase-7-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [
+        "task-7-1",
+        "task-7-2",
+        "task-7-3"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-7-verify",
+          "phase-7-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/concurrency.py (NEW)",
+      "status": "pending",
+      "parent": "phase-7-files",
+      "children": [
+        "task-7-1-1",
+        "task-7-1-2",
+        "task-7-1-3"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-7-2",
+          "task-7-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/concurrency.py",
+        "task_category": "implementation",
+        "estimated_hours": 3
+      }
+    },
+    "task-7-1-1": {
+      "type": "subtask",
+      "title": "Create ConcurrencyLimiter class",
+      "status": "pending",
+      "parent": "task-7-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Uses asyncio.Semaphore, supports gather with limits"
+      }
+    },
+    "task-7-1-2": {
+      "type": "subtask",
+      "title": "Implement cancellation handling patterns",
+      "status": "pending",
+      "parent": "task-7-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Handle CancelledError, cleanup resources, propagate cancellation"
+      }
+    },
+    "task-7-1-3": {
+      "type": "subtask",
+      "title": "Create async context variables for request tracking",
+      "status": "pending",
+      "parent": "task-7-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "request_id, client_id, start_time via ContextVar"
+      }
+    },
+    "task-7-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/llm_patterns.py (NEW)",
+      "status": "pending",
+      "parent": "phase-7-files",
+      "children": [
+        "task-7-2-1",
+        "task-7-2-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-7-3"
+        ],
+        "blocked_by": [
+          "task-7-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/llm_patterns.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-7-2-1": {
+      "type": "subtask",
+      "title": "Create progressive_disclosure() helper",
+      "status": "pending",
+      "parent": "task-7-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "detail_level parameter: summary, standard, full. Truncates based on level"
+      }
+    },
+    "task-7-2-2": {
+      "type": "subtask",
+      "title": "Create batch_operation() helper",
+      "status": "pending",
+      "parent": "task-7-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Process multiple items in one call, return results and errors separately"
+      }
+    },
+    "task-7-3": {
+      "type": "task",
+      "title": "tests/unit/test_core/test_concurrency.py (NEW)",
+      "status": "pending",
+      "parent": "phase-7-files",
+      "children": [
+        "task-7-3-1",
+        "task-7-3-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-7-1",
+          "task-7-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/unit/test_core/test_concurrency.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-7-3-1": {
+      "type": "subtask",
+      "title": "Test concurrency limiter",
+      "status": "pending",
+      "parent": "task-7-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-7-3-2": {
+      "type": "subtask",
+      "title": "Test progressive disclosure and batch operations",
+      "status": "pending",
+      "parent": "task-7-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-7-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [
+        "verify-7-1",
+        "verify-7-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-7-files",
+          "phase-7-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-7-1": {
+      "type": "verify",
+      "title": "Concurrency tests pass",
+      "status": "pending",
+      "parent": "phase-7-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/unit/test_core/test_concurrency.py -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-7-2": {
+      "type": "verify",
+      "title": "Phase 7 fidelity review",
+      "status": "pending",
+      "parent": "phase-7-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "skill": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-7",
+        "agent": "sdd-fidelity-review"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-8": {
+      "type": "phase",
+      "title": "Testing & Observability Enhancements",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-8-files",
+        "phase-8-docs",
+        "phase-8-verify"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-6",
+          "phase-7"
+        ],
+        "depends": []
+      },
+      "total_tasks": 10,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Improve test coverage and add property-based testing",
+        "risk_level": "low",
+        "doc_references": [
+          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
+        ]
+      }
+    },
+    "phase-8-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [
+        "task-8-1",
+        "task-8-2",
+        "task-8-3"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-8-verify",
+          "phase-8-docs"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-1": {
+      "type": "task",
+      "title": "tests/property/test_input_validation.py (NEW)",
+      "status": "pending",
+      "parent": "phase-8-files",
+      "children": [
+        "task-8-1-1",
+        "task-8-1-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/property/test_input_validation.py",
+        "task_category": "implementation",
+        "estimated_hours": 3
+      }
+    },
+    "task-8-1-1": {
+      "type": "subtask",
+      "title": "Add Hypothesis property tests for input validation",
+      "status": "pending",
+      "parent": "task-8-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Test that arbitrary inputs don't crash validation, proper error handling"
+      }
+    },
+    "task-8-1-2": {
+      "type": "subtask",
+      "title": "Add property tests for security functions",
+      "status": "pending",
+      "parent": "task-8-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Test prompt injection detection with generated inputs"
+      }
+    },
+    "task-8-2": {
+      "type": "task",
+      "title": "tests/contract/test_response_schema.py (NEW)",
+      "status": "pending",
+      "parent": "phase-8-files",
+      "children": [
+        "task-8-2-1",
+        "task-8-2-2"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/contract/test_response_schema.py",
+        "task_category": "implementation",
+        "estimated_hours": 2
+      }
+    },
+    "task-8-2-1": {
+      "type": "subtask",
+      "title": "Create response schema JSON for contract testing",
+      "status": "pending",
+      "parent": "task-8-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-8-2-2": {
+      "type": "subtask",
+      "title": "Add jsonschema validation tests for all tools",
+      "status": "pending",
+      "parent": "task-8-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-8-3": {
+      "type": "task",
+      "title": "tests/conftest.py",
+      "status": "pending",
+      "parent": "phase-8-files",
+      "children": [
+        "task-8-3-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/conftest.py",
+        "task_category": "implementation",
+        "estimated_hours": 1
+      }
+    },
+    "task-8-3-1": {
+      "type": "subtask",
+      "title": "Add fixture freshness validation",
+      "status": "pending",
+      "parent": "task-8-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Autouse fixture that validates fixture versions match schema version"
+      }
+    },
+    "phase-8-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [
+        "verify-8-1",
+        "verify-8-2",
+        "verify-8-3"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-8-files",
+          "phase-8-docs"
+        ],
+        "depends": []
+      },
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-8-1": {
+      "type": "verify",
+      "title": "Property tests pass",
+      "status": "pending",
+      "parent": "phase-8-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/property/ -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-8-2": {
+      "type": "verify",
+      "title": "Contract tests pass",
+      "status": "pending",
+      "parent": "phase-8-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/contract/ -v",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-8-3": {
+      "type": "verify",
+      "title": "Full test suite passes",
+      "status": "pending",
+      "parent": "phase-8-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "pytest tests/ -v --tb=short",
+        "expected": ""
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "phase-1-docs-1",
+        "phase-1-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-1-verify"
+        ],
+        "blocked_by": [
+          "phase-1-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
+        ]
+      }
+    },
+    "phase-1-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/04-validation-input-hygiene.md",
+      "status": "pending",
+      "parent": "phase-1-docs",
+      "children": [
+        "phase-1-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/04-validation-input-hygiene.md",
+        "task_category": "implementation",
+        "details": "Document new security helpers, MAX_* limits, and link to 08-security guidance."
+      }
+    },
+    "phase-1-docs-1-1": {
+      "type": "subtask",
+      "title": "Document new security helpers, MAX_* limits, and link to 08-security guidance.",
+      "status": "pending",
+      "parent": "phase-1-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-1-docs",
+      "children": [
+        "phase-1-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Log Phase 1 security guardrails and validation decorators."
+      }
+    },
+    "phase-1-docs-2-1": {
+      "type": "subtask",
+      "title": "Log Phase 1 security guardrails and validation decorators.",
+      "status": "pending",
+      "parent": "phase-1-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "phase-2-docs-1",
+        "phase-2-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify"
+        ],
+        "blocked_by": [
+          "phase-2-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/14-feature-flags.md#L10-L330"
+        ]
+      }
+    },
+    "phase-2-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/14-feature-flags.md",
+      "status": "pending",
+      "parent": "phase-2-docs",
+      "children": [
+        "phase-2-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/14-feature-flags.md",
+        "task_category": "implementation",
+        "details": "Describe feature flag lifecycle, registry contracts, and override tooling."
+      }
+    },
+    "phase-2-docs-1-1": {
+      "type": "subtask",
+      "title": "Describe feature flag lifecycle, registry contracts, and override tooling.",
+      "status": "pending",
+      "parent": "phase-2-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-2-docs",
+      "children": [
+        "phase-2-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Capture feature-flag infrastructure rollout notes and gating strategy."
+      }
+    },
+    "phase-2-docs-2-1": {
+      "type": "subtask",
+      "title": "Capture feature-flag infrastructure rollout notes and gating strategy.",
+      "status": "pending",
+      "parent": "phase-2-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "phase-3-docs-1",
+        "phase-3-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify"
+        ],
+        "blocked_by": [
+          "phase-3-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/codebase_standards/mcp_response_schema.md",
+          "docs/mcp_best_practices/07-error-semantics.md#L11-L274"
+        ]
+      }
+    },
+    "phase-3-docs-1": {
+      "type": "task",
+      "title": "docs/codebase_standards/mcp_response_schema.md",
+      "status": "pending",
+      "parent": "phase-3-docs",
+      "children": [
+        "phase-3-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/codebase_standards/mcp_response_schema.md",
+        "task_category": "implementation",
+        "details": "Extend response schema docs with error_code/error_type fields and helpers."
+      }
+    },
+    "phase-3-docs-1-1": {
+      "type": "subtask",
+      "title": "Extend response schema docs with error_code/error_type fields and helpers.",
+      "status": "pending",
+      "parent": "phase-3-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-3-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-3-docs",
+      "children": [
+        "phase-3-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Summarize machine-readable error semantics for client integrators."
+      }
+    },
+    "phase-3-docs-2-1": {
+      "type": "subtask",
+      "title": "Summarize machine-readable error semantics for client integrators.",
+      "status": "pending",
+      "parent": "phase-3-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-4-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "phase-4-docs-1",
+        "phase-4-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-4-verify"
+        ],
+        "blocked_by": [
+          "phase-4-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
+          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
+        ]
+      }
+    },
+    "phase-4-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/12-timeout-resilience.md",
+      "status": "pending",
+      "parent": "phase-4-docs",
+      "children": [
+        "phase-4-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/12-timeout-resilience.md",
+        "task_category": "implementation",
+        "details": "Document timeout budgets, retries, and circuit breaker usage for MCP tools."
+      }
+    },
+    "phase-4-docs-1-1": {
+      "type": "subtask",
+      "title": "Document timeout budgets, retries, and circuit breaker usage for MCP tools.",
+      "status": "pending",
+      "parent": "phase-4-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-4-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-4-docs",
+      "children": [
+        "phase-4-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Record resilience primitives and health check coverage."
+      }
+    },
+    "phase-4-docs-2-1": {
+      "type": "subtask",
+      "title": "Record resilience primitives and health check coverage.",
+      "status": "pending",
+      "parent": "phase-4-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-5-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "phase-5-docs-1",
+        "phase-5-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-5-verify"
+        ],
+        "blocked_by": [
+          "phase-5-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
+        ]
+      }
+    },
+    "phase-5-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/06-pagination-streaming.md",
+      "status": "pending",
+      "parent": "phase-5-docs",
+      "children": [
+        "phase-5-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/06-pagination-streaming.md",
+        "task_category": "implementation",
+        "details": "Describe pagination defaults, cursor format, and meta.pagination contract."
+      }
+    },
+    "phase-5-docs-1-1": {
+      "type": "subtask",
+      "title": "Describe pagination defaults, cursor format, and meta.pagination contract.",
+      "status": "pending",
+      "parent": "phase-5-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-5-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-5-docs",
+      "children": [
+        "phase-5-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Note pagination rollout for all list-style tools."
+      }
+    },
+    "phase-5-docs-2-1": {
+      "type": "subtask",
+      "title": "Note pagination rollout for all list-style tools.",
+      "status": "pending",
+      "parent": "phase-5-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-6-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [
+        "phase-6-docs-1",
+        "phase-6-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-6-verify"
+        ],
+        "blocked_by": [
+          "phase-6-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+        ]
+      }
+    },
+    "phase-6-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/13-tool-discovery.md",
+      "status": "pending",
+      "parent": "phase-6-docs",
+      "children": [
+        "phase-6-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/13-tool-discovery.md",
+        "task_category": "implementation",
+        "details": "Explain discovery endpoints, capability negotiation, and deprecation markers."
+      }
+    },
+    "phase-6-docs-1-1": {
+      "type": "subtask",
+      "title": "Explain discovery endpoints, capability negotiation, and deprecation markers.",
+      "status": "pending",
+      "parent": "phase-6-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-6-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-6-docs",
+      "children": [
+        "phase-6-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Document discovery feature launch and capability exposure."
+      }
+    },
+    "phase-6-docs-2-1": {
+      "type": "subtask",
+      "title": "Document discovery feature launch and capability exposure.",
+      "status": "pending",
+      "parent": "phase-6-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-7-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [
+        "phase-7-docs-1",
+        "phase-7-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-7-verify"
+        ],
+        "blocked_by": [
+          "phase-7-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
+          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+        ]
+      }
+    },
+    "phase-7-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/15-concurrency-patterns.md",
+      "status": "pending",
+      "parent": "phase-7-docs",
+      "children": [
+        "phase-7-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/15-concurrency-patterns.md",
+        "task_category": "implementation",
+        "details": "Detail concurrency limits, cancellation propagation, and LLM response ergonomics."
+      }
+    },
+    "phase-7-docs-1-1": {
+      "type": "subtask",
+      "title": "Detail concurrency limits, cancellation propagation, and LLM response ergonomics.",
+      "status": "pending",
+      "parent": "phase-7-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-7-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-7-docs",
+      "children": [
+        "phase-7-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Record concurrency limiter and LLM response pattern availability."
+      }
+    },
+    "phase-7-docs-2-1": {
+      "type": "subtask",
+      "title": "Record concurrency limiter and LLM response pattern availability.",
+      "status": "pending",
+      "parent": "phase-7-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-8-docs": {
+      "type": "group",
+      "title": "Documentation & Change Log",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [
+        "phase-8-docs-1",
+        "phase-8-docs-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "phase-8-verify"
+        ],
+        "blocked_by": [
+          "phase-8-files"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "doc_references": [
+          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
+        ]
+      }
+    },
+    "phase-8-docs-1": {
+      "type": "task",
+      "title": "docs/mcp_best_practices/10-testing-fixtures.md",
+      "status": "pending",
+      "parent": "phase-8-docs",
+      "children": [
+        "phase-8-docs-1-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/mcp_best_practices/10-testing-fixtures.md",
+        "task_category": "implementation",
+        "details": "Update fixture guidance with property testing and schema validation coverage."
+      }
+    },
+    "phase-8-docs-1-1": {
+      "type": "subtask",
+      "title": "Update fixture guidance with property testing and schema validation coverage.",
+      "status": "pending",
+      "parent": "phase-8-docs-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-8-docs-2": {
+      "type": "task",
+      "title": "CHANGELOG.md",
+      "status": "pending",
+      "parent": "phase-8-docs",
+      "children": [
+        "phase-8-docs-2-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "CHANGELOG.md",
+        "task_category": "implementation",
+        "details": "Summarize expanded testing surface, property suites, and contract checks."
+      }
+    },
+    "phase-8-docs-2-1": {
+      "type": "subtask",
+      "title": "Summarize expanded testing surface, property suites, and contract checks.",
+      "status": "pending",
+      "parent": "phase-8-docs-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "mcp/capabilities_manifest.json",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [
+        "task-2-3-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-2-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "mcp/capabilities_manifest.json",
+        "task_category": "implementation",
+        "details": "Expose feature flag registry, states, and capability tags to clients."
+      }
+    },
+    "task-2-3-1": {
+      "type": "subtask",
+      "title": "Surface flag metadata and rollout percentages in capabilities manifest.",
+      "status": "pending",
+      "parent": "task-2-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-5-3-3": {
+      "type": "subtask",
+      "title": "Add cursor pagination to doc, progress, and journal listing tools.",
+      "status": "pending",
+      "parent": "task-5-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Ensure all list_* tools share pagination helper usage."
+      }
+    },
+    "task-6-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/server.py",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [
+        "task-6-4-1",
+        "task-6-4-2"
+      ],
+      "dependencies": {
+        "blocks": [
+          "task-6-5"
+        ],
+        "blocked_by": [
+          "task-6-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/server.py",
+        "task_category": "implementation",
+        "details": "Expose discovery endpoints and negotiate capabilities over MCP transport."
+      }
+    },
+    "task-6-4-1": {
+      "type": "subtask",
+      "title": "Register discovery tools with FastMCP router and CLI descriptors.",
+      "status": "pending",
+      "parent": "task-6-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-6-4-2": {
+      "type": "subtask",
+      "title": "Thread feature flag and capability metadata into server responses.",
+      "status": "pending",
+      "parent": "task-6-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-6-5": {
+      "type": "task",
+      "title": "mcp/capabilities_manifest.json",
+      "status": "pending",
+      "parent": "phase-6-files",
+      "children": [
+        "task-6-5-1"
+      ],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-6-1",
+          "task-6-2",
+          "task-6-4"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "mcp/capabilities_manifest.json",
+        "task_category": "implementation",
+        "details": "Advertise discovery endpoints, categories, and capability negotiation support."
+      }
+    },
+    "task-6-5-1": {
+      "type": "subtask",
+      "title": "Include list/get tool schemas and capability payloads in manifest.",
+      "status": "pending",
+      "parent": "task-6-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  }
+}

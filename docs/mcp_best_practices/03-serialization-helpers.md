@@ -336,7 +336,7 @@ def test_error_response_structure():
 
 - [Envelopes & Metadata](./02-envelopes-metadata.md) - Response structure
 - [Testing & Fixtures](./10-testing-fixtures.md) - Testing patterns
-- [Response Schema Reference](../mcp_response_schema.md) - Full specification
+- [Response Schema Reference](../codebase_standards/mcp_response_schema.md) - Full specification
 
 ---
 

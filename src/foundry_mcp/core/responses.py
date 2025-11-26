@@ -12,52 +12,39 @@ All MCP tool responses follow a standard structure:
         "data": {...},         # Required: primary payload (empty dict on error)
         "error": str | null,   # Required: error message or null on success
         "meta": {              # Required: response metadata
-            "version": "response-v2"
+            "version": "response-v2",
+            "request_id": "req_abc123"?,
+            "warnings": ["..."]?,
+            "pagination": { ... }?,
+            "rate_limit": { ... }?,
+            "telemetry": { ... }?
         }
     }
 
-Meta Payload Convention
------------------------
+Metadata Semantics
+------------------
 
-For operations returning metadata alongside primary data, use reserved keys
-within the data dict:
+Attach operational context through `meta` so every tool shares an identical
+envelope. The standard keys are:
 
-    data = {
-        # Primary operation-specific fields
-        "spec_id": "...",
-        "tasks": [...],
-
-        # Optional meta fields (reserved keys)
-        "_meta": {
-            "version": "1.0",           # API/schema version
-            "pagination": {             # For paginated results
-                "offset": 0,
-                "limit": 50,
-                "total": 150,
-                "has_more": True
-            },
-            "timing": {                 # Performance info
-                "duration_ms": 42
-            }
-        },
-        "_warnings": [                  # Non-fatal issues
-            "Spec has validation warnings",
-            "Deprecated field 'foo' used"
-        ]
-    }
+* `version` *(required)* – identifies the contract version (`response-v2`).
+* `request_id` *(should)* – correlation identifier propagated through logs.
+* `warnings` *(should)* – array of non-fatal issues for successful operations.
+* `pagination` *(may)* – cursor information (`cursor`, `has_more`, `total_count`).
+* `rate_limit` *(may)* – limit, remaining, reset timestamp, retry hints.
+* `telemetry` *(may)* – timing/performance metrics, downstream call counts, etc.
 
 Multi-Payload Tools
 -------------------
 
-Tools returning multiple distinct payloads should nest them under named keys:
+Tools returning multiple payloads should nest each value under a named key:
 
     data = {
         "spec": {...},          # First payload
         "tasks": [...],         # Second payload
-        "_meta": {...}          # Metadata about the operation
     }
 
-This ensures consumers can access each payload by key rather than relying
+This ensures consumers can access each payload by name rather than relying
 on position or implicit structure.
 
 Edge Cases & Partial Payloads
@@ -67,25 +54,16 @@ Empty Results (success=True):
     When a query succeeds but finds no results, return success=True with
     empty/partial data to distinguish from errors:
 
-    # No tasks found (valid query, empty result)
     {"success": True, "data": {"tasks": [], "count": 0}, "error": None}
-
-    # Spec complete (no more tasks to do)
-    {"success": True, "data": {"found": False, "spec_complete": True}, "error": None}
 
 Not Found (success=False):
     When the requested resource doesn't exist, return success=False:
 
-    # Spec not found
     {"success": False, "data": {}, "error": "Spec not found: my-spec"}
-
-    # Task not found
-    {"success": False, "data": {}, "error": "Task not found: task-1-1"}
 
 Blocked/Conditional States (success=True):
     Dependency checks and similar queries return success=True with state info:
 
-    # Task is blocked but query succeeded
     {
         "success": True,
         "data": {
@@ -93,31 +71,21 @@ Blocked/Conditional States (success=True):
             "can_start": False,
             "blocked_by": [{"id": "task-1-1", "status": "pending"}]
         },
-        "error": None
-    }
-
-Partial Success with Warnings:
-    Operations that complete with caveats use _warnings:
-
-    {
-        "success": True,
-        "data": {
-            "validated": True,
-            "spec_id": "my-spec",
-            "_warnings": ["Field 'foo' is deprecated", "Missing optional metadata"]
-        },
-        "error": None
+        "error": None,
+        "meta": {
+            "version": "response-v2",
+            "warnings": ["Task currently blocked"]
+        }
     }
 
 Key Principle:
-    - success=True means the operation executed correctly (even if result is empty)
-    - success=False means the operation failed to execute
-    - Use data fields (found, can_start, etc.) to convey semantic state
-    - Use _warnings for non-fatal issues that don't prevent success
+    - `success=True` means the operation executed correctly (even if the result is empty).
+    - `success=False` means the operation failed to execute; include actionable error details.
+    - Keep business data inside `data` and operational context inside `meta`.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 
 @dataclass
@@ -134,41 +102,127 @@ class ToolResponse:
         error: Error message if success is False, None otherwise
         meta: Response metadata including version identifier
     """
+
     success: bool
     data: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
     meta: Dict[str, Any] = field(default_factory=lambda: {"version": "response-v2"})
 
 
-def success_response(**data: Any) -> ToolResponse:
-    """
-    Create a successful response with the given data.
+def _build_meta(
+    *,
+    request_id: Optional[str] = None,
+    warnings: Optional[Sequence[str]] = None,
+    pagination: Optional[Mapping[str, Any]] = None,
+    rate_limit: Optional[Mapping[str, Any]] = None,
+    telemetry: Optional[Mapping[str, Any]] = None,
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Construct a metadata payload that always includes the response version."""
+    meta: Dict[str, Any] = {"version": "response-v2"}
+
+    if request_id:
+        meta["request_id"] = request_id
+    if warnings:
+        meta["warnings"] = list(warnings)
+    if pagination:
+        meta["pagination"] = dict(pagination)
+    if rate_limit:
+        meta["rate_limit"] = dict(rate_limit)
+    if telemetry:
+        meta["telemetry"] = dict(telemetry)
+    if extra:
+        meta.update(dict(extra))
+
+    return meta
+
+
+def success_response(
+    data: Optional[Mapping[str, Any]] = None,
+    *,
+    warnings: Optional[Sequence[str]] = None,
+    pagination: Optional[Mapping[str, Any]] = None,
+    rate_limit: Optional[Mapping[str, Any]] = None,
+    telemetry: Optional[Mapping[str, Any]] = None,
+    request_id: Optional[str] = None,
+    meta: Optional[Mapping[str, Any]] = None,
+    **fields: Any,
+) -> ToolResponse:
+    """Create a standardized success response.
 
     Args:
-        **data: Keyword arguments to include in the response data
-
-    Returns:
-        ToolResponse with success=True and provided data
-
-    Example:
-        >>> success_response(spec_id="my-spec", count=5)
-        ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None, meta={'version': 'response-v2'})
+        data: Optional mapping used as the base payload.
+        warnings: Non-fatal issues to surface in ``meta.warnings``.
+        pagination: Cursor metadata for list results.
+        rate_limit: Rate limit state (limit, remaining, reset_at, etc.).
+        telemetry: Timing/performance metadata.
+        request_id: Correlation identifier propagated through logs/traces.
+        meta: Arbitrary extra metadata to merge into ``meta``.
+        **fields: Additional payload fields (shorthand for ``data.update``).
     """
-    return ToolResponse(success=True, data=dict(data), error=None)
+    payload: Dict[str, Any] = {}
+    if data:
+        payload.update(dict(data))
+    if fields:
+        payload.update(fields)
+
+    meta_payload = _build_meta(
+        request_id=request_id,
+        warnings=warnings,
+        pagination=pagination,
+        rate_limit=rate_limit,
+        telemetry=telemetry,
+        extra=meta,
+    )
+
+    return ToolResponse(success=True, data=payload, error=None, meta=meta_payload)
 
 
-def error_response(message: str) -> ToolResponse:
-    """
-    Create an error response with the given message.
+def error_response(
+    message: str,
+    *,
+    data: Optional[Mapping[str, Any]] = None,
+    error_code: Optional[str] = None,
+    error_type: Optional[str] = None,
+    remediation: Optional[str] = None,
+    details: Optional[Mapping[str, Any]] = None,
+    request_id: Optional[str] = None,
+    rate_limit: Optional[Mapping[str, Any]] = None,
+    telemetry: Optional[Mapping[str, Any]] = None,
+    meta: Optional[Mapping[str, Any]] = None,
+) -> ToolResponse:
+    """Create a standardized error response.
 
     Args:
-        message: Error message describing what went wrong
-
-    Returns:
-        ToolResponse with success=False and error message
-
-    Example:
-        >>> error_response("Spec not found")
-        ToolResponse(success=False, data={}, error='Spec not found', meta={'version': 'response-v2'})
+        message: Human-readable description of the failure.
+        data: Optional mapping with additional machine-readable context.
+        error_code: Canonical error code (e.g., ``VALIDATION_ERROR``).
+        error_type: Error category (validation, authorization, internal, ...).
+        remediation: User-facing guidance on how to fix the issue.
+        details: Nested structure describing validation failures or metadata.
+        request_id: Correlation identifier propagated through logs/traces.
+        rate_limit: Rate limit state to help clients back off correctly.
+        telemetry: Timing/performance metadata captured before failure.
+        meta: Arbitrary extra metadata to merge into ``meta``.
     """
-    return ToolResponse(success=False, data={}, error=message)
+    payload: Dict[str, Any] = {}
+    if data:
+        payload.update(dict(data))
+
+    if error_code is not None and "error_code" not in payload:
+        payload["error_code"] = error_code
+    if error_type is not None and "error_type" not in payload:
+        payload["error_type"] = error_type
+    if remediation is not None and "remediation" not in payload:
+        payload["remediation"] = remediation
+    if details and "details" not in payload:
+        payload["details"] = dict(details)
+
+    meta_payload = _build_meta(
+        request_id=request_id,
+        rate_limit=rate_limit,
+        telemetry=telemetry,
+        extra=meta,
+    )
+
+    return ToolResponse(success=False, data=payload, error=message, meta=meta_payload)

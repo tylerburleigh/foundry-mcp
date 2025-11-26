@@ -85,7 +85,7 @@ Use this checklist:
 
 ## Related Documentation
 
-- [Response Schema Reference](../mcp_response_schema.md) - Canonical response contract
+- [Response Schema Reference](../codebase_standards/mcp_response_schema.md) - Canonical response contract
 - [Response Helpers](../../src/foundry_mcp/core/responses.py) - Implementation code
 
 ## Version History
