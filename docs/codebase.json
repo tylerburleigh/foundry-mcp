@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T19:45:34.196743Z",
-    "generated_at_commit": "052b55ee3f1ab7f84fabd874a5563a573ff787df",
+    "generated_at": "2025-11-26T20:00:00.106427Z",
+    "generated_at_commit": "59c4c3172310b7e9fd6fdfa23d030068ec8ba934",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 12037,
+    "total_lines": 12077,
     "total_classes": 42,
     "total_functions": 136,
-    "avg_complexity": 7.21,
+    "avg_complexity": 7.24,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 12037,
+        "lines": 12077,
         "classes": 42,
         "functions": 136,
-        "avg_complexity": 7.21
+        "avg_complexity": 7.24
       }
     }
   },
@@ -759,16 +759,14 @@
       ],
       "imports": [
         "logging",
-        "dataclasses.asdict",
         "typing.Optional",
         "mcp.server.fastmcp.FastMCP",
         "foundry_mcp.config.ServerConfig",
         "foundry_mcp.core.observability.mcp_tool",
-        "foundry_mcp.core.docs.DocsQuery",
-        "foundry_mcp.core.docs.SCHEMA_VERSION"
+        "foundry_mcp.core.docs.DocsQuery"
       ],
       "exports": [],
-      "lines": 430
+      "lines": 470
     },
     {
       "name": "journal",
@@ -1682,7 +1680,7 @@
         {
           "instantiator": "_get_query",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 36,
+          "line": 32,
           "context": [
             "register_docs_tools",
             "_get_query"
@@ -3354,7 +3352,7 @@
         {
           "name": "foundry_find_class",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 68,
+          "line": 64,
           "call_type": "method_call"
         }
       ],
@@ -3473,7 +3471,7 @@
         {
           "name": "foundry_find_function",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 125,
+          "line": 129,
           "call_type": "method_call"
         }
       ],
@@ -3602,7 +3600,7 @@
         {
           "name": "foundry_trace_calls",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 183,
+          "line": 195,
           "call_type": "method_call"
         }
       ],
@@ -3701,7 +3699,7 @@
         {
           "name": "foundry_impact_analysis",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 243,
+          "line": 263,
           "call_type": "method_call"
         }
       ],
@@ -4850,7 +4848,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5920,43 +5918,43 @@
         {
           "name": "foundry_find_class",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 39,
+          "line": 35,
           "call_type": "function_call"
         },
         {
           "name": "foundry_find_function",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 96,
+          "line": 100,
           "call_type": "function_call"
         },
         {
           "name": "foundry_trace_calls",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 153,
+          "line": 165,
           "call_type": "function_call"
         },
         {
           "name": "foundry_impact_analysis",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 212,
+          "line": 232,
           "call_type": "function_call"
         },
         {
           "name": "foundry_get_callers",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 275,
+          "line": 297,
           "call_type": "function_call"
         },
         {
           "name": "foundry_get_callees",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 327,
+          "line": 357,
           "call_type": "function_call"
         },
         {
           "name": "foundry_docs_stats",
           "file": "src/foundry_mcp/tools/docs.py",
-          "line": 379,
+          "line": 417,
           "call_type": "function_call"
         },
         {
@@ -14520,7 +14518,7 @@
     {
       "name": "register_docs_tools",
       "file": "src/foundry_mcp/tools/docs.py",
-      "line": 23,
+      "line": 19,
       "language": "python",
       "docstring": "Register documentation tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -14536,7 +14534,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 21,
+      "complexity": 26,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -14553,7 +14551,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 428,
+          "line": 468,
           "call_type": "method_call"
         }
       ],
@@ -15153,13 +15151,11 @@
     ],
     "src/foundry_mcp/tools/docs.py": [
       "logging",
-      "dataclasses.asdict",
       "typing.Optional",
       "mcp.server.fastmcp.FastMCP",
       "foundry_mcp.config.ServerConfig",
       "foundry_mcp.core.observability.mcp_tool",
-      "foundry_mcp.core.docs.DocsQuery",
-      "foundry_mcp.core.docs.SCHEMA_VERSION"
+      "foundry_mcp.core.docs.DocsQuery"
     ],
     "src/foundry_mcp/tools/journal.py": [
       "logging",

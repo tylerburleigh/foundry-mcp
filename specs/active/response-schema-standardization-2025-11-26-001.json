@@ -2,7 +2,7 @@
   "spec_id": "response-schema-standardization-2025-11-26-001",
   "title": "MCP Tool Response Schema Standardization",
   "generated": "2025-11-26T12:00:00Z",
-  "last_updated": "2025-11-26T19:59:30.124229Z",
+  "last_updated": "2025-11-26T20:01:28.430850Z",
   "metadata": {
     "description": "Standardize all MCP tool response schemas across six tool modules plus new core helpers so every client sees the same predictable envelope.",
     "objectives": [
@@ -44,7 +44,7 @@
       "Response wrapper utility will be added to core module",
       "Clients advertise response_contract version via MCP capability negotiation"
     ],
-    "progress_percentage": 66,
+    "progress_percentage": 70,
     "status": "active",
     "current_phase": "phase-3"
   },
@@ -61,7 +61,7 @@
         "phase-4"
       ],
       "total_tasks": 30,
-      "completed_tasks": 20,
+      "completed_tasks": 21,
       "metadata": {}
     },
     "phase-1": {
@@ -680,7 +680,7 @@
         ]
       },
       "total_tasks": 7,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Update tools that are mostly consistent but need alignment - remove schema_version, align response structures",
         "risk_level": "low",
@@ -700,7 +700,7 @@
         "task-3-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -734,16 +734,22 @@
     "task-3-2": {
       "type": "task",
       "title": "src/foundry_mcp/tools/testing.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/testing.py",
         "task_category": "refactoring",
         "estimated_hours": 0.75,
-        "changes": "Remove schema_version field, use success_response wrapper for all 4 testing tools"
+        "changes": "Remove schema_version field, use success_response wrapper for all 4 testing tools",
+        "started_at": "2025-11-26T20:00:05.249317Z",
+        "status_note": "Starting testing.py standardization",
+        "completed_at": "2025-11-26T20:01:28.426601Z",
+        "needs_journaling": false,
+        "actual_hours": 0.023,
+        "journaled_at": "2025-11-26T20:01:28.429741Z"
       }
     },
     "task-3-3": {
@@ -1210,6 +1216,15 @@
       "content": "Standardized all 7 documentation tools in docs.py to use the success/data/error response format. Changes: removed schema_version from responses, wrapped data in 'data' field, normalized all tools (find_class, find_function, trace_calls, impact_analysis, get_callers, get_callees, docs_stats). Removed unused imports. MCP integration tests pass.",
       "metadata": {},
       "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2025-11-26T20:01:28.429736Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/tools/testing.py",
+      "author": "claude-code",
+      "content": "Standardized all 5 testing tools in testing.py to use the success/data/error response format. Changes: removed schema_version from responses, wrapped data in 'data' field, normalized all tools (run_tests, discover_tests, test_presets, run_quick_tests, run_unit_tests). Removed unused SCHEMA_VERSION import. Module imports successfully.",
+      "metadata": {},
+      "task_id": "task-3-2"
     }
   ]
 }
