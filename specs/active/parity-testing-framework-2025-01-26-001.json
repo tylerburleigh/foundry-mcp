@@ -15,7 +15,7 @@
     ],
     "generated": "2025-01-26T00:00:00Z",
     "last_updated": "2025-01-26T00:00:00Z",
-    "progress_percentage": 76,
+    "progress_percentage": 82,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -30,7 +30,7 @@
         "phase-4",
         "phase-5"
       ],
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "total_tasks": 17,
       "metadata": {},
       "parent": null,
@@ -447,7 +447,7 @@
       "type": "phase",
       "title": "Parity Test Implementation",
       "description": "Write comprehensive parity tests for all feature areas",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-4-1",
@@ -456,9 +456,13 @@
         "task-4-4",
         "task-4-5"
       ],
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "total_tasks": 5,
-      "metadata": {},
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-26T18:34:08.499806Z",
+        "journaled_at": "2025-11-26T18:34:08.505029Z"
+      },
       "dependencies": {
         "blocks": [],
         "blocked_by": [],
@@ -615,7 +619,7 @@
       "type": "task",
       "title": "Implement lifecycle tests",
       "description": "Tests for activate, complete, archive spec operations",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4",
       "children": [],
       "dependencies": {
@@ -635,9 +639,15 @@
           "test_move_spec_parity"
         ],
         "file_path": "task-4-5.md",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "started_at": "2025-11-26T18:29:10.000397Z",
+        "status_note": "Starting lifecycle tests implementation",
+        "completed_at": "2025-11-26T18:34:08.499677Z",
+        "needs_journaling": false,
+        "actual_hours": 0.083,
+        "journaled_at": "2025-11-26T18:34:08.502637Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     },
     "phase-5": {
@@ -883,8 +893,26 @@
       "content": "Created tests/parity/test_validation.py (130 lines) with all tests specified in task metadata: test_validate_spec_parity, test_fix_spec_parity, test_spec_stats_parity. Additional tests: test_validate_spec_valid_parity, test_validate_nonexistent_spec_parity, test_fix_spec_already_valid_parity, test_spec_stats_multi_phase_parity. Tests organized in classes: TestValidateSpec (3 tests), TestFixSpec (2 tests), TestSpecStats (2 tests), TestFoundryValidationOperations (3 standalone tests). Uses isolated_adapters fixture for mutating tests (fix_spec), both_adapters for read-only comparisons. All tests use @pytest.mark.parity decorator.",
       "metadata": {},
       "task_id": "task-4-4"
+    },
+    {
+      "timestamp": "2025-11-26T18:34:08.502631Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement lifecycle tests",
+      "author": "claude-code",
+      "content": "Created tests/parity/test_lifecycle.py (288 lines) with all lifecycle parity tests specified in the task metadata:\n- test_activate_spec_parity: Tests activate_spec moves spec from pending to active\n- test_complete_spec_parity: Tests complete_spec moves spec from active to completed (uses completed_spec fixture)\n- test_archive_spec_parity: Tests archive_spec moves spec to archived\n- test_move_spec_parity: Tests move_spec moves spec between folders\n\nAdditional tests implemented:\n- test_activate_nonexistent_spec_parity\n- test_complete_nonexistent_spec_parity\n- test_archive_nonexistent_spec_parity\n- test_move_spec_to_archived_parity\n- test_move_nonexistent_spec_parity\n- 4 standalone foundry adapter tests\n\nAlso fixed foundry_adapter.py lifecycle methods to properly convert MoveResult dataclass to dict and conditionally include error key only when errors exist.\n\nAll 13 lifecycle tests pass. Total test run: pytest tests/parity/test_lifecycle.py -v shows 13 passed.",
+      "metadata": {},
+      "task_id": "task-4-5"
+    },
+    {
+      "timestamp": "2025-11-26T18:34:08.505024Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Parity Test Implementation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
     }
   ],
-  "last_updated": "2025-11-26T18:19:27.442030Z",
+  "last_updated": "2025-11-26T18:34:08.505050Z",
   "generated": "2025-01-26T00:00:00Z"
 }

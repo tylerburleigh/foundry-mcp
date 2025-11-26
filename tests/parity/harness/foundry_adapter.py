@@ -436,25 +436,37 @@ class FoundryMcpAdapter(SpecToolAdapter):
         """Move spec from pending to active."""
         try:
             result = core_activate(spec_id, self.specs_dir)
-            return {
-                "success": True,
+            response = {
+                "success": result.success,
                 "spec_id": spec_id,
-                "new_status": "active",
-                **result,
+                "new_status": "active" if result.success else None,
+                "from_folder": result.from_folder,
+                "to_folder": result.to_folder,
+                "old_path": result.old_path,
+                "new_path": result.new_path,
             }
+            if result.error:
+                response["error"] = result.error
+            return response
         except Exception as e:
             return {"success": False, "error": str(e)}
 
     def complete_spec(self, spec_id: str) -> Dict[str, Any]:
         """Move spec from active to completed."""
         try:
-            result = core_complete(spec_id, self.specs_dir)
-            return {
-                "success": True,
+            result = core_complete(spec_id, self.specs_dir, force=True)
+            response = {
+                "success": result.success,
                 "spec_id": spec_id,
-                "new_status": "completed",
-                **result,
+                "new_status": "completed" if result.success else None,
+                "from_folder": result.from_folder,
+                "to_folder": result.to_folder,
+                "old_path": result.old_path,
+                "new_path": result.new_path,
             }
+            if result.error:
+                response["error"] = result.error
+            return response
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -462,24 +474,36 @@ class FoundryMcpAdapter(SpecToolAdapter):
         """Move spec to archived."""
         try:
             result = core_archive(spec_id, self.specs_dir)
-            return {
-                "success": True,
+            response = {
+                "success": result.success,
                 "spec_id": spec_id,
-                "new_status": "archived",
-                **result,
+                "new_status": "archived" if result.success else None,
+                "from_folder": result.from_folder,
+                "to_folder": result.to_folder,
+                "old_path": result.old_path,
+                "new_path": result.new_path,
             }
+            if result.error:
+                response["error"] = result.error
+            return response
         except Exception as e:
             return {"success": False, "error": str(e)}
 
     def move_spec(self, spec_id: str, target_status: str) -> Dict[str, Any]:
         """Move spec to a specific status folder."""
         try:
-            result = core_move_spec(spec_id, self.specs_dir, target_status)
-            return {
-                "success": True,
+            result = core_move_spec(spec_id, target_status, self.specs_dir)
+            response = {
+                "success": result.success,
                 "spec_id": spec_id,
-                "new_status": target_status,
-                **result,
+                "new_status": target_status if result.success else None,
+                "from_folder": result.from_folder,
+                "to_folder": result.to_folder,
+                "old_path": result.old_path,
+                "new_path": result.new_path,
             }
+            if result.error:
+                response["error"] = result.error
+            return response
         except Exception as e:
             return {"success": False, "error": str(e)}
