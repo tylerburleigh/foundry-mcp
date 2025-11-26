@@ -12,6 +12,16 @@ from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import get_config, ServerConfig
 from foundry_mcp.core.observability import mcp_tool, audit_log, get_metrics
+
+# Response contract version flag
+# v2 uses standardized {success, data, error} format
+RESPONSE_CONTRACT_V2 = True
+
+# Server capabilities
+SERVER_CAPABILITIES = {
+    "response_contract_v2": RESPONSE_CONTRACT_V2,
+    "schema_version": "2.0.0",
+}
 from foundry_mcp.core.spec import (
     load_spec,
     save_spec,
@@ -80,6 +90,30 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
     """Register all MCP tools with the server."""
 
     @mcp.tool()
+    @mcp_tool(tool_name="foundry_server_capabilities")
+    def foundry_server_capabilities() -> dict:
+        """
+        Get server capabilities and contract version.
+
+        Returns information about the server's response format and features.
+
+        Returns:
+            JSON object with server capabilities
+        """
+        metrics = get_metrics()
+        metrics.counter("response.v2", labels={"tool": "foundry_server_capabilities"})
+
+        return {
+            "success": True,
+            "data": {
+                "server_name": config.server_name,
+                "server_version": config.server_version,
+                "capabilities": SERVER_CAPABILITIES,
+            },
+            "error": None
+        }
+
+    @mcp.tool()
     @mcp_tool(tool_name="list_specs")
     def tool_list_specs(status: str = "all") -> dict:
         """
@@ -93,12 +127,23 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         specs_dir = config.specs_dir or find_specs_directory()
         if not specs_dir:
-            return {"error": "No specs directory found"}
+            return {
+                "success": False,
+                "data": {},
+                "error": "No specs directory found"
+            }
 
         filter_status = None if status == "all" else status
         specs = list_specs(specs_dir=specs_dir, status=filter_status)
 
-        return {"specs": specs, "count": len(specs)}
+        return {
+            "success": True,
+            "data": {
+                "specs": specs,
+                "count": len(specs)
+            },
+            "error": None
+        }
 
     @mcp.tool()
     @mcp_tool(tool_name="get_spec")
@@ -116,7 +161,11 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
         spec_data = load_spec(spec_id, specs_dir)
 
         if spec_data is None:
-            return {"error": f"Spec not found: {spec_id}"}
+            return {
+                "success": False,
+                "data": {},
+                "error": f"Spec not found: {spec_id}"
+            }
 
         # Return summary for large specs
         hierarchy = spec_data.get("hierarchy", {})
@@ -127,11 +176,15 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
         )
 
         return {
-            "spec_id": spec_data.get("spec_id", spec_id),
-            "title": spec_data.get("metadata", {}).get("title", spec_data.get("title", "Untitled")),
-            "total_tasks": total_tasks,
-            "completed_tasks": completed_tasks,
-            "progress_percentage": int((completed_tasks / total_tasks * 100)) if total_tasks > 0 else 0,
+            "success": True,
+            "data": {
+                "spec_id": spec_data.get("spec_id", spec_id),
+                "title": spec_data.get("metadata", {}).get("title", spec_data.get("title", "Untitled")),
+                "total_tasks": total_tasks,
+                "completed_tasks": completed_tasks,
+                "progress_percentage": int((completed_tasks / total_tasks * 100)) if total_tasks > 0 else 0,
+            },
+            "error": None
         }
 
     @mcp.tool()
@@ -150,11 +203,19 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
         spec_data = load_spec(spec_id, specs_dir)
 
         if spec_data is None:
-            return {"error": f"Spec not found: {spec_id}"}
+            return {
+                "success": False,
+                "data": {},
+                "error": f"Spec not found: {spec_id}"
+            }
 
         return {
-            "spec_id": spec_id,
-            "hierarchy": spec_data.get("hierarchy", {}),
+            "success": True,
+            "data": {
+                "spec_id": spec_id,
+                "hierarchy": spec_data.get("hierarchy", {}),
+            },
+            "error": None
         }
 
     @mcp.tool()
@@ -174,21 +235,33 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
         spec_data = load_spec(spec_id, specs_dir)
 
         if spec_data is None:
-            return {"error": f"Spec not found: {spec_id}"}
+            return {
+                "success": False,
+                "data": {},
+                "error": f"Spec not found: {spec_id}"
+            }
 
         hierarchy = spec_data.get("hierarchy", {})
         task = hierarchy.get(task_id)
 
         if task is None:
-            return {"error": f"Task not found: {task_id}"}
+            return {
+                "success": False,
+                "data": {},
+                "error": f"Task not found: {task_id}"
+            }
 
         return {
-            "spec_id": spec_id,
-            "task_id": task_id,
-            "task": task,
+            "success": True,
+            "data": {
+                "spec_id": spec_id,
+                "task_id": task_id,
+                "task": task,
+            },
+            "error": None
         }
 
-    logger.debug("Registered tools: list_specs, get_spec, get_spec_hierarchy, get_task")
+    logger.debug("Registered tools: foundry_server_capabilities, list_specs, get_spec, get_spec_hierarchy, get_task")
 
 
 def _register_resources(mcp: FastMCP, config: ServerConfig) -> None:
