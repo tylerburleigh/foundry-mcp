@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T20:00:00.106427Z",
-    "generated_at_commit": "59c4c3172310b7e9fd6fdfa23d030068ec8ba934",
+    "generated_at": "2025-11-26T20:06:16.395801Z",
+    "generated_at_commit": "a7472b2ed54d627668ca4f0e293fe7cdefdc812e",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 12077,
+    "total_lines": 12180,
     "total_classes": 42,
     "total_functions": 136,
-    "avg_complexity": 7.24,
+    "avg_complexity": 7.27,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 12077,
+        "lines": 12180,
         "classes": 42,
         "functions": 136,
-        "avg_complexity": 7.24
+        "avg_complexity": 7.27
       }
     }
   },
@@ -796,7 +796,7 @@
         "foundry_mcp.core.journal.find_unjournaled_tasks"
       ],
       "exports": [],
-      "lines": 489
+      "lines": 533
     },
     {
       "name": "lifecycle",
@@ -928,11 +928,10 @@
         "foundry_mcp.config.ServerConfig",
         "foundry_mcp.core.observability.mcp_tool",
         "foundry_mcp.core.testing.TestRunner",
-        "foundry_mcp.core.testing.get_presets",
-        "foundry_mcp.core.testing.SCHEMA_VERSION"
+        "foundry_mcp.core.testing.get_presets"
       ],
       "exports": [],
-      "lines": 280
+      "lines": 310
     },
     {
       "name": "validation",
@@ -945,7 +944,6 @@
       ],
       "imports": [
         "logging",
-        "dataclasses.asdict",
         "pathlib.Path",
         "typing.Optional",
         "mcp.server.fastmcp.FastMCP",
@@ -961,7 +959,7 @@
         "foundry_mcp.core.validation.calculate_stats"
       ],
       "exports": [],
-      "lines": 408
+      "lines": 437
     }
   ],
   "classes": [
@@ -2596,7 +2594,7 @@
         {
           "instantiator": "_get_runner",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 36,
+          "line": 32,
           "context": [
             "register_testing_tools",
             "_get_runner"
@@ -3928,19 +3926,19 @@
         {
           "name": "foundry_add_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 95,
+          "line": 98,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 261,
+          "line": 279,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 350,
+          "line": 377,
           "call_type": "function_call"
         }
       ],
@@ -4022,7 +4020,7 @@
         {
           "name": "foundry_get_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 170,
+          "line": 180,
           "call_type": "function_call"
         }
       ],
@@ -4185,7 +4183,7 @@
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 254,
+          "line": 271,
           "call_type": "function_call"
         }
       ],
@@ -4261,7 +4259,7 @@
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 343,
+          "line": 369,
           "call_type": "function_call"
         }
       ],
@@ -4375,7 +4373,7 @@
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 335,
+          "line": 360,
           "call_type": "function_call"
         }
       ],
@@ -4548,7 +4546,7 @@
         {
           "name": "foundry_list_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 420,
+          "line": 454,
           "call_type": "function_call"
         }
       ],
@@ -4747,7 +4745,7 @@
         {
           "name": "foundry_unjournaled_tasks",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 471,
+          "line": 511,
           "call_type": "function_call"
         }
       ],
@@ -4860,7 +4858,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -5966,31 +5964,31 @@
         {
           "name": "foundry_get_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 130,
+          "line": 138,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 202,
+          "line": 216,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 294,
+          "line": 317,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 386,
+          "line": 418,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unjournaled_tasks",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 437,
+          "line": 475,
           "call_type": "function_call"
         },
         {
@@ -6116,55 +6114,55 @@
         {
           "name": "foundry_run_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 39,
+          "line": 35,
           "call_type": "function_call"
         },
         {
           "name": "foundry_discover_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 114,
+          "line": 118,
           "call_type": "function_call"
         },
         {
           "name": "foundry_test_presets",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 165,
+          "line": 177,
           "call_type": "function_call"
         },
         {
           "name": "foundry_run_quick_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 194,
+          "line": 208,
           "call_type": "function_call"
         },
         {
           "name": "foundry_run_unit_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 237,
+          "line": 259,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 42,
+          "line": 41,
           "call_type": "function_call"
         },
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 116,
+          "line": 121,
           "call_type": "function_call"
         },
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 228,
+          "line": 243,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 301,
+          "line": 323,
           "call_type": "function_call"
         }
       ],
@@ -8603,73 +8601,73 @@
         {
           "name": "foundry_add_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 77,
+          "line": 78,
           "call_type": "function_call"
         },
         {
           "name": "foundry_add_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 79,
+          "line": 80,
           "call_type": "function_call"
         },
         {
           "name": "foundry_get_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 153,
+          "line": 161,
           "call_type": "function_call"
         },
         {
           "name": "foundry_get_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 155,
+          "line": 163,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 236,
+          "line": 251,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 238,
+          "line": 253,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 317,
+          "line": 340,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 319,
+          "line": 342,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 403,
+          "line": 435,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 405,
+          "line": 437,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unjournaled_tasks",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 454,
+          "line": 492,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unjournaled_tasks",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 456,
+          "line": 494,
           "call_type": "function_call"
         },
         {
@@ -8915,49 +8913,49 @@
         {
           "name": "foundry_validate_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 66,
+          "line": 65,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 68,
+          "line": 67,
           "call_type": "function_call"
         },
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 144,
+          "line": 149,
           "call_type": "function_call"
         },
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 146,
+          "line": 151,
           "call_type": "function_call"
         },
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 252,
+          "line": 267,
           "call_type": "function_call"
         },
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 254,
+          "line": 269,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 322,
+          "line": 344,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 324,
+          "line": 346,
           "call_type": "function_call"
         }
       ],
@@ -9119,19 +9117,19 @@
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 154,
+          "line": 160,
           "call_type": "function_call"
         },
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 262,
+          "line": 278,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 332,
+          "line": 355,
           "call_type": "function_call"
         }
       ],
@@ -9329,37 +9327,37 @@
         {
           "name": "foundry_add_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 87,
+          "line": 89,
           "call_type": "function_call"
         },
         {
           "name": "foundry_get_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 163,
+          "line": 172,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 246,
+          "line": 262,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 327,
+          "line": 351,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 413,
+          "line": 446,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unjournaled_tasks",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 464,
+          "line": 503,
           "call_type": "function_call"
         },
         {
@@ -9437,25 +9435,25 @@
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 161,
+          "line": 168,
           "call_type": "function_call"
         },
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 269,
+          "line": 286,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 339,
+          "line": 363,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 373,
+          "line": 397,
           "call_type": "function_call"
         }
       ],
@@ -9524,19 +9522,19 @@
         {
           "name": "foundry_add_journal",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 105,
+          "line": 108,
           "call_type": "function_call"
         },
         {
           "name": "foundry_mark_blocked",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 271,
+          "line": 289,
           "call_type": "function_call"
         },
         {
           "name": "foundry_unblock",
           "file": "src/foundry_mcp/tools/journal.py",
-          "line": 360,
+          "line": 387,
           "call_type": "function_call"
         },
         {
@@ -11569,19 +11567,19 @@
         {
           "name": "foundry_run_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 69,
+          "line": 65,
           "call_type": "method_call"
         },
         {
           "name": "foundry_run_quick_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 213,
+          "line": 227,
           "call_type": "method_call"
         },
         {
           "name": "foundry_run_unit_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 256,
+          "line": 278,
           "call_type": "method_call"
         }
       ],
@@ -11754,7 +11752,7 @@
         {
           "name": "foundry_discover_tests",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 135,
+          "line": 139,
           "call_type": "method_call"
         }
       ],
@@ -11815,7 +11813,7 @@
         {
           "name": "foundry_test_presets",
           "file": "src/foundry_mcp/tools/testing.py",
-          "line": 176,
+          "line": 188,
           "call_type": "function_call"
         }
       ],
@@ -11852,25 +11850,25 @@
         {
           "name": "foundry_validate_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 83,
+          "line": 84,
           "call_type": "function_call"
         },
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 169,
+          "line": 177,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 347,
+          "line": 372,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 375,
+          "line": 399,
           "call_type": "function_call"
         }
       ],
@@ -12704,13 +12702,13 @@
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 172,
+          "line": 180,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 359,
+          "line": 383,
           "call_type": "function_call"
         }
       ],
@@ -13449,13 +13447,13 @@
         {
           "name": "foundry_fix_spec",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 184,
+          "line": 195,
           "call_type": "function_call"
         },
         {
           "name": "foundry_validate_and_fix",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 362,
+          "line": 386,
           "call_type": "function_call"
         }
       ],
@@ -13581,7 +13579,7 @@
         {
           "name": "foundry_spec_stats",
           "file": "src/foundry_mcp/tools/validation.py",
-          "line": 276,
+          "line": 294,
           "call_type": "function_call"
         }
       ],
@@ -14593,7 +14591,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 487,
+          "line": 531,
           "call_type": "method_call"
         }
       ],
@@ -14770,7 +14768,7 @@
     {
       "name": "register_testing_tools",
       "file": "src/foundry_mcp/tools/testing.py",
-      "line": 23,
+      "line": 19,
       "language": "python",
       "docstring": "Register testing tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -14786,7 +14784,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 6,
+      "complexity": 10,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -14803,7 +14801,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 279,
+          "line": 309,
           "call_type": "method_call"
         }
       ],
@@ -14812,7 +14810,7 @@
     {
       "name": "register_validation_tools",
       "file": "src/foundry_mcp/tools/validation.py",
-      "line": 32,
+      "line": 31,
       "language": "python",
       "docstring": "Register validation tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -14845,7 +14843,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 407,
+          "line": 436,
           "call_type": "method_call"
         }
       ],
@@ -15248,12 +15246,10 @@
       "foundry_mcp.config.ServerConfig",
       "foundry_mcp.core.observability.mcp_tool",
       "foundry_mcp.core.testing.TestRunner",
-      "foundry_mcp.core.testing.get_presets",
-      "foundry_mcp.core.testing.SCHEMA_VERSION"
+      "foundry_mcp.core.testing.get_presets"
     ],
     "src/foundry_mcp/tools/validation.py": [
       "logging",
-      "dataclasses.asdict",
       "pathlib.Path",
       "typing.Optional",
       "mcp.server.fastmcp.FastMCP",
