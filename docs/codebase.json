@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T19:44:42.322665Z",
-    "generated_at_commit": "3ec0ed1e9288ff97ea691001b4a3b02ce88e93af",
+    "generated_at": "2025-11-26T19:45:34.196743Z",
+    "generated_at_commit": "052b55ee3f1ab7f84fabd874a5563a573ff787df",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 12033,
+    "total_lines": 12037,
     "total_classes": 42,
     "total_functions": 136,
     "avg_complexity": 7.21,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 12033,
+        "lines": 12037,
         "classes": 42,
         "functions": 136,
         "avg_complexity": 7.21
@@ -853,7 +853,7 @@
         "foundry_mcp.core.spec.load_spec"
       ],
       "exports": [],
-      "lines": 314
+      "lines": 318
     },
     {
       "name": "rendering",
@@ -14679,7 +14679,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 314,
+          "line": 318,
           "call_type": "method_call"
         }
       ],

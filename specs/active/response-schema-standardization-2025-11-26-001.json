@@ -2,7 +2,7 @@
   "spec_id": "response-schema-standardization-2025-11-26-001",
   "title": "MCP Tool Response Schema Standardization",
   "generated": "2025-11-26T12:00:00Z",
-  "last_updated": "2025-11-26T19:45:07.705949Z",
+  "last_updated": "2025-11-26T19:46:28.251520Z",
   "metadata": {
     "description": "Standardize all MCP tool response schemas across six tool modules plus new core helpers so every client sees the same predictable envelope.",
     "objectives": [
@@ -44,7 +44,7 @@
       "Response wrapper utility will be added to core module",
       "Clients advertise response_contract version via MCP capability negotiation"
     ],
-    "progress_percentage": 56,
+    "progress_percentage": 60,
     "status": "active",
     "current_phase": "phase-2"
   },
@@ -61,7 +61,7 @@
         "phase-4"
       ],
       "total_tasks": 30,
-      "completed_tasks": 17,
+      "completed_tasks": 18,
       "metadata": {}
     },
     "phase-1": {
@@ -356,7 +356,7 @@
         ]
       },
       "total_tasks": 11,
-      "completed_tasks": 9,
+      "completed_tasks": 10,
       "metadata": {
         "purpose": "Address the most broken modules first - tasks.py and queries.py have the worst inconsistencies",
         "risk_level": "medium",
@@ -595,7 +595,7 @@
     "phase-2-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [
         "verify-2-1",
@@ -609,22 +609,28 @@
         "blocks": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-2-1": {
       "type": "verify",
       "title": "Task tools return standard format",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "agent": "run-tests",
         "command": "pytest tests/integration/test_mcp_tools.py -k 'foundry_prepare_task or foundry_next_task or foundry_task_info or foundry_progress' -v",
-        "expected": "Task tool responses expose success/data/error/meta envelope"
+        "expected": "Task tool responses expose success/data/error/meta envelope",
+        "started_at": "2025-11-26T19:45:41.793159Z",
+        "status_note": "Running verification tests for task tools",
+        "completed_at": "2025-11-26T19:46:28.242102Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-26T19:46:28.250034Z"
       }
     },
     "verify-2-2": {
@@ -1140,6 +1146,15 @@
       "content": "All child tasks in group phase-2-files have been completed.",
       "metadata": {},
       "task_id": "phase-2-files"
+    },
+    {
+      "timestamp": "2025-11-26T19:46:28.250023Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Task tools return standard format",
+      "author": "claude-code",
+      "content": "Verification passed. All 45 integration tests in tests/integration/test_mcp_tools.py passed. Manual verification confirmed ToolResponse, success_response, and error_response imports work correctly from both foundry_mcp.core.responses and foundry_mcp.core modules.",
+      "metadata": {},
+      "task_id": "verify-2-1"
     }
   ]
 }
