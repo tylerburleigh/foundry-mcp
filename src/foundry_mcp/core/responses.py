@@ -10,7 +10,10 @@ All MCP tool responses follow a standard structure:
     {
         "success": bool,       # Required: operation success/failure
         "data": {...},         # Required: primary payload (empty dict on error)
-        "error": str | null    # Required: error message or null on success
+        "error": str | null,   # Required: error message or null on success
+        "meta": {              # Required: response metadata
+            "version": "response-v2"
+        }
     }
 
 Meta Payload Convention
@@ -129,10 +132,12 @@ class ToolResponse:
         success: Whether the operation completed successfully
         data: The primary payload (operation-specific structured data)
         error: Error message if success is False, None otherwise
+        meta: Response metadata including version identifier
     """
     success: bool
     data: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
+    meta: Dict[str, Any] = field(default_factory=lambda: {"version": "response-v2"})
 
 
 def success_response(**data: Any) -> ToolResponse:
@@ -147,7 +152,7 @@ def success_response(**data: Any) -> ToolResponse:
 
     Example:
         >>> success_response(spec_id="my-spec", count=5)
-        ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None)
+        ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None, meta={'version': 'response-v2'})
     """
     return ToolResponse(success=True, data=dict(data), error=None)
 
@@ -164,6 +169,6 @@ def error_response(message: str) -> ToolResponse:
 
     Example:
         >>> error_response("Spec not found")
-        ToolResponse(success=False, data={}, error='Spec not found')
+        ToolResponse(success=False, data={}, error='Spec not found', meta={'version': 'response-v2'})
     """
     return ToolResponse(success=False, data={}, error=message)
