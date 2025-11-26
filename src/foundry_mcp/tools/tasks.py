@@ -5,6 +5,7 @@ Provides MCP tools for task discovery, status management, and progress tracking.
 """
 
 import logging
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -30,6 +31,7 @@ from foundry_mcp.core.progress import (
     update_parent_status,
     list_phases,
 )
+from foundry_mcp.core.responses import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -71,22 +73,14 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             result = core_prepare_task(spec_id, specs_dir, task_id)
             return result
 
         except Exception as e:
             logger.error(f"Error preparing task: {e}")
-            return {
-                "success": False,
-                "data": {},
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_next_task")
@@ -114,37 +108,25 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             next_task = get_next_task(spec_data)
 
             if next_task:
                 task_id, task_data = next_task
-                return {
-                    "success": True,
-                    "data": {
-                        "found": True,
-                        "spec_id": spec_id,
-                        "task_id": task_id,
-                        "title": task_data.get("title", ""),
-                        "type": task_data.get("type", "task"),
-                        "status": task_data.get("status", "pending"),
-                        "metadata": task_data.get("metadata", {})
-                    },
-                    "error": None
-                }
+                return asdict(success_response(
+                    found=True,
+                    spec_id=spec_id,
+                    task_id=task_id,
+                    title=task_data.get("title", ""),
+                    type=task_data.get("type", "task"),
+                    status=task_data.get("status", "pending"),
+                    metadata=task_data.get("metadata", {})
+                ))
             else:
                 # Check if spec is complete
                 hierarchy = spec_data.get("hierarchy", {})
@@ -156,35 +138,23 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 pending = sum(1 for t in all_tasks if t.get("status") == "pending")
 
                 if pending == 0 and completed > 0:
-                    return {
-                        "success": True,
-                        "data": {
-                            "found": False,
-                            "spec_id": spec_id,
-                            "spec_complete": True,
-                            "message": "All tasks completed"
-                        },
-                        "error": None
-                    }
+                    return asdict(success_response(
+                        found=False,
+                        spec_id=spec_id,
+                        spec_complete=True,
+                        message="All tasks completed"
+                    ))
                 else:
-                    return {
-                        "success": True,
-                        "data": {
-                            "found": False,
-                            "spec_id": spec_id,
-                            "spec_complete": False,
-                            "message": "No actionable tasks (tasks may be blocked)"
-                        },
-                        "error": None
-                    }
+                    return asdict(success_response(
+                        found=False,
+                        spec_id=spec_id,
+                        spec_complete=False,
+                        message="No actionable tasks (tasks may be blocked)"
+                    ))
 
         except Exception as e:
             logger.error(f"Error finding next task: {e}")
-            return {
-                "success": False,
-                "data": {},
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_task_info")
@@ -211,53 +181,33 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             task_data = get_node(spec_data, task_id)
             if not task_data:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": f"Task not found: {task_id}"
-                }
+                return asdict(error_response(f"Task not found: {task_id}"))
 
-            return {
-                "success": True,
-                "data": {
-                    "spec_id": spec_id,
-                    "task_id": task_id,
-                    "title": task_data.get("title", ""),
-                    "type": task_data.get("type", "task"),
-                    "status": task_data.get("status", "pending"),
-                    "parent": task_data.get("parent"),
-                    "children": task_data.get("children", []),
-                    "metadata": task_data.get("metadata", {}),
-                    "dependencies": task_data.get("dependencies", {}),
-                    "completed_tasks": task_data.get("completed_tasks", 0),
-                    "total_tasks": task_data.get("total_tasks", 0)
-                },
-                "error": None
-            }
+            return asdict(success_response(
+                spec_id=spec_id,
+                task_id=task_id,
+                title=task_data.get("title", ""),
+                type=task_data.get("type", "task"),
+                status=task_data.get("status", "pending"),
+                parent=task_data.get("parent"),
+                children=task_data.get("children", []),
+                metadata=task_data.get("metadata", {}),
+                dependencies=task_data.get("dependencies", {}),
+                completed_tasks=task_data.get("completed_tasks", 0),
+                total_tasks=task_data.get("total_tasks", 0)
+            ))
 
         except Exception as e:
             logger.error(f"Error getting task info: {e}")
-            return {
-                "success": False,
-                "data": {},
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_check_deps")
@@ -284,35 +234,19 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             deps = check_dependencies(spec_data, task_id)
             deps["spec_id"] = spec_id
-            return {
-                "success": True,
-                "data": deps,
-                "error": None
-            }
+            return asdict(success_response(**deps))
 
         except Exception as e:
             logger.error(f"Error checking dependencies: {e}")
-            return {
-                "success": False,
-                "data": {},
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_update_status")
@@ -338,10 +272,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         valid_statuses = ["pending", "in_progress", "completed", "blocked"]
         if status not in valid_statuses:
-            return {
-                "success": False,
-                "error": f"Invalid status: {status}. Must be one of: {valid_statuses}"
-            }
+            return asdict(error_response(f"Invalid status: {status}. Must be one of: {valid_statuses}"))
 
         try:
             if workspace:
@@ -350,17 +281,11 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             # Update task status
             updates = {"status": status}
@@ -374,10 +299,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 }
 
             if not update_node(spec_data, task_id, updates):
-                return {
-                    "success": False,
-                    "error": f"Task not found: {task_id}"
-                }
+                return asdict(error_response(f"Task not found: {task_id}"))
 
             # Update parent status chain
             update_parent_status(spec_data, task_id)
@@ -396,24 +318,17 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Save spec
             if not save_spec(spec_id, spec_data, specs_dir):
-                return {
-                    "success": False,
-                    "error": "Failed to save spec"
-                }
+                return asdict(error_response("Failed to save spec"))
 
-            return {
-                "success": True,
-                "spec_id": spec_id,
-                "task_id": task_id,
-                "new_status": status
-            }
+            return asdict(success_response(
+                spec_id=spec_id,
+                task_id=task_id,
+                new_status=status
+            ))
 
         except Exception as e:
             logger.error(f"Error updating status: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_complete_task")
@@ -444,24 +359,15 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             task_data = get_node(spec_data, task_id)
             if not task_data:
-                return {
-                    "success": False,
-                    "error": f"Task not found: {task_id}"
-                }
+                return asdict(error_response(f"Task not found: {task_id}"))
 
             timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -474,10 +380,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
             }
 
             if not update_node(spec_data, task_id, updates):
-                return {
-                    "success": False,
-                    "error": f"Failed to update task: {task_id}"
-                }
+                return asdict(error_response(f"Failed to update task: {task_id}"))
 
             # Update parent status chain
             update_parent_status(spec_data, task_id)
@@ -495,32 +398,25 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Save spec
             if not save_spec(spec_id, spec_data, specs_dir):
-                return {
-                    "success": False,
-                    "error": "Failed to save spec"
-                }
+                return asdict(error_response("Failed to save spec"))
 
             # Get updated progress
             progress = get_progress_summary(spec_data)
 
-            return {
-                "success": True,
-                "spec_id": spec_id,
-                "task_id": task_id,
-                "completed_at": timestamp,
-                "progress": {
+            return asdict(success_response(
+                spec_id=spec_id,
+                task_id=task_id,
+                completed_at=timestamp,
+                progress={
                     "completed_tasks": progress.get("completed_tasks", 0),
                     "total_tasks": progress.get("total_tasks", 0),
                     "percentage": progress.get("percentage", 0)
                 }
-            }
+            ))
 
         except Exception as e:
             logger.error(f"Error completing task: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_start_task")
@@ -549,33 +445,21 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             task_data = get_node(spec_data, task_id)
             if not task_data:
-                return {
-                    "success": False,
-                    "error": f"Task not found: {task_id}"
-                }
+                return asdict(error_response(f"Task not found: {task_id}"))
 
             # Check dependencies before starting
             deps = check_dependencies(spec_data, task_id)
             if not deps.get("can_start", False):
                 blockers = [b.get("title", b.get("id", "")) for b in deps.get("blocked_by", [])]
-                return {
-                    "success": False,
-                    "error": f"Task is blocked by: {', '.join(blockers)}"
-                }
+                return asdict(error_response(f"Task is blocked by: {', '.join(blockers)}"))
 
             timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -588,10 +472,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
             }
 
             if not update_node(spec_data, task_id, updates):
-                return {
-                    "success": False,
-                    "error": f"Failed to update task: {task_id}"
-                }
+                return asdict(error_response(f"Failed to update task: {task_id}"))
 
             # Update parent status chain
             update_parent_status(spec_data, task_id)
@@ -610,26 +491,19 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Save spec
             if not save_spec(spec_id, spec_data, specs_dir):
-                return {
-                    "success": False,
-                    "error": "Failed to save spec"
-                }
+                return asdict(error_response("Failed to save spec"))
 
-            return {
-                "success": True,
-                "spec_id": spec_id,
-                "task_id": task_id,
-                "started_at": timestamp,
-                "title": task_data.get("title", ""),
-                "type": task_data.get("type", "task")
-            }
+            return asdict(success_response(
+                spec_id=spec_id,
+                task_id=task_id,
+                started_at=timestamp,
+                title=task_data.get("title", ""),
+                type=task_data.get("type", "task")
+            ))
 
         except Exception as e:
             logger.error(f"Error starting task: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_progress")
@@ -658,38 +532,22 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": "No specs directory found"
-                }
+                return asdict(error_response("No specs directory found"))
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {
-                    "success": False,
-                    "data": {},
-                    "error": f"Spec not found: {spec_id}"
-                }
+                return asdict(error_response(f"Spec not found: {spec_id}"))
 
             progress = get_progress_summary(spec_data, node_id)
 
             if include_phases:
                 progress["phases"] = list_phases(spec_data)
 
-            return {
-                "success": True,
-                "data": progress,
-                "error": None
-            }
+            return asdict(success_response(**progress))
 
         except Exception as e:
             logger.error(f"Error getting progress: {e}")
-            return {
-                "success": False,
-                "data": {},
-                "error": str(e)
-            }
+            return asdict(error_response(str(e)))
 
     logger.debug("Registered task tools: foundry_prepare_task, foundry_next_task, "
                  "foundry_task_info, foundry_check_deps, foundry_update_status, "

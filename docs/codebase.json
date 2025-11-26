@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T21:08:49.483792Z",
-    "generated_at_commit": "e32374f51f7b3a23f8d483e8f0a6ac89342e2baa",
+    "generated_at": "2025-11-26T21:40:37.745269Z",
+    "generated_at_commit": "f96c2aec8fe5eb016d4f1645eb10b8cb0426ed81",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 12253,
+    "total_lines": 12078,
     "total_classes": 42,
     "total_functions": 136,
     "avg_complexity": 7.27,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 12253,
+        "lines": 12078,
         "classes": 42,
         "functions": 136,
         "avg_complexity": 7.27
@@ -429,7 +429,7 @@
       "name": "responses",
       "file": "src/foundry_mcp/core/responses.py",
       "language": "python",
-      "docstring": "Standard response contracts for MCP tool operations.\nProvides consistent response structures across all foundry-mcp tools.\n\nResponse Schema Contract\n========================\n\nAll MCP tool responses follow a standard structure:\n\n    {\n        \"success\": bool,       # Required: operation success/failure\n        \"data\": {...},         # Required: primary payload (empty dict on error)\n        \"error\": str | null    # Required: error message or null on success\n    }\n\nMeta Payload Convention\n-----------------------\n\nFor operations returning metadata alongside primary data, use reserved keys\nwithin the data dict:\n\n    data = {\n        # Primary operation-specific fields\n        \"spec_id\": \"...\",\n        \"tasks\": [...],\n\n        # Optional meta fields (reserved keys)\n        \"_meta\": {\n            \"version\": \"1.0\",           # API/schema version\n            \"pagination\": {             # For paginated results\n                \"offset\": 0,\n                \"limit\": 50,\n                \"total\": 150,\n                \"has_more\": True\n            },\n            \"timing\": {                 # Performance info\n                \"duration_ms\": 42\n            }\n        },\n        \"_warnings\": [                  # Non-fatal issues\n            \"Spec has validation warnings\",\n            \"Deprecated field 'foo' used\"\n        ]\n    }\n\nMulti-Payload Tools\n-------------------\n\nTools returning multiple distinct payloads should nest them under named keys:\n\n    data = {\n        \"spec\": {...},          # First payload\n        \"tasks\": [...],         # Second payload\n        \"_meta\": {...}          # Metadata about the operation\n    }\n\nThis ensures consumers can access each payload by key rather than relying\non position or implicit structure.\n\nEdge Cases & Partial Payloads\n-----------------------------\n\nEmpty Results (success=True):\n    When a query succeeds but finds no results, return success=True with\n    empty/partial data to distinguish from errors:\n\n    # No tasks found (valid query, empty result)\n    {\"success\": True, \"data\": {\"tasks\": [], \"count\": 0}, \"error\": None}\n\n    # Spec complete (no more tasks to do)\n    {\"success\": True, \"data\": {\"found\": False, \"spec_complete\": True}, \"error\": None}\n\nNot Found (success=False):\n    When the requested resource doesn't exist, return success=False:\n\n    # Spec not found\n    {\"success\": False, \"data\": {}, \"error\": \"Spec not found: my-spec\"}\n\n    # Task not found\n    {\"success\": False, \"data\": {}, \"error\": \"Task not found: task-1-1\"}\n\nBlocked/Conditional States (success=True):\n    Dependency checks and similar queries return success=True with state info:\n\n    # Task is blocked but query succeeded\n    {\n        \"success\": True,\n        \"data\": {\n            \"task_id\": \"task-1-2\",\n            \"can_start\": False,\n            \"blocked_by\": [{\"id\": \"task-1-1\", \"status\": \"pending\"}]\n        },\n        \"error\": None\n    }\n\nPartial Success with Warnings:\n    Operations that complete with caveats use _warnings:\n\n    {\n        \"success\": True,\n        \"data\": {\n            \"validated\": True,\n            \"spec_id\": \"my-spec\",\n            \"_warnings\": [\"Field 'foo' is deprecated\", \"Missing optional metadata\"]\n        },\n        \"error\": None\n    }\n\nKey Principle:\n    - success=True means the operation executed correctly (even if result is empty)\n    - success=False means the operation failed to execute\n    - Use data fields (found, can_start, etc.) to convey semantic state\n    - Use _warnings for non-fatal issues that don't prevent success",
+      "docstring": "Standard response contracts for MCP tool operations.\nProvides consistent response structures across all foundry-mcp tools.\n\nResponse Schema Contract\n========================\n\nAll MCP tool responses follow a standard structure:\n\n    {\n        \"success\": bool,       # Required: operation success/failure\n        \"data\": {...},         # Required: primary payload (empty dict on error)\n        \"error\": str | null,   # Required: error message or null on success\n        \"meta\": {              # Required: response metadata\n            \"version\": \"response-v2\"\n        }\n    }\n\nMeta Payload Convention\n-----------------------\n\nFor operations returning metadata alongside primary data, use reserved keys\nwithin the data dict:\n\n    data = {\n        # Primary operation-specific fields\n        \"spec_id\": \"...\",\n        \"tasks\": [...],\n\n        # Optional meta fields (reserved keys)\n        \"_meta\": {\n            \"version\": \"1.0\",           # API/schema version\n            \"pagination\": {             # For paginated results\n                \"offset\": 0,\n                \"limit\": 50,\n                \"total\": 150,\n                \"has_more\": True\n            },\n            \"timing\": {                 # Performance info\n                \"duration_ms\": 42\n            }\n        },\n        \"_warnings\": [                  # Non-fatal issues\n            \"Spec has validation warnings\",\n            \"Deprecated field 'foo' used\"\n        ]\n    }\n\nMulti-Payload Tools\n-------------------\n\nTools returning multiple distinct payloads should nest them under named keys:\n\n    data = {\n        \"spec\": {...},          # First payload\n        \"tasks\": [...],         # Second payload\n        \"_meta\": {...}          # Metadata about the operation\n    }\n\nThis ensures consumers can access each payload by key rather than relying\non position or implicit structure.\n\nEdge Cases & Partial Payloads\n-----------------------------\n\nEmpty Results (success=True):\n    When a query succeeds but finds no results, return success=True with\n    empty/partial data to distinguish from errors:\n\n    # No tasks found (valid query, empty result)\n    {\"success\": True, \"data\": {\"tasks\": [], \"count\": 0}, \"error\": None}\n\n    # Spec complete (no more tasks to do)\n    {\"success\": True, \"data\": {\"found\": False, \"spec_complete\": True}, \"error\": None}\n\nNot Found (success=False):\n    When the requested resource doesn't exist, return success=False:\n\n    # Spec not found\n    {\"success\": False, \"data\": {}, \"error\": \"Spec not found: my-spec\"}\n\n    # Task not found\n    {\"success\": False, \"data\": {}, \"error\": \"Task not found: task-1-1\"}\n\nBlocked/Conditional States (success=True):\n    Dependency checks and similar queries return success=True with state info:\n\n    # Task is blocked but query succeeded\n    {\n        \"success\": True,\n        \"data\": {\n            \"task_id\": \"task-1-2\",\n            \"can_start\": False,\n            \"blocked_by\": [{\"id\": \"task-1-1\", \"status\": \"pending\"}]\n        },\n        \"error\": None\n    }\n\nPartial Success with Warnings:\n    Operations that complete with caveats use _warnings:\n\n    {\n        \"success\": True,\n        \"data\": {\n            \"validated\": True,\n            \"spec_id\": \"my-spec\",\n            \"_warnings\": [\"Field 'foo' is deprecated\", \"Missing optional metadata\"]\n        },\n        \"error\": None\n    }\n\nKey Principle:\n    - success=True means the operation executed correctly (even if result is empty)\n    - success=False means the operation failed to execute\n    - Use data fields (found, can_start, etc.) to convey semantic state\n    - Use _warnings for non-fatal issues that don't prevent success",
       "classes": [
         "ToolResponse"
       ],
@@ -446,7 +446,7 @@
         "typing.Optional"
       ],
       "exports": [],
-      "lines": 169
+      "lines": 174
     },
     {
       "name": "spec",
@@ -837,6 +837,7 @@
       ],
       "imports": [
         "logging",
+        "dataclasses.asdict",
         "pathlib.Path",
         "typing.Optional",
         "typing.List",
@@ -845,13 +846,15 @@
         "mcp.server.fastmcp.FastMCP",
         "foundry_mcp.config.ServerConfig",
         "foundry_mcp.core.observability.mcp_tool",
+        "foundry_mcp.core.responses.success_response",
+        "foundry_mcp.core.responses.error_response",
         "foundry_mcp.core.spec.find_specs_directory",
         "foundry_mcp.core.spec.find_spec_file",
         "foundry_mcp.core.spec.list_specs",
         "foundry_mcp.core.spec.load_spec"
       ],
       "exports": [],
-      "lines": 318
+      "lines": 280
     },
     {
       "name": "rendering",
@@ -890,6 +893,7 @@
       ],
       "imports": [
         "logging",
+        "dataclasses.asdict",
         "datetime.datetime",
         "datetime.timezone",
         "pathlib.Path",
@@ -907,10 +911,12 @@
         "foundry_mcp.core.task.prepare_task",
         "foundry_mcp.core.progress.get_progress_summary",
         "foundry_mcp.core.progress.update_parent_status",
-        "foundry_mcp.core.progress.list_phases"
+        "foundry_mcp.core.progress.list_phases",
+        "foundry_mcp.core.responses.success_response",
+        "foundry_mcp.core.responses.error_response"
       ],
       "exports": [],
-      "lines": 696
+      "lines": 554
     },
     {
       "name": "testing",
@@ -2352,9 +2358,9 @@
     {
       "name": "ToolResponse",
       "file": "src/foundry_mcp/core/responses.py",
-      "line": 121,
+      "line": 124,
       "language": "python",
-      "docstring": "Standard response structure for MCP tool operations.\n\nAll tool handlers should return data that can be serialized to this format,\nensuring consistent API responses across the codebase.\n\nAttributes:\n    success: Whether the operation completed successfully\n    data: The primary payload (operation-specific structured data)\n    error: Error message if success is False, None otherwise",
+      "docstring": "Standard response structure for MCP tool operations.\n\nAll tool handlers should return data that can be serialized to this format,\nensuring consistent API responses across the codebase.\n\nAttributes:\n    success: Whether the operation completed successfully\n    data: The primary payload (operation-specific structured data)\n    error: Error message if success is False, None otherwise\n    meta: Response metadata including version identifier",
       "bases": [],
       "methods": [],
       "properties": [],
@@ -2364,7 +2370,7 @@
         {
           "instantiator": "success_response",
           "file": "src/foundry_mcp/core/responses.py",
-          "line": 152,
+          "line": 157,
           "context": [
             "success_response"
           ]
@@ -2372,7 +2378,7 @@
         {
           "instantiator": "error_response",
           "file": "src/foundry_mcp/core/responses.py",
-          "line": 169,
+          "line": 174,
           "context": [
             "error_response"
           ]
@@ -4858,7 +4864,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -6044,19 +6050,19 @@
         {
           "name": "foundry_find_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 107,
+          "line": 109,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 175,
+          "line": 161,
           "call_type": "function_call"
         },
         {
           "name": "foundry_query_tasks",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 242,
+          "line": 216,
           "call_type": "function_call"
         },
         {
@@ -6080,49 +6086,49 @@
         {
           "name": "foundry_prepare_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 47,
+          "line": 49,
           "call_type": "function_call"
         },
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 92,
+          "line": 86,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 190,
+          "line": 160,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 263,
+          "line": 213,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 318,
+          "line": 252,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 419,
+          "line": 334,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 526,
+          "line": 422,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 635,
+          "line": 509,
           "call_type": "function_call"
         },
         {
@@ -6489,19 +6495,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 383,
+          "line": 305,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 483,
+          "line": 386,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 597,
+          "line": 478,
           "call_type": "function_call"
         }
       ],
@@ -6573,13 +6579,13 @@
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 504,
+          "line": 404,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 675,
+          "line": 541,
           "call_type": "function_call"
         }
       ],
@@ -6742,7 +6748,7 @@
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 678,
+          "line": 544,
           "call_type": "function_call"
         }
       ],
@@ -8441,9 +8447,9 @@
     {
       "name": "success_response",
       "file": "src/foundry_mcp/core/responses.py",
-      "line": 138,
+      "line": 143,
       "language": "python",
-      "docstring": "Create a successful response with the given data.\n\nArgs:\n    **data: Keyword arguments to include in the response data\n\nReturns:\n    ToolResponse with success=True and provided data\n\nExample:\n    >>> success_response(spec_id=\"my-spec\", count=5)\n    ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None)",
+      "docstring": "Create a successful response with the given data.\n\nArgs:\n    **data: Keyword arguments to include in the response data\n\nReturns:\n    ToolResponse with success=True and provided data\n\nExample:\n    >>> success_response(spec_id=\"my-spec\", count=5)\n    ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None, meta={'version': 'response-v2'})",
       "parameters": [],
       "return_type": "ToolResponse",
       "complexity": 1,
@@ -8451,22 +8457,102 @@
       "is_async": false,
       "is_exported": false,
       "is_public": true,
-      "callers": [],
+      "callers": [
+        {
+          "name": "foundry_find_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 144,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_find_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 151,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_list_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 206,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_query_tasks",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 270,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 121,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 141,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 148,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_task_info",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 194,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_check_deps",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 245,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 323,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 406,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 496,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_progress",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 546,
+          "call_type": "function_call"
+        }
+      ],
       "calls": [
         {
           "name": "dict",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 152,
+          "line": 157,
           "call_type": "function_call"
         }
-      ]
+      ],
+      "call_count": 13
     },
     {
       "name": "error_response",
       "file": "src/foundry_mcp/core/responses.py",
-      "line": 155,
+      "line": 160,
       "language": "python",
-      "docstring": "Create an error response with the given message.\n\nArgs:\n    message: Error message describing what went wrong\n\nReturns:\n    ToolResponse with success=False and error message\n\nExample:\n    >>> error_response(\"Spec not found\")\n    ToolResponse(success=False, data={}, error='Spec not found')",
+      "docstring": "Create an error response with the given message.\n\nArgs:\n    message: Error message describing what went wrong\n\nReturns:\n    ToolResponse with success=False and error message\n\nExample:\n    >>> error_response(\"Spec not found\")\n    ToolResponse(success=False, data={}, error='Spec not found', meta={'version': 'response-v2'})",
       "parameters": [
         {
           "name": "message",
@@ -8480,8 +8566,250 @@
       "is_async": false,
       "is_exported": false,
       "is_public": true,
-      "callers": [],
-      "calls": []
+      "callers": [
+        {
+          "name": "foundry_find_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 135,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_find_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 158,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_list_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 189,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_list_specs",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 213,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_query_tasks",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 247,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_query_tasks",
+          "file": "src/foundry_mcp/tools/queries.py",
+          "line": 278,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_prepare_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 76,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_prepare_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 83,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 111,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 115,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_next_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 157,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_task_info",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 184,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_task_info",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 188,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_task_info",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 192,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_task_info",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 210,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_check_deps",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 237,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_check_deps",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 241,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_check_deps",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 249,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 275,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 284,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 288,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 302,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 321,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_update_status",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 331,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 362,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 366,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 370,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 383,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 401,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_complete_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 419,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 448,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 452,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 456,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 462,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 475,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 494,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 506,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_progress",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 535,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_progress",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 539,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_progress",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 550,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [],
+      "call_count": 40
     },
     {
       "name": "find_git_root",
@@ -8759,37 +9087,37 @@
         {
           "name": "foundry_find_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 128,
+          "line": 130,
           "call_type": "function_call"
         },
         {
           "name": "foundry_find_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 130,
+          "line": 132,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 198,
+          "line": 184,
           "call_type": "function_call"
         },
         {
           "name": "foundry_list_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 200,
+          "line": 186,
           "call_type": "function_call"
         },
         {
           "name": "foundry_query_tasks",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 266,
+          "line": 240,
           "call_type": "function_call"
         },
         {
           "name": "foundry_query_tasks",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 268,
+          "line": 242,
           "call_type": "function_call"
         },
         {
@@ -8831,97 +9159,97 @@
         {
           "name": "foundry_prepare_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 69,
+          "line": 71,
           "call_type": "function_call"
         },
         {
           "name": "foundry_prepare_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 71,
+          "line": 73,
           "call_type": "function_call"
         },
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 112,
+          "line": 106,
           "call_type": "function_call"
         },
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 114,
+          "line": 108,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 209,
+          "line": 179,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 211,
+          "line": 181,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 282,
+          "line": 232,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 284,
+          "line": 234,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 348,
+          "line": 279,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 350,
+          "line": 281,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 442,
+          "line": 357,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 444,
+          "line": 359,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 547,
+          "line": 443,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 549,
+          "line": 445,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 656,
+          "line": 530,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 658,
+          "line": 532,
           "call_type": "function_call"
         },
         {
@@ -9125,7 +9453,7 @@
         {
           "name": "foundry_find_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 140,
+          "line": 138,
           "call_type": "function_call"
         },
         {
@@ -9377,7 +9705,7 @@
         {
           "name": "foundry_query_tasks",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 270,
+          "line": 244,
           "call_type": "function_call"
         },
         {
@@ -9401,43 +9729,43 @@
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 123,
+          "line": 113,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 220,
+          "line": 186,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 293,
+          "line": 239,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 358,
+          "line": 286,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 452,
+          "line": 364,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 557,
+          "line": 450,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 667,
+          "line": 537,
           "call_type": "function_call"
         },
         {
@@ -9554,19 +9882,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 398,
+          "line": 320,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 497,
+          "line": 400,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 612,
+          "line": 493,
           "call_type": "function_call"
         }
       ],
@@ -9819,7 +10147,7 @@
         {
           "name": "foundry_list_specs",
           "file": "src/foundry_mcp/tools/queries.py",
-          "line": 211,
+          "line": 193,
           "call_type": "function_call"
         }
       ],
@@ -9975,19 +10303,19 @@
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 228,
+          "line": 190,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 459,
+          "line": 368,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 564,
+          "line": 454,
           "call_type": "function_call"
         }
       ],
@@ -10040,19 +10368,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 376,
+          "line": 301,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 476,
+          "line": 382,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 590,
+          "line": 474,
           "call_type": "function_call"
         }
       ],
@@ -10303,7 +10631,7 @@
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 131,
+          "line": 117,
           "call_type": "function_call"
         }
       ],
@@ -10465,13 +10793,13 @@
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 301,
+          "line": 243,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 572,
+          "line": 459,
           "call_type": "function_call"
         }
       ],
@@ -14656,7 +14984,7 @@
     {
       "name": "register_query_tools",
       "file": "src/foundry_mcp/tools/queries.py",
-      "line": 97,
+      "line": 99,
       "language": "python",
       "docstring": "Register query tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -14689,7 +15017,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 318,
+          "line": 280,
           "call_type": "method_call"
         }
       ],
@@ -14740,7 +15068,7 @@
     {
       "name": "register_task_tools",
       "file": "src/foundry_mcp/tools/tasks.py",
-      "line": 37,
+      "line": 39,
       "language": "python",
       "docstring": "Register task operation tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -14773,7 +15101,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 694,
+          "line": 552,
           "call_type": "method_call"
         }
       ],
@@ -15205,6 +15533,7 @@
     ],
     "src/foundry_mcp/tools/queries.py": [
       "logging",
+      "dataclasses.asdict",
       "pathlib.Path",
       "typing.Optional",
       "typing.List",
@@ -15213,6 +15542,8 @@
       "mcp.server.fastmcp.FastMCP",
       "foundry_mcp.config.ServerConfig",
       "foundry_mcp.core.observability.mcp_tool",
+      "foundry_mcp.core.responses.success_response",
+      "foundry_mcp.core.responses.error_response",
       "foundry_mcp.core.spec.find_specs_directory",
       "foundry_mcp.core.spec.find_spec_file",
       "foundry_mcp.core.spec.list_specs",
@@ -15234,6 +15565,7 @@
     ],
     "src/foundry_mcp/tools/tasks.py": [
       "logging",
+      "dataclasses.asdict",
       "datetime.datetime",
       "datetime.timezone",
       "pathlib.Path",
@@ -15251,7 +15583,9 @@
       "foundry_mcp.core.task.prepare_task",
       "foundry_mcp.core.progress.get_progress_summary",
       "foundry_mcp.core.progress.update_parent_status",
-      "foundry_mcp.core.progress.list_phases"
+      "foundry_mcp.core.progress.list_phases",
+      "foundry_mcp.core.responses.success_response",
+      "foundry_mcp.core.responses.error_response"
     ],
     "src/foundry_mcp/tools/testing.py": [
       "logging",
