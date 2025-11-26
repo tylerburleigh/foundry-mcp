@@ -282,19 +282,35 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 specs_dir = config.specs_dir or find_specs_directory()
 
             if not specs_dir:
-                return {"error": "No specs directory found"}
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": "No specs directory found"
+                }
 
             spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return {"error": f"Spec not found: {spec_id}"}
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": f"Spec not found: {spec_id}"
+                }
 
             deps = check_dependencies(spec_data, task_id)
             deps["spec_id"] = spec_id
-            return deps
+            return {
+                "success": True,
+                "data": deps,
+                "error": None
+            }
 
         except Exception as e:
             logger.error(f"Error checking dependencies: {e}")
-            return {"error": str(e)}
+            return {
+                "success": False,
+                "data": {},
+                "error": str(e)
+            }
 
     @mcp.tool()
     @mcp_tool(tool_name="foundry_update_status")
