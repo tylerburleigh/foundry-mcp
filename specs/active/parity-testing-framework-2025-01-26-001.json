@@ -1,0 +1,671 @@
+{
+  "spec_id": "parity-testing-framework-2025-01-26-001",
+  "title": "Parity Testing Framework: foundry-mcp vs sdd-toolkit",
+  "metadata": {
+    "title": "Parity Testing Framework: foundry-mcp vs sdd-toolkit",
+    "description": "Implement a comprehensive parity testing framework to verify behavioral equivalence between foundry-mcp MCP tools and sdd-toolkit CLI commands",
+    "created_at": "2025-01-26T00:00:00Z",
+    "version": "1.0.0",
+    "status": "active",
+    "priority": "high",
+    "tags": [
+      "testing",
+      "parity",
+      "quality-assurance"
+    ],
+    "generated": "2025-01-26T00:00:00Z",
+    "last_updated": "2025-01-26T00:00:00Z",
+    "progress_percentage": 5,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Parity Testing Framework",
+      "status": "in_progress",
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "completed_tasks": 1,
+      "total_tasks": 17,
+      "metadata": {},
+      "parent": null,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Foundation Infrastructure",
+      "description": "Create directory structure and base adapter pattern",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4"
+      ],
+      "completed_tasks": 1,
+      "total_tasks": 4,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Create directory structure",
+      "description": "Create tests/parity/ with harness/, fixtures/, and conftest.py",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "files": [
+          "tests/parity/__init__.py",
+          "tests/parity/conftest.py",
+          "tests/parity/harness/__init__.py",
+          "tests/parity/fixtures/sample_specs/.gitkeep"
+        ],
+        "file_path": "task-1-1.md",
+        "task_category": "implementation",
+        "started_at": "2025-11-26T18:04:57.526163Z",
+        "status_note": "Starting directory structure creation",
+        "completed_at": "2025-11-26T18:05:38.622698Z",
+        "needs_journaling": false,
+        "actual_hours": 0.011,
+        "journaled_at": "2025-11-26T18:05:38.624947Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Implement base adapter interface",
+      "description": "Create abstract SpecToolAdapter class with all operations",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/base.py"
+        ],
+        "operations": [
+          "list_specs",
+          "get_spec",
+          "get_task",
+          "next_task",
+          "prepare_task",
+          "check_dependencies",
+          "update_status",
+          "complete_task",
+          "start_task",
+          "progress",
+          "add_journal",
+          "get_journal",
+          "mark_blocked",
+          "unblock",
+          "list_blocked",
+          "validate_spec",
+          "fix_spec",
+          "spec_stats",
+          "activate_spec",
+          "complete_spec",
+          "archive_spec",
+          "move_spec"
+        ],
+        "file_path": "task-1-2.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Implement FoundryMcpAdapter",
+      "description": "Create adapter that directly calls foundry-mcp Python tools",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-2"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/foundry_adapter.py"
+        ],
+        "reference": "tests/integration/test_mcp_tools.py",
+        "file_path": "task-1-3.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Implement SddToolkitAdapter",
+      "description": "Create adapter that invokes sdd CLI via subprocess with --json output",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-2"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/sdd_adapter.py"
+        ],
+        "cli_commands": [
+          "sdd list-specs",
+          "sdd progress",
+          "sdd get-task",
+          "sdd next-task",
+          "sdd prepare-task",
+          "sdd check-deps",
+          "sdd update-status",
+          "sdd complete-task",
+          "sdd add-journal",
+          "sdd get-journal",
+          "sdd mark-blocked",
+          "sdd validate",
+          "sdd activate-spec",
+          "sdd complete-spec",
+          "sdd move-spec"
+        ],
+        "file_path": "task-1-4.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Normalization and Comparison",
+      "description": "Implement output normalization and comparison utilities",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3"
+      ],
+      "completed_tasks": 0,
+      "total_tasks": 3,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement OutputNormalizer",
+      "description": "Create normalizer for timestamps, paths, and system-specific fields",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/normalizers.py"
+        ],
+        "normalizations": [
+          "timestamps -> <TIMESTAMP>",
+          "absolute paths -> relative from specs/",
+          "foundry-only fields removal",
+          "sdd-only fields removal"
+        ],
+        "file_path": "task-2-1.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Implement FieldMapper",
+      "description": "Map equivalent field names between systems (e.g., progress_percentage vs percentage)",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-2-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/normalizers.py"
+        ],
+        "mappings": {
+          "progress_percentage": "percentage",
+          "total_tasks": "total",
+          "completed_tasks": "completed"
+        },
+        "task_category": "investigation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "Implement ResultComparator",
+      "description": "Create comparator with detailed unified diff output on mismatch",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-2-1",
+          "task-2-2"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/comparators.py"
+        ],
+        "features": [
+          "Deep JSON comparison",
+          "Ignorable fields support",
+          "Unified diff generation",
+          "assert_parity() helper"
+        ],
+        "file_path": "task-2-3.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Test Fixtures",
+      "description": "Create sample specs and fixture management",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "completed_tasks": 0,
+      "total_tasks": 2,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Create sample spec fixtures",
+      "description": "Create JSON spec fixtures for various test scenarios",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/fixtures/sample_specs/simple_spec.json",
+          "tests/parity/fixtures/sample_specs/multi_phase_spec.json",
+          "tests/parity/fixtures/sample_specs/with_dependencies.json",
+          "tests/parity/fixtures/sample_specs/with_blockers.json",
+          "tests/parity/fixtures/sample_specs/completed_spec.json"
+        ],
+        "file_path": "task-3-1.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Implement FixtureManager",
+      "description": "Create utility for setting up and cleaning test fixtures",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-3-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/harness/fixture_manager.py"
+        ],
+        "features": [
+          "setup() - copy fixture to test dir",
+          "cleanup() - remove test dir",
+          "Create proper folder structure"
+        ],
+        "file_path": "task-3-2.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Parity Test Implementation",
+      "description": "Write comprehensive parity tests for all feature areas",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1",
+        "task-4-2",
+        "task-4-3",
+        "task-4-4",
+        "task-4-5"
+      ],
+      "completed_tasks": 0,
+      "total_tasks": 5,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Implement spec operation tests",
+      "description": "Tests for list_specs, get_spec, get_task operations",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-1-3",
+          "task-1-4",
+          "task-2-3",
+          "task-3-2"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/test_spec_operations.py"
+        ],
+        "tests": [
+          "test_list_all_specs_parity",
+          "test_list_active_specs_parity",
+          "test_get_spec_parity",
+          "test_get_spec_not_found_parity",
+          "test_get_task_parity"
+        ],
+        "file_path": "task-4-1.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "Implement task operation tests",
+      "description": "Tests for next_task, update_status, complete_task, check_deps",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/test_task_operations.py"
+        ],
+        "tests": [
+          "test_next_task_parity",
+          "test_check_deps_parity",
+          "test_update_status_parity",
+          "test_complete_task_parity",
+          "test_start_task_parity"
+        ],
+        "file_path": "task-4-2.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-4-3": {
+      "type": "task",
+      "title": "Implement progress tracking tests",
+      "description": "Tests for progress, journal, blocked task operations",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/test_progress_tracking.py"
+        ],
+        "tests": [
+          "test_progress_parity",
+          "test_add_journal_parity",
+          "test_get_journal_parity",
+          "test_mark_blocked_parity",
+          "test_unblock_parity",
+          "test_list_blocked_parity"
+        ],
+        "file_path": "task-4-3.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-4-4": {
+      "type": "task",
+      "title": "Implement validation tests",
+      "description": "Tests for validate_spec, fix_spec, spec_stats",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/test_validation.py"
+        ],
+        "tests": [
+          "test_validate_spec_parity",
+          "test_fix_spec_parity",
+          "test_spec_stats_parity"
+        ],
+        "file_path": "task-4-4.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-4-5": {
+      "type": "task",
+      "title": "Implement lifecycle tests",
+      "description": "Tests for activate, complete, archive spec operations",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "tests/parity/test_lifecycle.py"
+        ],
+        "tests": [
+          "test_activate_spec_parity",
+          "test_complete_spec_parity",
+          "test_archive_spec_parity",
+          "test_move_spec_parity"
+        ],
+        "file_path": "task-4-5.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Integration and Documentation",
+      "description": "Integrate with CI and document the parity testing approach",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3"
+      ],
+      "completed_tasks": 0,
+      "total_tasks": 3,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "Add parity test marker",
+      "description": "Add @pytest.mark.parity marker to pytest.ini",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "pytest.ini"
+        ],
+        "file_path": "task-5-1.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "Verify all parity tests pass",
+      "description": "Run full parity test suite and fix any failures",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-4-1",
+          "task-4-2",
+          "task-4-3",
+          "task-4-4",
+          "task-4-5",
+          "task-5-1"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "command": "pytest tests/parity/ -v -m parity",
+        "file_path": "task-5-2.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "Update TESTING.md with parity section",
+      "description": "Document parity testing in the testing runbook",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "dependencies": {
+        "hard": [
+          "task-5-2"
+        ],
+        "soft": []
+      },
+      "metadata": {
+        "files": [
+          "docs/TESTING.md"
+        ],
+        "sections": [
+          "Parity Testing Overview",
+          "Running Parity Tests",
+          "Adding New Parity Tests",
+          "Troubleshooting Parity Failures"
+        ],
+        "file_path": "task-5-3.md",
+        "task_category": "implementation"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2025-11-26T18:05:38.624943Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create directory structure",
+      "author": "claude-code",
+      "content": "Directory structure already existed with all required files: tests/parity/__init__.py (parity testing framework docstring), tests/parity/harness/__init__.py (harness infrastructure with exports), tests/parity/conftest.py (pytest fixtures for both adapters and isolated tests), tests/parity/fixtures/sample_specs/.gitkeep. No changes needed - structure was pre-existing and complete.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ],
+  "last_updated": "2025-11-26T18:05:38.625897Z",
+  "generated": "2025-01-26T00:00:00Z"
+}
