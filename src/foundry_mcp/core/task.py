@@ -538,26 +538,22 @@ def prepare_task(
     Returns:
         Complete task preparation data with context.
     """
-    result = {
-        "success": False,
-        "task_id": task_id,
-        "task_data": None,
-        "dependencies": None,
-        "spec_complete": False,
-        "context": None,
-        "error": None
-    }
-
     # Find and load spec
     spec_path = find_spec_file(spec_id, specs_dir)
     if not spec_path:
-        result["error"] = f"Spec file not found for {spec_id}"
-        return result
+        return {
+            "success": False,
+            "data": {},
+            "error": f"Spec file not found for {spec_id}"
+        }
 
     spec_data = load_spec(spec_id, specs_dir)
     if not spec_data:
-        result["error"] = "Failed to load spec"
-        return result
+        return {
+            "success": False,
+            "data": {},
+            "error": "Failed to load spec"
+        }
 
     # Get task ID if not provided
     if not task_id:
@@ -573,35 +569,51 @@ def prepare_task(
             pending = sum(1 for t in all_tasks if t.get("status") == "pending")
 
             if pending == 0 and completed > 0:
-                result["success"] = True
-                result["spec_complete"] = True
-                return result
+                return {
+                    "success": True,
+                    "data": {
+                        "task_id": None,
+                        "spec_complete": True
+                    },
+                    "error": None
+                }
             else:
-                result["error"] = "No actionable tasks found"
-                return result
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": "No actionable tasks found"
+                }
 
         task_id, _ = next_task
-        result["task_id"] = task_id
 
     # Get task info
     task_data = get_node(spec_data, task_id)
     if not task_data:
-        result["error"] = f"Task {task_id} not found"
-        return result
-
-    result["task_data"] = task_data
+        return {
+            "success": False,
+            "data": {},
+            "error": f"Task {task_id} not found"
+        }
 
     # Check dependencies
     deps = check_dependencies(spec_data, task_id)
-    result["dependencies"] = deps
 
     # Gather context
-    result["context"] = {
+    context = {
         "previous_sibling": get_previous_sibling(spec_data, task_id),
         "parent_task": get_parent_context(spec_data, task_id),
         "phase": get_phase_context(spec_data, task_id),
         "task_journal": get_task_journal_summary(spec_data, task_id),
     }
 
-    result["success"] = True
-    return result
+    return {
+        "success": True,
+        "data": {
+            "task_id": task_id,
+            "task_data": task_data,
+            "dependencies": deps,
+            "spec_complete": False,
+            "context": context
+        },
+        "error": None
+    }

@@ -73,6 +73,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -83,6 +84,7 @@ def register_task_tools(mcp: FastMCP, config: ServerConfig) -> None:
             logger.error(f"Error preparing task: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 

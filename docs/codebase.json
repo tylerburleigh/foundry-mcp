@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T19:39:03.062312Z",
-    "generated_at_commit": "dab8f31f09248d0609ca6956be8ab41254d5e1fd",
+    "generated_at": "2025-11-26T19:40:03.568106Z",
+    "generated_at_commit": "f8c03fba4b094fccb98b72181951719de94df5a9",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 11937,
+    "total_lines": 11953,
     "total_classes": 42,
     "total_functions": 136,
     "avg_complexity": 7.21,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 11937,
+        "lines": 11953,
         "classes": 42,
         "functions": 136,
         "avg_complexity": 7.21
@@ -912,7 +912,7 @@
         "foundry_mcp.core.progress.list_phases"
       ],
       "exports": [],
-      "lines": 678
+      "lines": 694
     },
     {
       "name": "testing",
@@ -4862,7 +4862,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -6569,7 +6569,7 @@
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 665,
+          "line": 673,
           "call_type": "function_call"
         }
       ],
@@ -6732,7 +6732,7 @@
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 668,
+          "line": 676,
           "call_type": "function_call"
         }
       ],
@@ -9427,7 +9427,7 @@
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 661,
+          "line": 665,
           "call_type": "function_call"
         },
         {
@@ -14763,7 +14763,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 676,
+          "line": 692,
           "call_type": "method_call"
         }
       ],
