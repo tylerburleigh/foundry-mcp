@@ -56,6 +56,61 @@ Tools returning multiple distinct payloads should nest them under named keys:
 
 This ensures consumers can access each payload by key rather than relying
 on position or implicit structure.
+
+Edge Cases & Partial Payloads
+-----------------------------
+
+Empty Results (success=True):
+    When a query succeeds but finds no results, return success=True with
+    empty/partial data to distinguish from errors:
+
+    # No tasks found (valid query, empty result)
+    {"success": True, "data": {"tasks": [], "count": 0}, "error": None}
+
+    # Spec complete (no more tasks to do)
+    {"success": True, "data": {"found": False, "spec_complete": True}, "error": None}
+
+Not Found (success=False):
+    When the requested resource doesn't exist, return success=False:
+
+    # Spec not found
+    {"success": False, "data": {}, "error": "Spec not found: my-spec"}
+
+    # Task not found
+    {"success": False, "data": {}, "error": "Task not found: task-1-1"}
+
+Blocked/Conditional States (success=True):
+    Dependency checks and similar queries return success=True with state info:
+
+    # Task is blocked but query succeeded
+    {
+        "success": True,
+        "data": {
+            "task_id": "task-1-2",
+            "can_start": False,
+            "blocked_by": [{"id": "task-1-1", "status": "pending"}]
+        },
+        "error": None
+    }
+
+Partial Success with Warnings:
+    Operations that complete with caveats use _warnings:
+
+    {
+        "success": True,
+        "data": {
+            "validated": True,
+            "spec_id": "my-spec",
+            "_warnings": ["Field 'foo' is deprecated", "Missing optional metadata"]
+        },
+        "error": None
+    }
+
+Key Principle:
+    - success=True means the operation executed correctly (even if result is empty)
+    - success=False means the operation failed to execute
+    - Use data fields (found, can_start, etc.) to convey semantic state
+    - Use _warnings for non-fatal issues that don't prevent success
 """
 
 from dataclasses import dataclass, field

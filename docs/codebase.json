@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T19:40:03.568106Z",
-    "generated_at_commit": "f8c03fba4b094fccb98b72181951719de94df5a9",
+    "generated_at": "2025-11-26T19:41:32.728254Z",
+    "generated_at_commit": "158ce35db246aa6268d8664259e87d66ca1f7bee",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 11953,
+    "total_lines": 11967,
     "total_classes": 42,
     "total_functions": 136,
     "avg_complexity": 7.21,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 11953,
+        "lines": 11967,
         "classes": 42,
         "functions": 136,
         "avg_complexity": 7.21
@@ -514,7 +514,7 @@
         "foundry_mcp.core.spec.get_node"
       ],
       "exports": [],
-      "lines": 607
+      "lines": 619
     },
     {
       "name": "testing",
@@ -912,7 +912,7 @@
         "foundry_mcp.core.progress.list_phases"
       ],
       "exports": [],
-      "lines": 694
+      "lines": 696
     },
     {
       "name": "testing",
@@ -4850,7 +4850,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -4862,7 +4862,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -6076,43 +6076,43 @@
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 90,
+          "line": 92,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 188,
+          "line": 190,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 261,
+          "line": 263,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 316,
+          "line": 318,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 417,
+          "line": 419,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 524,
+          "line": 526,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 633,
+          "line": 635,
           "call_type": "function_call"
         },
         {
@@ -6479,19 +6479,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 381,
+          "line": 383,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 481,
+          "line": 483,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 595,
+          "line": 597,
           "call_type": "function_call"
         }
       ],
@@ -6563,13 +6563,13 @@
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 502,
+          "line": 504,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 673,
+          "line": 675,
           "call_type": "function_call"
         }
       ],
@@ -6732,7 +6732,7 @@
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 676,
+          "line": 678,
           "call_type": "function_call"
         }
       ],
@@ -8833,19 +8833,13 @@
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 110,
+          "line": 112,
           "call_type": "function_call"
         },
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 112,
-          "call_type": "function_call"
-        },
-        {
-          "name": "foundry_task_info",
-          "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 207,
+          "line": 114,
           "call_type": "function_call"
         },
         {
@@ -8855,9 +8849,9 @@
           "call_type": "function_call"
         },
         {
-          "name": "foundry_check_deps",
+          "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 280,
+          "line": 211,
           "call_type": "function_call"
         },
         {
@@ -8867,9 +8861,9 @@
           "call_type": "function_call"
         },
         {
-          "name": "foundry_update_status",
+          "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 346,
+          "line": 284,
           "call_type": "function_call"
         },
         {
@@ -8879,9 +8873,9 @@
           "call_type": "function_call"
         },
         {
-          "name": "foundry_complete_task",
+          "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 440,
+          "line": 350,
           "call_type": "function_call"
         },
         {
@@ -8891,9 +8885,9 @@
           "call_type": "function_call"
         },
         {
-          "name": "foundry_start_task",
+          "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 545,
+          "line": 444,
           "call_type": "function_call"
         },
         {
@@ -8903,15 +8897,21 @@
           "call_type": "function_call"
         },
         {
-          "name": "foundry_progress",
+          "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 654,
+          "line": 549,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
           "line": 656,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_progress",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 658,
           "call_type": "function_call"
         },
         {
@@ -9103,7 +9103,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 552,
+          "line": 542,
           "call_type": "function_call"
         },
         {
@@ -9277,7 +9277,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 557,
+          "line": 550,
           "call_type": "function_call"
         },
         {
@@ -9391,43 +9391,43 @@
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 121,
+          "line": 123,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 218,
+          "line": 220,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 291,
+          "line": 293,
           "call_type": "function_call"
         },
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 356,
+          "line": 358,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 450,
+          "line": 452,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 555,
+          "line": 557,
           "call_type": "function_call"
         },
         {
           "name": "foundry_progress",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 665,
+          "line": 667,
           "call_type": "function_call"
         },
         {
@@ -9544,19 +9544,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 396,
+          "line": 398,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 495,
+          "line": 497,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 610,
+          "line": 612,
           "call_type": "function_call"
         }
       ],
@@ -9959,25 +9959,25 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 587,
+          "line": 590,
           "call_type": "function_call"
         },
         {
           "name": "foundry_task_info",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 226,
+          "line": 228,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 457,
+          "line": 459,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 562,
+          "line": 564,
           "call_type": "function_call"
         }
       ],
@@ -10030,19 +10030,19 @@
         {
           "name": "foundry_update_status",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 374,
+          "line": 376,
           "call_type": "function_call"
         },
         {
           "name": "foundry_complete_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 474,
+          "line": 476,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 588,
+          "line": 590,
           "call_type": "function_call"
         }
       ],
@@ -10287,13 +10287,13 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 564,
+          "line": 560,
           "call_type": "function_call"
         },
         {
           "name": "foundry_next_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 129,
+          "line": 131,
           "call_type": "function_call"
         }
       ],
@@ -10449,19 +10449,19 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 595,
+          "line": 599,
           "call_type": "function_call"
         },
         {
           "name": "foundry_check_deps",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 299,
+          "line": 301,
           "call_type": "function_call"
         },
         {
           "name": "foundry_start_task",
           "file": "src/foundry_mcp/tools/tasks.py",
-          "line": 570,
+          "line": 572,
           "call_type": "function_call"
         }
       ],
@@ -10850,7 +10850,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 600,
+          "line": 603,
           "call_type": "function_call"
         }
       ],
@@ -10976,7 +10976,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 601,
+          "line": 604,
           "call_type": "function_call"
         }
       ],
@@ -11156,7 +11156,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 602,
+          "line": 605,
           "call_type": "function_call"
         }
       ],
@@ -11323,7 +11323,7 @@
         {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
-          "line": 603,
+          "line": 606,
           "call_type": "function_call"
         }
       ],
@@ -11437,97 +11437,97 @@
         {
           "name": "find_spec_file",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 552,
+          "line": 542,
           "call_type": "function_call"
         },
         {
           "name": "load_spec",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 557,
+          "line": 550,
           "call_type": "function_call"
         },
         {
           "name": "get_next_task",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 564,
+          "line": 560,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 567,
+          "line": 563,
           "call_type": "method_call"
         },
         {
           "name": "values",
           "file": "built-in",
+          "line": 565,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
+          "line": 566,
+          "call_type": "method_call"
+        },
+        {
+          "name": "sum",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 568,
+          "call_type": "function_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
+          "line": 568,
+          "call_type": "method_call"
+        },
+        {
+          "name": "sum",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 569,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
-          "line": 570,
-          "call_type": "method_call"
-        },
-        {
-          "name": "sum",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 572,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "built-in",
-          "line": 572,
-          "call_type": "method_call"
-        },
-        {
-          "name": "sum",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 573,
-          "call_type": "function_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
-          "line": 573,
+          "line": 569,
           "call_type": "method_call"
         },
         {
           "name": "get_node",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 587,
+          "line": 590,
           "call_type": "function_call"
         },
         {
           "name": "check_dependencies",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 595,
+          "line": 599,
           "call_type": "function_call"
         },
         {
           "name": "get_previous_sibling",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 600,
+          "line": 603,
           "call_type": "function_call"
         },
         {
           "name": "get_parent_context",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 601,
+          "line": 604,
           "call_type": "function_call"
         },
         {
           "name": "get_phase_context",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 602,
+          "line": 605,
           "call_type": "function_call"
         },
         {
           "name": "get_task_journal_summary",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/task.py",
-          "line": 603,
+          "line": 606,
           "call_type": "function_call"
         }
       ]
@@ -14763,7 +14763,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 692,
+          "line": 694,
           "call_type": "method_call"
         }
       ],
