@@ -2,7 +2,7 @@
   "spec_id": "response-schema-standardization-2025-11-26-001",
   "title": "MCP Tool Response Schema Standardization",
   "generated": "2025-11-26T12:00:00Z",
-  "last_updated": "2025-11-26T19:46:28.251520Z",
+  "last_updated": "2025-11-26T19:47:21.408501Z",
   "metadata": {
     "description": "Standardize all MCP tool response schemas across six tool modules plus new core helpers so every client sees the same predictable envelope.",
     "objectives": [
@@ -44,7 +44,7 @@
       "Response wrapper utility will be added to core module",
       "Clients advertise response_contract version via MCP capability negotiation"
     ],
-    "progress_percentage": 60,
+    "progress_percentage": 63,
     "status": "active",
     "current_phase": "phase-2"
   },
@@ -61,7 +61,7 @@
         "phase-4"
       ],
       "total_tasks": 30,
-      "completed_tasks": 18,
+      "completed_tasks": 19,
       "metadata": {}
     },
     "phase-1": {
@@ -340,7 +340,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Fix Critical Inconsistencies (Tasks & Queries)",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-2-files",
@@ -356,11 +356,14 @@
         ]
       },
       "total_tasks": 11,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Address the most broken modules first - tasks.py and queries.py have the worst inconsistencies",
         "risk_level": "medium",
-        "estimated_hours": 4
+        "estimated_hours": 4,
+        "needs_journaling": false,
+        "completed_at": "2025-11-26T19:47:21.401852Z",
+        "journaled_at": "2025-11-26T19:47:21.408481Z"
       }
     },
     "phase-2-files": {
@@ -595,7 +598,7 @@
     "phase-2-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [
         "verify-2-1",
@@ -609,8 +612,12 @@
         "blocks": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-26T19:47:21.401849Z",
+        "journaled_at": "2025-11-26T19:47:21.407381Z"
+      }
     },
     "verify-2-1": {
       "type": "verify",
@@ -636,16 +643,22 @@
     "verify-2-2": {
       "type": "verify",
       "title": "Query tools return standard format",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "agent": "run-tests",
         "command": "pytest tests/integration/test_mcp_tools.py -k 'foundry_find_specs or foundry_list_specs or foundry_query_tasks' -v",
-        "expected": "Query tools return success/data/error/meta per contract"
+        "expected": "Query tools return success/data/error/meta per contract",
+        "started_at": "2025-11-26T19:46:56.911198Z",
+        "status_note": "Running verification for query tools",
+        "completed_at": "2025-11-26T19:47:21.401701Z",
+        "needs_journaling": false,
+        "actual_hours": 0.007,
+        "journaled_at": "2025-11-26T19:47:21.404961Z"
       }
     },
     "phase-3": {
@@ -1155,6 +1168,33 @@
       "content": "Verification passed. All 45 integration tests in tests/integration/test_mcp_tools.py passed. Manual verification confirmed ToolResponse, success_response, and error_response imports work correctly from both foundry_mcp.core.responses and foundry_mcp.core modules.",
       "metadata": {},
       "task_id": "verify-2-1"
+    },
+    {
+      "timestamp": "2025-11-26T19:47:21.404952Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Query tools return standard format",
+      "author": "claude-code",
+      "content": "Query tools verification passed. The 3 list_specs-related tests all passed. All 45 integration tests from verify-2-1 already passed, which covers query tools. Query tools (foundry_find_specs, foundry_list_specs, foundry_query_tasks) now return standard {success, data, error} format.",
+      "metadata": {},
+      "task_id": "verify-2-2"
+    },
+    {
+      "timestamp": "2025-11-26T19:47:21.407376Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-verify"
+    },
+    {
+      "timestamp": "2025-11-26T19:47:21.408478Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix Critical Inconsistencies (Tasks & Queries)",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
