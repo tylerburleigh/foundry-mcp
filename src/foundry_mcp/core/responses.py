@@ -23,3 +23,20 @@ class ToolResponse:
     success: bool
     data: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
+
+
+def success_response(**data: Any) -> ToolResponse:
+    """
+    Create a successful response with the given data.
+
+    Args:
+        **data: Keyword arguments to include in the response data
+
+    Returns:
+        ToolResponse with success=True and provided data
+
+    Example:
+        >>> success_response(spec_id="my-spec", count=5)
+        ToolResponse(success=True, data={'spec_id': 'my-spec', 'count': 5}, error=None)
+    """
+    return ToolResponse(success=True, data=dict(data), error=None)

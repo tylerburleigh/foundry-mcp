@@ -2,17 +2,17 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T19:28:51.155046Z",
-    "generated_at_commit": "129f1d283401b5267216d723dd5a8605a91d4ce3",
+    "generated_at": "2025-11-26T19:29:58.357947Z",
+    "generated_at_commit": "8cf8f96916df51fa4c5d246d761130c33a37d3b7",
     "languages": [
       "python"
     ],
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 29,
-    "total_lines": 11763,
-    "total_classes": 41,
+    "total_files": 30,
+    "total_lines": 11788,
+    "total_classes": 42,
     "total_functions": 134,
     "avg_complexity": 7.3,
     "max_complexity": 59,
@@ -25,9 +25,9 @@
     ],
     "by_language": {
       "python": {
-        "files": 29,
-        "lines": 11763,
-        "classes": 41,
+        "files": 30,
+        "lines": 11788,
+        "classes": 42,
         "functions": 134,
         "avg_complexity": 7.3
       }
@@ -421,6 +421,26 @@
       ],
       "exports": [],
       "lines": 491
+    },
+    {
+      "name": "responses",
+      "file": "src/foundry_mcp/core/responses.py",
+      "language": "python",
+      "docstring": "Standard response contracts for MCP tool operations.\nProvides consistent response structures across all foundry-mcp tools.",
+      "classes": [
+        "ToolResponse"
+      ],
+      "functions": [],
+      "imports": [
+        "dataclasses.dataclass",
+        "dataclasses.field",
+        "typing.Any",
+        "typing.Dict",
+        "typing.List",
+        "typing.Optional"
+      ],
+      "exports": [],
+      "lines": 25
     },
     {
       "name": "spec",
@@ -2326,6 +2346,20 @@
       ],
       "imported_by": [],
       "instantiation_count": 1
+    },
+    {
+      "name": "ToolResponse",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 11,
+      "language": "python",
+      "docstring": "Standard response structure for MCP tool operations.\n\nAll tool handlers should return data that can be serialized to this format,\nensuring consistent API responses across the codebase.\n\nAttributes:\n    success: Whether the operation completed successfully\n    data: The primary payload (operation-specific structured data)\n    error: Error message if success is False, None otherwise",
+      "bases": [],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
     },
     {
       "name": "TestResult",
@@ -4804,7 +4838,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -14914,6 +14948,14 @@
       "foundry_mcp.core.observability.audit_log"
     ],
     "src/foundry_mcp/core/rendering.py": [
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "typing.Any",
+      "typing.Dict",
+      "typing.List",
+      "typing.Optional"
+    ],
+    "src/foundry_mcp/core/responses.py": [
       "dataclasses.dataclass",
       "dataclasses.field",
       "typing.Any",
