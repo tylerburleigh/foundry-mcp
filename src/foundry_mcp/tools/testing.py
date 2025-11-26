@@ -11,11 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.observability import mcp_tool
-from foundry_mcp.core.testing import (
-    TestRunner,
-    get_presets,
-    SCHEMA_VERSION,
-)
+from foundry_mcp.core.testing import TestRunner, get_presets
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +58,7 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with test results and schema_version
+            JSON object with test results
         """
         try:
             runner = _get_runner(workspace)
@@ -75,38 +71,46 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 markers=markers,
             )
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "execution_id": result.execution_id,
-                "timestamp": result.timestamp,
-                "summary": {
-                    "total": result.total,
-                    "passed": result.passed,
-                    "failed": result.failed,
-                    "skipped": result.skipped,
-                    "errors": result.errors,
+                "success": True,
+                "data": {
+                    "execution_id": result.execution_id,
+                    "timestamp": result.timestamp,
+                    "summary": {
+                        "total": result.total,
+                        "passed": result.passed,
+                        "failed": result.failed,
+                        "skipped": result.skipped,
+                        "errors": result.errors,
+                    },
+                    "tests": [
+                        {
+                            "name": t.name,
+                            "outcome": t.outcome,
+                            "duration": t.duration,
+                            "message": t.message,
+                        }
+                        for t in result.tests
+                    ],
+                    "command": result.command,
+                    "duration": result.duration,
+                    "metadata": result.metadata,
                 },
-                "tests": [
-                    {
-                        "name": t.name,
-                        "outcome": t.outcome,
-                        "duration": t.duration,
-                        "message": t.message,
-                    }
-                    for t in result.tests
-                ],
-                "command": result.command,
-                "duration": result.duration,
-                "error": result.error,
-                "metadata": result.metadata,
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error running tests: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -128,36 +132,44 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with discovered tests and schema_version
+            JSON object with discovered tests
         """
         try:
             runner = _get_runner(workspace)
             result = runner.discover_tests(target=target, pattern=pattern)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "timestamp": result.timestamp,
-                "total": result.total,
-                "test_files": result.test_files,
-                "tests": [
-                    {
-                        "name": t.name,
-                        "file_path": t.file_path,
-                        "line_number": t.line_number,
-                        "markers": t.markers,
-                    }
-                    for t in result.tests
-                ],
-                "error": result.error,
-                "metadata": result.metadata,
+                "success": True,
+                "data": {
+                    "timestamp": result.timestamp,
+                    "total": result.total,
+                    "test_files": result.test_files,
+                    "tests": [
+                        {
+                            "name": t.name,
+                            "file_path": t.file_path,
+                            "line_number": t.line_number,
+                            "markers": t.markers,
+                        }
+                        for t in result.tests
+                    ],
+                    "metadata": result.metadata,
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error discovering tests: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -170,23 +182,25 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
         Lists configured presets with their settings (timeout, markers, etc.).
 
         Returns:
-            JSON object with preset configurations and schema_version
+            JSON object with preset configurations
         """
         try:
             presets = get_presets()
 
             return {
                 "success": True,
-                "schema_version": SCHEMA_VERSION,
-                "presets": presets,
-                "available": list(presets.keys()),
+                "data": {
+                    "presets": presets,
+                    "available": list(presets.keys()),
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error getting presets: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -206,30 +220,38 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with test results and schema_version
+            JSON object with test results
         """
         try:
             runner = _get_runner(workspace)
             result = runner.run_tests(target=target, preset="quick")
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "execution_id": result.execution_id,
-                "summary": {
-                    "total": result.total,
-                    "passed": result.passed,
-                    "failed": result.failed,
-                    "skipped": result.skipped,
+                "success": True,
+                "data": {
+                    "execution_id": result.execution_id,
+                    "summary": {
+                        "total": result.total,
+                        "passed": result.passed,
+                        "failed": result.failed,
+                        "skipped": result.skipped,
+                    },
                 },
-                "error": result.error,
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error running quick tests: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -249,30 +271,38 @@ def register_testing_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with test results and schema_version
+            JSON object with test results
         """
         try:
             runner = _get_runner(workspace)
             result = runner.run_tests(target=target, preset="unit")
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "execution_id": result.execution_id,
-                "summary": {
-                    "total": result.total,
-                    "passed": result.passed,
-                    "failed": result.failed,
-                    "skipped": result.skipped,
+                "success": True,
+                "data": {
+                    "execution_id": result.execution_id,
+                    "summary": {
+                        "total": result.total,
+                        "passed": result.passed,
+                        "failed": result.failed,
+                        "skipped": result.skipped,
+                    },
                 },
-                "error": result.error,
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error running unit tests: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
