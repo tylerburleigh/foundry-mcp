@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T22:05:59.960215Z",
-    "generated_at_commit": "6b9bb035ccd6f873cc3eea4e9047b509e5457157",
+    "generated_at": "2025-11-26T22:16:21.034859Z",
+    "generated_at_commit": "a4e95831f19b9621413259856482ffb9c4d6659f",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 30,
-    "total_lines": 11686,
+    "total_lines": 11648,
     "total_classes": 42,
     "total_functions": 136,
     "avg_complexity": 7.27,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 30,
-        "lines": 11686,
+        "lines": 11648,
         "classes": 42,
         "functions": 136,
         "avg_complexity": 7.27
@@ -710,6 +710,7 @@
       "imports": [
         "logging",
         "sys",
+        "dataclasses.asdict",
         "typing.Optional",
         "mcp.server.fastmcp.FastMCP",
         "foundry_mcp.config.get_config",
@@ -717,6 +718,8 @@
         "foundry_mcp.core.observability.mcp_tool",
         "foundry_mcp.core.observability.audit_log",
         "foundry_mcp.core.observability.get_metrics",
+        "foundry_mcp.core.responses.success_response",
+        "foundry_mcp.core.responses.error_response",
         "foundry_mcp.core.spec.load_spec",
         "foundry_mcp.core.spec.save_spec",
         "foundry_mcp.core.spec.list_specs",
@@ -733,7 +736,7 @@
         "foundry_mcp.prompts.workflows.register_workflow_prompts"
       ],
       "exports": [],
-      "lines": 320
+      "lines": 282
     },
     {
       "name": "__init__",
@@ -3114,13 +3117,13 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 56,
+          "line": 58,
           "call_type": "function_call"
         },
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 301,
+          "line": 263,
           "call_type": "function_call"
         }
       ],
@@ -4867,7 +4870,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5810,7 +5813,7 @@
         {
           "name": "foundry_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 103,
+          "line": 105,
           "call_type": "function_call"
         }
       ],
@@ -5868,13 +5871,13 @@
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 305,
+          "line": 267,
           "call_type": "function_call"
         },
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 315,
+          "line": 277,
           "call_type": "function_call"
         }
       ],
@@ -5921,31 +5924,31 @@
         {
           "name": "foundry_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 93,
+          "line": 95,
           "call_type": "function_call"
         },
         {
           "name": "tool_list_specs",
           "file": "src/foundry_mcp/server.py",
-          "line": 117,
+          "line": 115,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 149,
+          "line": 139,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_spec_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 191,
+          "line": 173,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_task",
           "file": "src/foundry_mcp/server.py",
-          "line": 222,
+          "line": 196,
           "call_type": "function_call"
         },
         {
@@ -8486,6 +8489,36 @@
           "call_type": "function_call"
         },
         {
+          "name": "foundry_server_capabilities",
+          "file": "src/foundry_mcp/server.py",
+          "line": 108,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_list_specs",
+          "file": "src/foundry_mcp/server.py",
+          "line": 133,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_spec",
+          "file": "src/foundry_mcp/server.py",
+          "line": 164,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_spec_hierarchy",
+          "file": "src/foundry_mcp/server.py",
+          "line": 190,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_task",
+          "file": "src/foundry_mcp/server.py",
+          "line": 220,
+          "call_type": "function_call"
+        },
+        {
           "name": "foundry_find_class",
           "file": "src/foundry_mcp/tools/docs.py",
           "line": 67,
@@ -8710,7 +8743,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 38
+      "call_count": 43
     },
     {
       "name": "error_response",
@@ -8754,6 +8787,36 @@
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
           "line": 578,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_list_specs",
+          "file": "src/foundry_mcp/server.py",
+          "line": 128,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_spec",
+          "file": "src/foundry_mcp/server.py",
+          "line": 154,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_spec_hierarchy",
+          "file": "src/foundry_mcp/server.py",
+          "line": 188,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_task",
+          "file": "src/foundry_mcp/server.py",
+          "line": 212,
+          "call_type": "function_call"
+        },
+        {
+          "name": "tool_get_task",
+          "file": "src/foundry_mcp/server.py",
+          "line": 218,
           "call_type": "function_call"
         },
         {
@@ -9424,7 +9487,7 @@
         }
       ],
       "calls": [],
-      "call_count": 115
+      "call_count": 120
     },
     {
       "name": "find_git_root",
@@ -9522,37 +9585,37 @@
         {
           "name": "tool_list_specs",
           "file": "src/foundry_mcp/server.py",
-          "line": 128,
+          "line": 126,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 160,
+          "line": 150,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_spec_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 202,
+          "line": 184,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_task",
           "file": "src/foundry_mcp/server.py",
-          "line": 234,
+          "line": 208,
           "call_type": "function_call"
         },
         {
           "name": "resource_specs_list",
           "file": "src/foundry_mcp/server.py",
-          "line": 275,
+          "line": 237,
           "call_type": "function_call"
         },
         {
           "name": "resource_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 287,
+          "line": 249,
           "call_type": "function_call"
         },
         {
@@ -10260,25 +10323,25 @@
         {
           "name": "tool_get_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 161,
+          "line": 151,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_spec_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 203,
+          "line": 185,
           "call_type": "function_call"
         },
         {
           "name": "tool_get_task",
           "file": "src/foundry_mcp/server.py",
-          "line": 235,
+          "line": 209,
           "call_type": "function_call"
         },
         {
           "name": "resource_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 288,
+          "line": 250,
           "call_type": "function_call"
         },
         {
@@ -10750,13 +10813,13 @@
         {
           "name": "tool_list_specs",
           "file": "src/foundry_mcp/server.py",
-          "line": 137,
+          "line": 131,
           "call_type": "function_call"
         },
         {
           "name": "resource_specs_list",
           "file": "src/foundry_mcp/server.py",
-          "line": 279,
+          "line": 241,
           "call_type": "function_call"
         },
         {
@@ -15118,7 +15181,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 82,
+          "line": 84,
           "call_type": "function_call"
         }
       ],
@@ -15160,7 +15223,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 79,
+          "line": 81,
           "call_type": "function_call"
         }
       ],
@@ -15249,7 +15312,7 @@
     {
       "name": "create_server",
       "file": "src/foundry_mcp/server.py",
-      "line": 45,
+      "line": 47,
       "language": "python",
       "docstring": "Create and configure the FastMCP server instance.\n\nArgs:\n    config: Optional server configuration. If not provided, loads from environment.\n\nReturns:\n    Configured FastMCP server instance",
       "parameters": [
@@ -15269,7 +15332,7 @@
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 302,
+          "line": 264,
           "call_type": "function_call"
         }
       ],
@@ -15277,91 +15340,91 @@
         {
           "name": "get_config",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 56,
+          "line": 58,
           "call_type": "function_call"
         },
         {
           "name": "setup_logging",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/config.py",
-          "line": 59,
+          "line": 61,
           "call_type": "method_call"
         },
         {
           "name": "_register_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 67,
+          "line": 69,
           "call_type": "function_call"
         },
         {
           "name": "register_query_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 68,
+          "line": 70,
           "call_type": "function_call"
         },
         {
           "name": "register_task_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 69,
+          "line": 71,
           "call_type": "function_call"
         },
         {
           "name": "register_validation_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 70,
+          "line": 72,
           "call_type": "function_call"
         },
         {
           "name": "register_journal_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 71,
+          "line": 73,
           "call_type": "function_call"
         },
         {
           "name": "register_rendering_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 72,
+          "line": 74,
           "call_type": "function_call"
         },
         {
           "name": "register_lifecycle_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 73,
+          "line": 75,
           "call_type": "function_call"
         },
         {
           "name": "register_docs_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 74,
+          "line": 76,
           "call_type": "function_call"
         },
         {
           "name": "register_testing_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 75,
+          "line": 77,
           "call_type": "function_call"
         },
         {
           "name": "_register_resources",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 78,
+          "line": 80,
           "call_type": "function_call"
         },
         {
           "name": "register_spec_resources",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 79,
+          "line": 81,
           "call_type": "function_call"
         },
         {
           "name": "register_workflow_prompts",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 82,
+          "line": 84,
           "call_type": "function_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 84,
+          "line": 86,
           "call_type": "method_call"
         }
       ],
@@ -15370,7 +15433,7 @@
     {
       "name": "_register_tools",
       "file": "src/foundry_mcp/server.py",
-      "line": 89,
+      "line": 91,
       "language": "python",
       "docstring": "Register all MCP tools with the server.",
       "parameters": [
@@ -15395,7 +15458,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 67,
+          "line": 69,
           "call_type": "function_call"
         }
       ],
@@ -15403,7 +15466,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 264,
+          "line": 226,
           "call_type": "method_call"
         }
       ],
@@ -15412,7 +15475,7 @@
     {
       "name": "_register_resources",
       "file": "src/foundry_mcp/server.py",
-      "line": 267,
+      "line": 229,
       "language": "python",
       "docstring": "Register all MCP resources with the server.",
       "parameters": [
@@ -15437,7 +15500,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 78,
+          "line": 80,
           "call_type": "function_call"
         }
       ],
@@ -15445,7 +15508,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 295,
+          "line": 257,
           "call_type": "method_call"
         }
       ],
@@ -15454,7 +15517,7 @@
     {
       "name": "main",
       "file": "src/foundry_mcp/server.py",
-      "line": 298,
+      "line": 260,
       "language": "python",
       "docstring": "Main entry point for the foundry-mcp server.",
       "parameters": [],
@@ -15468,7 +15531,7 @@
         {
           "name": "<module>",
           "file": "src/foundry_mcp/server.py",
-          "line": 320,
+          "line": 282,
           "call_type": "function_call"
         }
       ],
@@ -15476,67 +15539,67 @@
         {
           "name": "get_config",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 301,
+          "line": 263,
           "call_type": "function_call"
         },
         {
           "name": "create_server",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 302,
+          "line": 264,
           "call_type": "function_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 304,
+          "line": 266,
           "call_type": "method_call"
         },
         {
           "name": "audit_log",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 305,
+          "line": 267,
           "call_type": "function_call"
         },
         {
           "name": "run",
           "file": "unknown",
-          "line": 308,
+          "line": 270,
           "call_type": "method_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 311,
+          "line": 273,
           "call_type": "method_call"
         },
         {
           "name": "exit",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/sys.pyi",
-          "line": 312,
+          "line": 274,
           "call_type": "method_call"
         },
         {
           "name": "error",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 314,
+          "line": 276,
           "call_type": "method_call"
         },
         {
           "name": "audit_log",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 315,
+          "line": 277,
           "call_type": "function_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 315,
+          "line": 277,
           "call_type": "function_call"
         },
         {
           "name": "exit",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/sys.pyi",
-          "line": 316,
+          "line": 278,
           "call_type": "method_call"
         }
       ],
@@ -15570,7 +15633,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 74,
+          "line": 76,
           "call_type": "function_call"
         }
       ],
@@ -15612,7 +15675,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 71,
+          "line": 73,
           "call_type": "function_call"
         }
       ],
@@ -15654,7 +15717,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 73,
+          "line": 75,
           "call_type": "function_call"
         }
       ],
@@ -15696,7 +15759,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 68,
+          "line": 70,
           "call_type": "function_call"
         }
       ],
@@ -15738,7 +15801,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 72,
+          "line": 74,
           "call_type": "function_call"
         }
       ],
@@ -15780,7 +15843,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 69,
+          "line": 71,
           "call_type": "function_call"
         }
       ],
@@ -15822,7 +15885,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 75,
+          "line": 77,
           "call_type": "function_call"
         }
       ],
@@ -15864,7 +15927,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 70,
+          "line": 72,
           "call_type": "function_call"
         }
       ],
@@ -16151,6 +16214,7 @@
     "src/foundry_mcp/server.py": [
       "logging",
       "sys",
+      "dataclasses.asdict",
       "typing.Optional",
       "mcp.server.fastmcp.FastMCP",
       "foundry_mcp.config.get_config",
@@ -16158,6 +16222,8 @@
       "foundry_mcp.core.observability.mcp_tool",
       "foundry_mcp.core.observability.audit_log",
       "foundry_mcp.core.observability.get_metrics",
+      "foundry_mcp.core.responses.success_response",
+      "foundry_mcp.core.responses.error_response",
       "foundry_mcp.core.spec.load_spec",
       "foundry_mcp.core.spec.save_spec",
       "foundry_mcp.core.spec.list_specs",
