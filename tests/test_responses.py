@@ -173,3 +173,77 @@ class TestResponseContractCompliance:
         response = error_response("Spec not found: my-spec")
         assert response.success is False
         assert "not found" in response.error.lower()
+
+
+class TestMetaVersionCompliance:
+    """Tests verifying meta.version field presence per response-v2 contract."""
+
+    def test_tool_response_has_meta_field(self):
+        """Test that ToolResponse dataclass has meta field."""
+        response = ToolResponse(success=True)
+        assert hasattr(response, 'meta')
+
+    def test_tool_response_meta_default_version(self):
+        """Test that meta field defaults to version='response-v2'."""
+        response = ToolResponse(success=True)
+        assert response.meta == {"version": "response-v2"}
+
+    def test_success_response_includes_meta_version(self):
+        """Test that success_response includes meta.version='response-v2'."""
+        response = success_response(spec_id="test")
+        assert response.meta is not None
+        assert "version" in response.meta
+        assert response.meta["version"] == "response-v2"
+
+    def test_error_response_includes_meta_version(self):
+        """Test that error_response includes meta.version='response-v2'."""
+        response = error_response("Test error")
+        assert response.meta is not None
+        assert "version" in response.meta
+        assert response.meta["version"] == "response-v2"
+
+    def test_meta_preserved_when_data_set(self):
+        """Test that meta.version is preserved when data is provided."""
+        response = success_response(
+            spec_id="my-spec",
+            count=10,
+            tasks=["task-1", "task-2"]
+        )
+        assert response.meta["version"] == "response-v2"
+        assert response.data["spec_id"] == "my-spec"
+
+    def test_meta_in_asdict_output(self):
+        """Test that meta field appears in asdict() serialization."""
+        from dataclasses import asdict
+        response = success_response(test="value")
+        response_dict = asdict(response)
+        assert "meta" in response_dict
+        assert response_dict["meta"]["version"] == "response-v2"
+
+    def test_error_meta_in_asdict_output(self):
+        """Test that error response meta field appears in asdict()."""
+        from dataclasses import asdict
+        response = error_response("Something failed")
+        response_dict = asdict(response)
+        assert "meta" in response_dict
+        assert response_dict["meta"]["version"] == "response-v2"
+        assert response_dict["success"] is False
+        assert response_dict["error"] == "Something failed"
+
+    def test_full_response_structure_compliance(self):
+        """Test complete response-v2 structure: success, data, error, meta."""
+        from dataclasses import asdict
+        response = success_response(result="ok")
+        response_dict = asdict(response)
+
+        # All required fields present
+        assert "success" in response_dict
+        assert "data" in response_dict
+        assert "error" in response_dict
+        assert "meta" in response_dict
+
+        # Correct values
+        assert response_dict["success"] is True
+        assert response_dict["data"] == {"result": "ok"}
+        assert response_dict["error"] is None
+        assert response_dict["meta"] == {"version": "response-v2"}
