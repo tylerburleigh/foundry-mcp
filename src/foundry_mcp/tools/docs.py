@@ -5,17 +5,13 @@ Provides MCP tools for querying codebase documentation.
 """
 
 import logging
-from dataclasses import asdict
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.observability import mcp_tool
-from foundry_mcp.core.docs import (
-    DocsQuery,
-    SCHEMA_VERSION,
-)
+from foundry_mcp.core.docs import DocsQuery
 
 logger = logging.getLogger(__name__)
 
@@ -61,34 +57,42 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
             result = query.find_class(name, exact)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "query_type": result.query_type,
-                "count": result.count,
-                "results": [
-                    {
-                        "name": r.name,
-                        "file_path": r.file_path,
-                        "line_number": r.line_number,
-                        "data": r.data,
-                    }
-                    for r in result.results
-                ],
-                "error": result.error,
+                "success": True,
+                "data": {
+                    "query_type": result.query_type,
+                    "count": result.count,
+                    "results": [
+                        {
+                            "name": r.name,
+                            "file_path": r.file_path,
+                            "line_number": r.line_number,
+                            "data": r.data,
+                        }
+                        for r in result.results
+                    ],
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error finding class: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -111,41 +115,49 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with matching functions and schema_version
+            JSON object with matching functions
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
             result = query.find_function(name, exact)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "query_type": result.query_type,
-                "count": result.count,
-                "results": [
-                    {
-                        "name": r.name,
-                        "file_path": r.file_path,
-                        "line_number": r.line_number,
-                        "data": r.data,
-                    }
-                    for r in result.results
-                ],
-                "error": result.error,
+                "success": True,
+                "data": {
+                    "query_type": result.query_type,
+                    "count": result.count,
+                    "results": [
+                        {
+                            "name": r.name,
+                            "file_path": r.file_path,
+                            "line_number": r.line_number,
+                            "data": r.data,
+                        }
+                        for r in result.results
+                    ],
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error finding function: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -169,42 +181,50 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with call graph entries and schema_version
+            JSON object with call graph entries
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
             result = query.trace_calls(function_name, direction, max_depth)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "query_type": result.query_type,
-                "count": result.count,
-                "results": [
-                    {
-                        "caller": entry.caller,
-                        "callee": entry.callee,
-                        "caller_file": entry.caller_file,
-                        "callee_file": entry.callee_file,
-                    }
-                    for entry in result.results
-                ],
-                "metadata": result.metadata,
-                "error": result.error,
+                "success": True,
+                "data": {
+                    "query_type": result.query_type,
+                    "count": result.count,
+                    "results": [
+                        {
+                            "caller": entry.caller,
+                            "callee": entry.callee,
+                            "caller_file": entry.caller_file,
+                            "callee_file": entry.callee_file,
+                        }
+                        for entry in result.results
+                    ],
+                    "metadata": result.metadata,
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error tracing calls: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -229,14 +249,14 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with impact analysis and schema_version
+            JSON object with impact analysis
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
@@ -246,20 +266,22 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 impact = result.results[0]
                 return {
                     "success": True,
-                    "schema_version": result.schema_version,
-                    "query_type": result.query_type,
-                    "target": impact.target,
-                    "target_type": impact.target_type,
-                    "impact_score": impact.impact_score,
-                    "direct_impacts": impact.direct_impacts,
-                    "indirect_impacts": impact.indirect_impacts,
-                    "affected_files": impact.affected_files,
-                    "metadata": result.metadata,
+                    "data": {
+                        "query_type": result.query_type,
+                        "target": impact.target,
+                        "target_type": impact.target_type,
+                        "impact_score": impact.impact_score,
+                        "direct_impacts": impact.direct_impacts,
+                        "indirect_impacts": impact.indirect_impacts,
+                        "affected_files": impact.affected_files,
+                        "metadata": result.metadata,
+                    },
+                    "error": None,
                 }
             else:
                 return {
                     "success": False,
-                    "schema_version": result.schema_version,
+                    "data": {},
                     "error": result.error or "No impact analysis available",
                 }
 
@@ -267,7 +289,7 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             logger.error(f"Error analyzing impact: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -285,41 +307,49 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with caller functions and schema_version
+            JSON object with caller functions
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
             result = query.get_callers(function_name)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "query_type": result.query_type,
-                "count": result.count,
-                "callers": [r.name for r in result.results],
-                "results": [
-                    {
-                        "name": r.name,
-                        "file_path": r.file_path,
-                    }
-                    for r in result.results
-                ],
-                "metadata": result.metadata,
-                "error": result.error,
+                "success": True,
+                "data": {
+                    "query_type": result.query_type,
+                    "count": result.count,
+                    "callers": [r.name for r in result.results],
+                    "results": [
+                        {
+                            "name": r.name,
+                            "file_path": r.file_path,
+                        }
+                        for r in result.results
+                    ],
+                    "metadata": result.metadata,
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error getting callers: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -337,41 +367,49 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with callee functions and schema_version
+            JSON object with callee functions
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
             result = query.get_callees(function_name)
 
+            if not result.success:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": result.error,
+                }
+
             return {
-                "success": result.success,
-                "schema_version": result.schema_version,
-                "query_type": result.query_type,
-                "count": result.count,
-                "callees": [r.name for r in result.results],
-                "results": [
-                    {
-                        "name": r.name,
-                        "file_path": r.file_path,
-                    }
-                    for r in result.results
-                ],
-                "metadata": result.metadata,
-                "error": result.error,
+                "success": True,
+                "data": {
+                    "query_type": result.query_type,
+                    "count": result.count,
+                    "callees": [r.name for r in result.results],
+                    "results": [
+                        {
+                            "name": r.name,
+                            "file_path": r.file_path,
+                        }
+                        for r in result.results
+                    ],
+                    "metadata": result.metadata,
+                },
+                "error": None,
             }
 
         except Exception as e:
             logger.error(f"Error getting callees: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
@@ -390,14 +428,14 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             workspace: Optional workspace path (defaults to config)
 
         Returns:
-            JSON object with documentation statistics and schema_version
+            JSON object with documentation statistics
         """
         try:
             query = _get_query(workspace)
             if not query.load():
                 return {
                     "success": False,
-                    "schema_version": SCHEMA_VERSION,
+                    "data": {},
                     "error": "Documentation not loaded. Run 'sdd doc generate' first.",
                 }
 
@@ -407,13 +445,15 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 stats = result.results[0]
                 return {
                     "success": True,
-                    "schema_version": result.schema_version,
-                    "stats": stats,
+                    "data": {
+                        "stats": stats,
+                    },
+                    "error": None,
                 }
             else:
                 return {
                     "success": False,
-                    "schema_version": result.schema_version,
+                    "data": {},
                     "error": result.error or "No stats available",
                 }
 
@@ -421,7 +461,7 @@ def register_docs_tools(mcp: FastMCP, config: ServerConfig) -> None:
             logger.error(f"Error getting docs stats: {e}")
             return {
                 "success": False,
-                "schema_version": SCHEMA_VERSION,
+                "data": {},
                 "error": str(e),
             }
 
