@@ -69,6 +69,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
         if entry_type not in valid_types:
             return {
                 "success": False,
+                "data": {},
                 "error": f"Invalid entry_type: {entry_type}. Must be one of: {valid_types}"
             }
 
@@ -81,6 +82,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -88,6 +90,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -105,24 +108,29 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not save_spec(spec_id, spec_data, specs_dir):
                 return {
                     "success": False,
+                    "data": {},
                     "error": "Failed to save spec"
                 }
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "entry": {
-                    "timestamp": entry.timestamp,
-                    "entry_type": entry.entry_type,
-                    "title": entry.title,
-                    "task_id": entry.task_id,
-                }
+                "data": {
+                    "spec_id": spec_id,
+                    "entry": {
+                        "timestamp": entry.timestamp,
+                        "entry_type": entry.entry_type,
+                        "title": entry.title,
+                        "task_id": entry.task_id,
+                    }
+                },
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error adding journal entry: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
@@ -157,6 +165,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -164,6 +173,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -176,25 +186,29 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "count": len(entries),
-                "entries": [
-                    {
-                        "timestamp": e.timestamp,
-                        "entry_type": e.entry_type,
-                        "title": e.title,
-                        "content": e.content,
-                        "author": e.author,
-                        "task_id": e.task_id,
-                    }
-                    for e in entries
-                ]
+                "data": {
+                    "spec_id": spec_id,
+                    "count": len(entries),
+                    "entries": [
+                        {
+                            "timestamp": e.timestamp,
+                            "entry_type": e.entry_type,
+                            "title": e.title,
+                            "content": e.content,
+                            "author": e.author,
+                            "task_id": e.task_id,
+                        }
+                        for e in entries
+                    ]
+                },
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error getting journal entries: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
@@ -228,6 +242,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
         if blocker_type not in valid_types:
             return {
                 "success": False,
+                "data": {},
                 "error": f"Invalid blocker_type: {blocker_type}. Must be one of: {valid_types}"
             }
 
@@ -240,6 +255,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -247,6 +263,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -254,6 +271,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not mark_blocked(spec_data, task_id, reason, blocker_type, ticket):
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Task not found: {task_id}"
                 }
 
@@ -271,22 +289,27 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not save_spec(spec_id, spec_data, specs_dir):
                 return {
                     "success": False,
+                    "data": {},
                     "error": "Failed to save spec"
                 }
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "task_id": task_id,
-                "blocker_type": blocker_type,
-                "reason": reason,
-                "ticket": ticket,
+                "data": {
+                    "spec_id": spec_id,
+                    "task_id": task_id,
+                    "blocker_type": blocker_type,
+                    "reason": reason,
+                    "ticket": ticket,
+                },
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error marking task blocked: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
@@ -321,6 +344,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -328,6 +352,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -336,6 +361,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not blocker:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Task {task_id} is not blocked"
                 }
 
@@ -343,6 +369,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not unblock(spec_data, task_id, resolution):
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Failed to unblock task: {task_id}"
                 }
 
@@ -360,25 +387,30 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not save_spec(spec_id, spec_data, specs_dir):
                 return {
                     "success": False,
+                    "data": {},
                     "error": "Failed to save spec"
                 }
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "task_id": task_id,
-                "previous_blocker": {
-                    "type": blocker.blocker_type,
-                    "description": blocker.description,
+                "data": {
+                    "spec_id": spec_id,
+                    "task_id": task_id,
+                    "previous_blocker": {
+                        "type": blocker.blocker_type,
+                        "description": blocker.description,
+                    },
+                    "resolution": resolution or "Blocker resolved",
+                    "new_status": "pending",
                 },
-                "resolution": resolution or "Blocker resolved",
-                "new_status": "pending",
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error unblocking task: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
@@ -407,6 +439,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -414,6 +447,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -421,15 +455,19 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "count": len(blocked),
-                "blocked_tasks": blocked,
+                "data": {
+                    "spec_id": spec_id,
+                    "count": len(blocked),
+                    "blocked_tasks": blocked,
+                },
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error listing blocked tasks: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
@@ -458,6 +496,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return {
                     "success": False,
+                    "data": {},
                     "error": "No specs directory found"
                 }
 
@@ -465,6 +504,7 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not spec_data:
                 return {
                     "success": False,
+                    "data": {},
                     "error": f"Spec not found: {spec_id}"
                 }
 
@@ -472,15 +512,19 @@ def register_journal_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             return {
                 "success": True,
-                "spec_id": spec_id,
-                "count": len(unjournaled),
-                "unjournaled_tasks": unjournaled,
+                "data": {
+                    "spec_id": spec_id,
+                    "count": len(unjournaled),
+                    "unjournaled_tasks": unjournaled,
+                },
+                "error": None
             }
 
         except Exception as e:
             logger.error(f"Error finding unjournaled tasks: {e}")
             return {
                 "success": False,
+                "data": {},
                 "error": str(e)
             }
 
