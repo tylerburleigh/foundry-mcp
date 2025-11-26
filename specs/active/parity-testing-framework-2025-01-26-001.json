@@ -15,8 +15,8 @@
     ],
     "generated": "2025-01-26T00:00:00Z",
     "last_updated": "2025-01-26T00:00:00Z",
-    "progress_percentage": 82,
-    "current_phase": "phase-4"
+    "progress_percentage": 88,
+    "current_phase": "phase-5"
   },
   "hierarchy": {
     "spec-root": {
@@ -30,7 +30,7 @@
         "phase-4",
         "phase-5"
       ],
-      "completed_tasks": 14,
+      "completed_tasks": 15,
       "total_tasks": 17,
       "metadata": {},
       "parent": null,
@@ -654,14 +654,14 @@
       "type": "phase",
       "title": "Integration and Documentation",
       "description": "Integrate with CI and document the parity testing approach",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "task-5-1",
         "task-5-2",
         "task-5-3"
       ],
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 3,
       "metadata": {},
       "dependencies": {
@@ -674,7 +674,7 @@
       "type": "task",
       "title": "Add parity test marker",
       "description": "Add @pytest.mark.parity marker to pytest.ini",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5",
       "children": [],
       "dependencies": {
@@ -688,9 +688,15 @@
           "pytest.ini"
         ],
         "file_path": "task-5-1.md",
-        "task_category": "implementation"
+        "task_category": "implementation",
+        "started_at": "2025-11-26T18:34:42.325345Z",
+        "status_note": "Adding parity test marker to pytest.ini",
+        "completed_at": "2025-11-26T18:35:10.825017Z",
+        "needs_journaling": false,
+        "actual_hours": 0.008,
+        "journaled_at": "2025-11-26T18:35:10.828644Z"
       },
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "total_tasks": 1
     },
     "task-5-2": {
@@ -911,8 +917,17 @@
       "content": "All child tasks in phase phase-4 have been completed.",
       "metadata": {},
       "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2025-11-26T18:35:10.828633Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add parity test marker",
+      "author": "claude-code",
+      "content": "The @pytest.mark.parity marker was already configured in pytest.ini at line 8 with description \"marks tests as parity tests comparing foundry-mcp with sdd-toolkit\". Verified marker registration works correctly with pytest --markers command. All parity tests in tests/parity/ are already using this marker as shown by the @pytest.mark.parity decorator in test files.",
+      "metadata": {},
+      "task_id": "task-5-1"
     }
   ],
-  "last_updated": "2025-11-26T18:34:08.505050Z",
+  "last_updated": "2025-11-26T18:35:10.829845Z",
   "generated": "2025-01-26T00:00:00Z"
 }

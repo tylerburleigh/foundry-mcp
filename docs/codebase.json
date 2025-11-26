@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-26T18:28:55.826698Z",
-    "generated_at_commit": "a8e4a7d084febd708c5e990da274252830e5d7c5",
+    "generated_at": "2025-11-26T18:34:36.095680Z",
+    "generated_at_commit": "3f323c9b16e10d54126b1c592159aa3e91941f0c",
     "languages": [
       "python"
     ],
@@ -4792,7 +4792,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
