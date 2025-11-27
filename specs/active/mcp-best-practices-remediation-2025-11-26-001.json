@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:54:31.581854Z",
+  "last_updated": "2025-11-27T12:55:39.404579Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 16,
+    "progress_percentage": 17,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 17,
+      "completed_tasks": 18,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -544,7 +544,7 @@
     "phase-2-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [
         "task-2-1",
@@ -552,7 +552,7 @@
         "task-2-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -566,7 +566,7 @@
     "task-2-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/feature_flags.py (NEW)",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2-files",
       "children": [
         "task-2-1-1",
@@ -584,7 +584,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/feature_flags.py",
         "task_category": "implementation",
@@ -594,12 +594,19 @@
     "task-2-1-1": {
       "type": "subtask",
       "title": "Define FlagState enum (EXPERIMENTAL, BETA, STABLE, DEPRECATED)",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T12:55:00.245262Z",
+        "status_note": "Creating feature_flags.py module with FlagState enum",
+        "completed_at": "2025-11-27T12:55:39.383924Z",
+        "needs_journaling": false,
+        "actual_hours": 0.011,
+        "journaled_at": "2025-11-27T12:55:39.398747Z"
+      }
     },
     "task-2-1-2": {
       "type": "subtask",
@@ -3462,6 +3469,15 @@
       "content": "All child tasks in group phase-2-docs have been completed.",
       "metadata": {},
       "task_id": "phase-2-docs"
+    },
+    {
+      "timestamp": "2025-11-27T12:55:39.398730Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Define FlagState enum (EXPERIMENTAL, BETA, STABLE, DEPRECATED)",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/feature_flags.py module with FlagState enum. Enum inherits from str and Enum for JSON serialization compatibility. Four states defined: EXPERIMENTAL (opt-in, no SLA), BETA (opt-in, some SLA), STABLE (default on, full SLA), DEPRECATED (warns on use, to be removed). Module docstring includes usage examples and references docs/mcp_best_practices/14-feature-flags.md. Import verified working.",
+      "metadata": {},
+      "task_id": "task-2-1-1"
     }
   ]
 }
