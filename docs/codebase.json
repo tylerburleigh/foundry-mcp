@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T12:26:28.678566Z",
-    "generated_at_commit": "d3b91848d1ca1429f4b3f7e86d80c94556255b86",
+    "generated_at": "2025-11-27T12:27:26.005190Z",
+    "generated_at_commit": "cbcb2fa791b65e157e1f7acbbe61450f6a008108",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 31,
-    "total_lines": 11697,
+    "total_lines": 11741,
     "total_classes": 42,
     "total_functions": 137,
     "avg_complexity": 7.41,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 31,
-        "lines": 11697,
+        "lines": 11741,
         "classes": 42,
         "functions": 137,
         "avg_complexity": 7.41
@@ -461,7 +461,7 @@
         "typing.Final"
       ],
       "exports": [],
-      "lines": 59
+      "lines": 103
     },
     {
       "name": "spec",
@@ -4903,7 +4903,7 @@
         },
         {
           "name": "write",
-          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },

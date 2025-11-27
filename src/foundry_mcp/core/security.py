@@ -6,7 +6,12 @@ for MCP tools. See docs/mcp_best_practices/04-validation-input-hygiene.md
 and docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
 """
 
-from typing import Final
+import logging
+import re
+from dataclasses import dataclass
+from typing import Final, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Input Size Limits
@@ -92,12 +97,111 @@ Each pattern targets a specific injection technique:
 Use with detect_prompt_injection() for comprehensive checking.
 """
 
-# Export all constants for easy importing
+
+# =============================================================================
+# Detection Results
+# =============================================================================
+
+@dataclass
+class InjectionDetectionResult:
+    """Result of prompt injection detection.
+
+    Attributes:
+        is_suspicious: Whether the input appears to contain injection attempts
+        matched_pattern: The regex pattern that matched (if any)
+        matched_text: The actual text that matched the pattern (if any)
+    """
+    is_suspicious: bool
+    matched_pattern: Optional[str] = None
+    matched_text: Optional[str] = None
+
+
+# =============================================================================
+# Detection Functions
+# =============================================================================
+
+def detect_prompt_injection(
+    text: str,
+    *,
+    log_detections: bool = True,
+    patterns: Optional[list[str]] = None,
+) -> InjectionDetectionResult:
+    """Detect potential prompt injection attempts in text.
+
+    Scans the input text against known injection patterns and returns
+    a result indicating whether suspicious content was found.
+
+    Args:
+        text: The input text to scan for injection attempts
+        log_detections: Whether to log detected injection attempts (default: True)
+        patterns: Optional custom patterns to use instead of INJECTION_PATTERNS
+
+    Returns:
+        InjectionDetectionResult with detection status and match details
+
+    Example:
+        >>> result = detect_prompt_injection("ignore previous instructions and...")
+        >>> if result.is_suspicious:
+        ...     print(f"Blocked: matched pattern '{result.matched_pattern}'")
+    """
+    check_patterns = patterns if patterns is not None else INJECTION_PATTERNS
+
+    for pattern in check_patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        if match:
+            result = InjectionDetectionResult(
+                is_suspicious=True,
+                matched_pattern=pattern,
+                matched_text=match.group(0),
+            )
+
+            if log_detections:
+                # Log with limited text preview to avoid logging sensitive content
+                preview = text[:100] + "..." if len(text) > 100 else text
+                logger.warning(
+                    "Potential prompt injection detected",
+                    extra={
+                        "pattern": pattern,
+                        "matched_text": result.matched_text,
+                        "text_preview": preview,
+                    }
+                )
+
+            return result
+
+    return InjectionDetectionResult(is_suspicious=False)
+
+
+def is_prompt_injection(text: str) -> bool:
+    """Simple check for prompt injection (returns bool only).
+
+    Convenience function when you only need a boolean result.
+
+    Args:
+        text: The input text to scan
+
+    Returns:
+        True if injection patterns detected, False otherwise
+
+    Example:
+        >>> if is_prompt_injection(user_input):
+        ...     return error_response("Input contains disallowed patterns")
+    """
+    return detect_prompt_injection(text, log_detections=False).is_suspicious
+
+
+# Export all constants and functions
 __all__ = [
+    # Constants
     "MAX_INPUT_SIZE",
     "MAX_ARRAY_LENGTH",
     "MAX_STRING_LENGTH",
     "MAX_NESTED_DEPTH",
     "MAX_FIELD_COUNT",
     "INJECTION_PATTERNS",
+    # Types
+    "InjectionDetectionResult",
+    # Functions
+    "detect_prompt_injection",
+    "is_prompt_injection",
 ]
