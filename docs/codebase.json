@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T22:49:51.666605Z",
-    "generated_at_commit": "d8ccf1d3e5e1ee5ee9e55c6005ba5b0abf3dd27a",
+    "generated_at": "2025-11-27T22:51:13.550907Z",
+    "generated_at_commit": "f2915d5c89310cd723fa04787ccce7d179d38410",
     "languages": [
       "python"
     ],
@@ -11,25 +11,25 @@
   },
   "statistics": {
     "total_files": 46,
-    "total_lines": 23353,
+    "total_lines": 23519,
     "total_classes": 72,
     "total_functions": 215,
-    "avg_complexity": 8.67,
+    "avg_complexity": 8.73,
     "max_complexity": 160,
     "high_complexity_functions": [
       "register_mutation_tools (160)",
       "register_authoring_tools (135)",
+      "register_planning_tools (71)",
       "register_journal_tools (65)",
-      "register_task_tools (59)",
-      "register_git_integration_tools (56)"
+      "register_task_tools (59)"
     ],
     "by_language": {
       "python": {
         "files": 46,
-        "lines": 23353,
+        "lines": 23519,
         "classes": 72,
         "functions": 215,
-        "avg_complexity": 8.67
+        "avg_complexity": 8.73
       }
     }
   },
@@ -1405,7 +1405,7 @@
         "foundry_mcp.core.resilience.MEDIUM_TIMEOUT"
       ],
       "exports": [],
-      "lines": 761
+      "lines": 927
     },
     {
       "name": "queries",
@@ -5529,7 +5529,7 @@
       "calls": [
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 771,
           "call_type": "method_call"
         },
@@ -5547,13 +5547,13 @@
         },
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 785,
           "call_type": "method_call"
         },
         {
           "name": "result",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 787,
           "call_type": "method_call"
         },
@@ -5589,7 +5589,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -7701,7 +7701,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -9580,6 +9580,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 763,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 110,
@@ -9743,7 +9749,7 @@
         }
       ],
       "calls": [],
-      "call_count": 84
+      "call_count": 85
     },
     {
       "name": "redact_sensitive_data",
@@ -10190,6 +10196,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 819,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 163,
@@ -10222,7 +10234,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 33
+      "call_count": 34
     },
     {
       "name": "mcp_tool",
@@ -13741,6 +13753,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 869,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 149,
@@ -13947,7 +13965,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 95
+      "call_count": 96
     },
     {
       "name": "error_response",
@@ -15860,6 +15878,42 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 802,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 886,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 894,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 903,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 912,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 922,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 139,
@@ -16456,7 +16510,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 410
+      "call_count": 416
     },
     {
       "name": "validation_error",
@@ -23562,6 +23616,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -23660,7 +23720,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_analysis_tools",
@@ -23872,6 +23932,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -23970,7 +24036,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_authoring_tools",
@@ -24294,6 +24360,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -24392,7 +24464,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_git_integration_tools",
@@ -24680,6 +24752,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -24778,7 +24856,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_mutation_tools",
@@ -24990,6 +25068,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -25088,7 +25172,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_planning_tools",
@@ -25109,7 +25193,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 56,
+      "complexity": 71,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -25376,6 +25460,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_reconcile_state",
+          "file": "src/foundry_mcp/tools/planning.py",
+          "line": 828,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -25474,7 +25564,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 28
+      "call_count": 29
     },
     {
       "name": "register_spec_helper_tools",

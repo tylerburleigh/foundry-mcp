@@ -925,3 +925,163 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="plan-report-time",
+    )
+    def plan_report_time(
+        spec_id: str,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Generate a comprehensive time tracking summary for a spec.
+
+        Wraps the SDD CLI time-report command to aggregate time metrics
+        across all phases and tasks in a specification.
+
+        WHEN TO USE:
+        - Generating project status reports
+        - Reviewing overall time spent vs estimated
+        - Planning future sprints based on velocity
+        - Identifying phases that took longer than expected
+
+        Args:
+            spec_id: Specification ID to report time for
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with time metrics:
+            - total_estimated_hours: Sum of all estimated hours
+            - total_actual_hours: Sum of all actual hours
+            - total_variance_hours: Overall variance (actual - estimated)
+            - total_variance_percent: Overall percentage variance
+            - phases: Array of per-phase time summaries
+            - completion_rate: Percentage of tasks completed
+        """
+        tool_name = "plan_report_time"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            # Build command
+            cmd = ["sdd", "time-report", spec_id, "--json"]
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="plan-report-time",
+                action="report_time",
+                spec_id=spec_id,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                estimated = output_data.get("total_estimated_hours", 0)
+                actual = output_data.get("total_actual_hours", 0)
+                variance = actual - estimated
+                variance_pct = (variance / estimated * 100) if estimated > 0 else 0
+
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "total_estimated_hours": estimated,
+                    "total_actual_hours": actual,
+                    "total_variance_hours": round(variance, 2),
+                    "total_variance_percent": round(variance_pct, 1),
+                    "phases": output_data.get("phases", []),
+                    "total_tasks": output_data.get("total_tasks", 0),
+                    "completed_tasks": output_data.get("completed_tasks", 0),
+                }
+
+                # Calculate completion rate
+                if data["total_tasks"] > 0:
+                    data["completion_rate"] = round(
+                        data["completed_tasks"] / data["total_tasks"] * 100, 1
+                    )
+                else:
+                    data["completion_rate"] = 0
+
+                # Include spec title if available
+                if "spec_title" in output_data:
+                    data["spec_title"] = output_data["spec_title"]
+
+                # Track metrics
+                _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
+
+                return asdict(success_response(
+                    data=data,
+                    message=f"Time report: {actual:.1f}h actual / {estimated:.1f}h estimated ({data['completion_rate']}% complete)",
+                ))
+            else:
+                # Handle specific error cases
+                stderr = result.stderr.strip()
+
+                if "not found" in stderr.lower():
+                    error_code = "NOT_FOUND"
+                    remediation = "Ensure the spec_id exists"
+                else:
+                    error_code = "REPORT_FAILED"
+                    remediation = "Check the spec_id and try again"
+
+                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
+
+                return asdict(error_response(
+                    stderr or "Failed to generate time report",
+                    error_code=error_code,
+                    error_type="planning",
+                    remediation=remediation,
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="resilience",
+                remediation="Wait for circuit breaker recovery, then retry",
+            ))
+
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Time report timed out after {CLI_TIMEOUT}s",
+                error_code="TIMEOUT",
+                error_type="timeout",
+                remediation="Try again or check system resources",
+            ))
+
+        except FileNotFoundError:
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="configuration",
+                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            ))
+
+        except Exception as e:
+            logger.exception(f"Unexpected error in {tool_name}")
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
