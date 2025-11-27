@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T21:38:04.148324Z",
+  "last_updated": "2025-11-27T21:42:51.485872Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 52,
+    "progress_percentage": 53,
     "status": "active",
     "current_phase": "phase-4"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 47,
+      "completed_tasks": 48,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1364,7 +1364,7 @@
         ]
       },
       "total_tasks": 20,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Analysis, bulk operations, and specialized mutations",
         "risk_level": "medium"
@@ -1382,7 +1382,7 @@
         "task-4-4"
       ],
       "total_tasks": 17,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1494,7 +1494,7 @@
     "task-4-2": {
       "type": "task",
       "title": "src/foundry_mcp/tools/mutations.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4-files",
       "children": [
         "task-4-2-1",
@@ -1508,7 +1508,7 @@
         "task-4-2-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/mutations.py",
         "task_category": "implementation",
@@ -1526,13 +1526,19 @@
     "task-4-2-1": {
       "type": "subtask",
       "title": "Implement spec-apply-plan - apply bulk structural edits from diff/plan",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd apply-modifications, batch apply changes from JSON"
+        "details": "Wrap sdd apply-modifications, batch apply changes from JSON",
+        "started_at": "2025-11-27T21:40:48.012788Z",
+        "status_note": "Starting implementation of spec-apply-plan tool",
+        "completed_at": "2025-11-27T21:42:51.478029Z",
+        "needs_journaling": false,
+        "actual_hours": 0.034,
+        "journaled_at": "2025-11-27T21:42:51.483421Z"
       }
     },
     "task-4-2-2": {
@@ -2974,6 +2980,15 @@
       "content": "Verified resilience/telemetry already applied to all 3 analysis tools. 34 references found: CircuitBreaker (sdd_cli_analysis, 5-failure threshold, 30s recovery), CLI_TIMEOUT (MEDIUM_TIMEOUT), _metrics.counter/timer for all tools, audit_log for all operations. Each tool handles CIRCUIT_OPEN, TIMEOUT, CLI_NOT_FOUND errors. Completes task-4-1 (analysis.py implementation).",
       "metadata": {},
       "task_id": "task-4-1-4"
+    },
+    {
+      "timestamp": "2025-11-27T21:42:51.483415Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement spec-apply-plan - apply bulk structural edits from diff/plan",
+      "author": "claude-code",
+      "content": "Implemented spec-apply-plan MCP tool in new src/foundry_mcp/tools/mutations.py file. The tool wraps `sdd apply-modifications` CLI command and supports dry_run, output_file, and path parameters. Follows established patterns from authoring.py including circuit breaker, metrics, audit logging, and comprehensive error handling. Module registered in __init__.py and server.py. Import tests passing.",
+      "metadata": {},
+      "task_id": "task-4-2-1"
     }
   ]
 }
