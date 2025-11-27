@@ -994,3 +994,152 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="assumption-list",
+    )
+    def assumption_list(
+        spec_id: str,
+        assumption_type: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        List assumptions in an SDD specification.
+
+        Wraps the SDD CLI list-assumptions command to retrieve assumptions
+        from a specification. Can filter by assumption type.
+
+        WHEN TO USE:
+        - Reviewing project constraints before implementation
+        - Auditing requirements that affect design
+        - Checking existing assumptions before adding new ones
+        - Generating reports of project constraints
+
+        Args:
+            spec_id: Specification ID to list assumptions from
+            assumption_type: Filter by type (constraint, requirement)
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with assumptions list:
+            - spec_id: The specification ID
+            - assumptions: Array of assumption objects
+            - total_count: Number of assumptions
+            - filter_type: Filter applied if any
+        """
+        tool_name = "assumption_list"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            # Validate assumption_type if provided
+            if assumption_type and assumption_type not in ("constraint", "requirement"):
+                return asdict(error_response(
+                    f"Invalid assumption_type '{assumption_type}'. Must be one of: constraint, requirement",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Use one of: constraint, requirement",
+                ))
+
+            # Build command
+            cmd = ["sdd", "list-assumptions", spec_id, "--json"]
+
+            if assumption_type:
+                cmd.extend(["--type", assumption_type])
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="assumption-list",
+                action="list_assumptions",
+                spec_id=spec_id,
+                assumption_type=assumption_type,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                assumptions = output_data.get("assumptions", [])
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "assumptions": assumptions,
+                    "total_count": len(assumptions),
+                }
+
+                if assumption_type:
+                    data["filter_type"] = assumption_type
+
+                # Track metrics
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
+
+                if "not found" in error_msg.lower():
+                    return asdict(error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list",
+                    ))
+
+                return asdict(error_response(
+                    f"Failed to list assumptions: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the spec exists",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in assumption-list")
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
