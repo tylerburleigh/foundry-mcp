@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:50:11.230088Z",
+  "last_updated": "2025-11-27T12:52:31.935789Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 13,
+    "progress_percentage": 14,
     "current_phase": "phase-1"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 14,
+      "completed_tasks": 15,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -81,7 +81,7 @@
     "phase-1": {
       "type": "phase",
       "title": "Security & Input Hygiene",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-1-files",
@@ -89,14 +89,17 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 14,
+      "completed_tasks": 15,
       "metadata": {
         "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
         "risk_level": "high",
         "doc_references": [
           "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
           "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T12:52:31.903582Z",
+        "journaled_at": "2025-11-27T12:52:31.935674Z"
       },
       "dependencies": {
         "blocks": [
@@ -435,7 +438,7 @@
     "phase-1-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-1",
       "children": [
         "verify-1-1",
@@ -450,8 +453,12 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T12:52:31.903574Z",
+        "journaled_at": "2025-11-27T12:52:31.930375Z"
+      }
     },
     "verify-1-1": {
       "type": "verify",
@@ -481,17 +488,23 @@
     "verify-1-2": {
       "type": "verify",
       "title": "Phase 1 fidelity review",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "fidelity",
         "skill": "sdd-fidelity-review",
         "scope": "phase",
         "target": "phase-1",
-        "agent": "sdd-fidelity-review"
+        "agent": "sdd-fidelity-review",
+        "started_at": "2025-11-27T12:50:35.103009Z",
+        "status_note": "Running Phase 1 fidelity review",
+        "completed_at": "2025-11-27T12:52:31.903501Z",
+        "needs_journaling": false,
+        "actual_hours": 0.032,
+        "journaled_at": "2025-11-27T12:52:31.915584Z"
       },
       "dependencies": {
         "blocks": [],
@@ -3378,6 +3391,33 @@
       "content": "Security tests verification passed. All 125 tests in tests/unit/test_core/test_security.py pass: 47 prompt injection detection tests (TestPromptInjectionDetection), 48 sensitive data redaction tests (TestSensitiveDataRedaction), and 30 input size validation tests (TestInputSizeValidation). Test execution time: 0.90s.",
       "metadata": {},
       "task_id": "verify-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T12:52:31.915570Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 1 fidelity review",
+      "author": "claude-code",
+      "content": "Phase 1 fidelity review completed. Overall assessment: EXCELLENT with minor deviation fixed. The review identified one type annotation bug (value: any -> value: Any) which was immediately fixed in security.py. All 125 tests continue to pass. Phase 1 implementation exceeds specification requirements with comprehensive test coverage, proper security constants, prompt injection detection, sensitive data redaction, and input size validation. No major deviations or missing functionality.",
+      "metadata": {},
+      "task_id": "verify-1-2"
+    },
+    {
+      "timestamp": "2025-11-27T12:52:31.930355Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
+    },
+    {
+      "timestamp": "2025-11-27T12:52:31.935652Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Security & Input Hygiene",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

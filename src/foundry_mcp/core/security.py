@@ -9,7 +9,7 @@ and docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
 import logging
 import re
 from dataclasses import dataclass
-from typing import Final, Optional, Tuple
+from typing import Any, Final, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +207,7 @@ class SizeValidationResult:
 
 
 def validate_size(
-    value: any,
+    value: Any,
     field_name: str = "input",
     *,
     max_size: Optional[int] = None,
