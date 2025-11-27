@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:40:02.212448Z",
-    "generated_at_commit": "0c630a7737ba09d319af30757e857fef5d76ac2e",
+    "generated_at": "2025-11-27T13:43:20.236346Z",
+    "generated_at_commit": "7a37b11e8529722548bd482a297214b293830f63",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 33,
-    "total_lines": 13522,
-    "total_classes": 50,
-    "total_functions": 160,
-    "avg_complexity": 6.94,
+    "total_lines": 13875,
+    "total_classes": 54,
+    "total_functions": 163,
+    "avg_complexity": 6.88,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 33,
-        "lines": 13522,
-        "classes": 50,
-        "functions": 160,
-        "avg_complexity": 6.94
+        "lines": 13875,
+        "classes": 54,
+        "functions": 163,
+        "avg_complexity": 6.88
       }
     }
   },
@@ -478,12 +478,19 @@
       "language": "python",
       "docstring": "Resilience primitives for MCP tool operations.\n\nProvides timeout budgets, retry patterns, circuit breakers, and health checks\nfor building robust MCP tools that handle failures gracefully.\n\nTimeout Budget Categories\n=========================\n\nUse the appropriate timeout category based on operation type:\n\n    FAST_TIMEOUT (5s)       - Cache lookups, simple queries\n    MEDIUM_TIMEOUT (30s)    - Database operations, API calls\n    SLOW_TIMEOUT (120s)     - File processing, complex operations\n    BACKGROUND_TIMEOUT (600s) - Batch jobs, large transfers\n\nExample usage:\n\n    from foundry_mcp.core.resilience import (\n        MEDIUM_TIMEOUT,\n        with_timeout,\n        retry_with_backoff,\n        CircuitBreaker,\n    )\n\n    @mcp.tool()\n    @with_timeout(MEDIUM_TIMEOUT, \"Database query timed out\")\n    async def query_database(query: str) -> dict:\n        result = await db.execute(query)\n        return asdict(success_response(data={\"result\": result}))",
       "classes": [
-        "TimeoutException"
+        "TimeoutException",
+        "CircuitState",
+        "CircuitBreakerError",
+        "CircuitBreaker",
+        "HealthStatus"
       ],
       "functions": [
         "with_timeout",
         "retry_with_backoff",
-        "retryable"
+        "retryable",
+        "with_circuit_breaker",
+        "health_check",
+        "check_dependencies"
       ],
       "imports": [
         "dataclasses.dataclass",
@@ -505,7 +512,7 @@
         "time"
       ],
       "exports": [],
-      "lines": 245
+      "lines": 598
     },
     {
       "name": "responses",
@@ -2605,6 +2612,112 @@
       ],
       "imported_by": [],
       "instantiation_count": 1
+    },
+    {
+      "name": "CircuitState",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 253,
+      "language": "python",
+      "docstring": "Circuit breaker states.\n\nCLOSED: Normal operation, requests flow through.\nOPEN: Failures exceeded threshold, requests rejected.\nHALF_OPEN: Testing recovery, limited requests allowed.",
+      "bases": [
+        "Enum"
+      ],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
+    },
+    {
+      "name": "CircuitBreakerError",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 266,
+      "language": "python",
+      "docstring": "Circuit breaker is open and rejecting requests.\n\nAttributes:\n    breaker_name: Name of the circuit breaker.\n    state: Current state of the breaker.\n    retry_after: Seconds until recovery timeout.",
+      "bases": [
+        "Exception"
+      ],
+      "methods": [
+        "__init__"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "wrapper",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 449,
+          "context": [
+            "with_circuit_breaker",
+            "decorator",
+            "wrapper"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 1
+    },
+    {
+      "name": "CircuitBreaker",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 289,
+      "language": "python",
+      "docstring": "Circuit breaker for external dependencies.\n\nPrevents cascade failures by tracking failures and temporarily\nblocking requests when a dependency is unhealthy.\n\nStates:\n    CLOSED: Normal operation, requests pass through.\n    OPEN: Too many failures, requests rejected immediately.\n    HALF_OPEN: Testing recovery, limited requests allowed.\n\nAttributes:\n    name: Identifier for this circuit breaker.\n    failure_threshold: Failures before opening circuit (default 5).\n    recovery_timeout: Seconds before testing recovery (default 30).\n    half_open_max_calls: Test calls allowed in half-open (default 3).\n\nExample:\n    >>> breaker = CircuitBreaker(name=\"database\")\n    >>>\n    >>> if breaker.can_execute():\n    ...     try:\n    ...         result = db.query()\n    ...         breaker.record_success()\n    ...     except Exception:\n    ...         breaker.record_failure()\n    ...         raise\n    ... else:\n    ...     raise CircuitBreakerError(\"Database circuit open\")",
+      "bases": [],
+      "methods": [
+        "can_execute",
+        "record_success",
+        "record_failure",
+        "reset",
+        "get_status"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
+    },
+    {
+      "name": "HealthStatus",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 475,
+      "language": "python",
+      "docstring": "Health status for a dependency.\n\nAttributes:\n    name: Dependency identifier.\n    healthy: Whether dependency is healthy.\n    latency_ms: Check latency in milliseconds.\n    last_check: Timestamp of the check.\n    error: Error message if unhealthy.",
+      "bases": [],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "health_check",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 524,
+          "context": [
+            "health_check"
+          ]
+        },
+        {
+          "instantiator": "health_check",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 532,
+          "context": [
+            "health_check"
+          ]
+        },
+        {
+          "instantiator": "health_check",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 541,
+          "context": [
+            "health_check"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 3
     },
     {
       "name": "ErrorCode",
@@ -5369,7 +5482,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5381,7 +5494,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -9254,6 +9367,225 @@
       "is_public": true,
       "callers": [],
       "calls": []
+    },
+    {
+      "name": "with_circuit_breaker",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 422,
+      "language": "python",
+      "docstring": "Decorator to wrap function with circuit breaker protection.\n\nArgs:\n    breaker: CircuitBreaker instance to use.\n\nReturns:\n    Decorated function that checks circuit before execution.\n\nExample:\n    >>> db_breaker = CircuitBreaker(name=\"database\", failure_threshold=3)\n    >>>\n    >>> @with_circuit_breaker(db_breaker)\n    ... def query_database(sql: str):\n    ...     return db.execute(sql)\n\nRaises:\n    CircuitBreakerError: If circuit is open and rejecting requests.",
+      "parameters": [
+        {
+          "name": "breaker",
+          "type": "CircuitBreaker",
+          "default": null
+        }
+      ],
+      "return_type": "Callable[[Callable[..., T]], Callable[..., T]]",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
+    },
+    {
+      "name": "health_check",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 493,
+      "language": "python",
+      "docstring": "Check health of a dependency with timeout.\n\nArgs:\n    name: Identifier for the dependency.\n    check_func: Async callable that tests dependency health.\n    timeout: Maximum time to wait for check (default FAST_TIMEOUT).\n\nReturns:\n    HealthStatus with check results.\n\nExample:\n    >>> status = await health_check(\n    ...     \"database\",\n    ...     lambda: db.execute(\"SELECT 1\"),\n    ... )\n    >>> if not status.healthy:\n    ...     logger.warning(f\"DB unhealthy: {status.error}\")",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "str",
+          "default": null
+        },
+        {
+          "name": "check_func",
+          "type": "Callable[[], Any]",
+          "default": null
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "default": null
+        }
+      ],
+      "return_type": "HealthStatus",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "check_dependencies",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 577,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 516,
+          "call_type": "method_call"
+        },
+        {
+          "name": "check_func",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 518,
+          "call_type": "function_call"
+        },
+        {
+          "name": "iscoroutine",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/coroutines.py",
+          "line": 520,
+          "call_type": "method_call"
+        },
+        {
+          "name": "wait_for",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
+          "line": 521,
+          "call_type": "method_call"
+        },
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 522,
+          "call_type": "method_call"
+        },
+        {
+          "name": "utcnow",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 528,
+          "call_type": "method_call"
+        },
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 531,
+          "call_type": "method_call"
+        },
+        {
+          "name": "utcnow",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 536,
+          "call_type": "method_call"
+        },
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 540,
+          "call_type": "method_call"
+        },
+        {
+          "name": "utcnow",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 545,
+          "call_type": "method_call"
+        },
+        {
+          "name": "str",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 546,
+          "call_type": "function_call"
+        }
+      ],
+      "call_count": 1
+    },
+    {
+      "name": "check_dependencies",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 550,
+      "language": "python",
+      "docstring": "Check health of multiple dependencies concurrently.\n\nArgs:\n    checks: Dict mapping dependency names to check functions.\n    timeout_per_check: Timeout per individual check.\n\nReturns:\n    Dict with overall status and per-dependency results.\n\nExample:\n    >>> results = await check_dependencies({\n    ...     \"database\": lambda: db.execute(\"SELECT 1\"),\n    ...     \"cache\": lambda: cache.ping(),\n    ...     \"api\": lambda: http.get(health_url),\n    ... })\n    >>> if results[\"status\"] == \"degraded\":\n    ...     logger.warning(f\"Unhealthy: {results['unhealthy']}\")",
+      "parameters": [
+        {
+          "name": "checks",
+          "type": "Dict[str, Callable[[], Any]]",
+          "default": null
+        },
+        {
+          "name": "timeout_per_check",
+          "type": "float",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": true,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "prepare_task",
+          "file": "src/foundry_mcp/core/task.py",
+          "line": 581,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_check_deps",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 243,
+          "call_type": "function_call"
+        },
+        {
+          "name": "foundry_start_task",
+          "file": "src/foundry_mcp/tools/tasks.py",
+          "line": 459,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "gather",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
+          "line": 575,
+          "call_type": "method_call"
+        },
+        {
+          "name": "health_check",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 577,
+          "call_type": "function_call"
+        },
+        {
+          "name": "items",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 578,
+          "call_type": "method_call"
+        },
+        {
+          "name": "round",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 587,
+          "call_type": "function_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 591,
+          "call_type": "method_call"
+        },
+        {
+          "name": "isoformat",
+          "file": "unknown",
+          "line": 597,
+          "call_type": "method_call"
+        },
+        {
+          "name": "utcnow",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 597,
+          "call_type": "method_call"
+        }
+      ],
+      "call_count": 3
     },
     {
       "name": "_build_meta",

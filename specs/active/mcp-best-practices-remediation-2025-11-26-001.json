@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:42:46.068360Z",
+  "last_updated": "2025-11-27T13:45:50.325299Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 44,
+    "progress_percentage": 45,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 45,
+      "completed_tasks": 46,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -1170,7 +1170,7 @@
         "task-4-2"
       ],
       "total_tasks": 8,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1298,7 +1298,7 @@
     "task-4-2": {
       "type": "task",
       "title": "tests/unit/test_core/test_resilience.py (NEW)",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4-files",
       "children": [
         "task-4-2-1",
@@ -1313,7 +1313,7 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_core/test_resilience.py",
         "task_category": "implementation",
@@ -1323,12 +1323,19 @@
     "task-4-2-1": {
       "type": "subtask",
       "title": "Test timeout decorator",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:43:32.205412Z",
+        "status_note": "Starting timeout decorator tests",
+        "completed_at": "2025-11-27T13:45:50.315641Z",
+        "needs_journaling": false,
+        "actual_hours": 0.038,
+        "journaled_at": "2025-11-27T13:45:50.322282Z"
+      }
     },
     "task-4-2-2": {
       "type": "subtask",
@@ -3992,6 +3999,15 @@
       "content": "Implemented health_check() async utility that checks dependency health with timeout and returns HealthStatus dataclass. Also implemented check_dependencies() for concurrent multi-dependency health checks returning structured status with healthy/degraded state and unhealthy list. Both support sync and async callables. Verified with inline tests.",
       "metadata": {},
       "task_id": "task-4-1-5"
+    },
+    {
+      "timestamp": "2025-11-27T13:45:50.322278Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test timeout decorator",
+      "author": "claude-code",
+      "content": "Created tests/unit/test_core/test_resilience.py with comprehensive timeout decorator tests including: test_fast_operation_succeeds, test_slow_operation_raises_timeout, test_default_error_message, test_preserves_function_metadata, test_passes_arguments, test_passes_kwargs, plus TimeoutException attribute tests. All 13 timeout-related tests pass.",
+      "metadata": {},
+      "task_id": "task-4-2-1"
     }
   ]
 }
