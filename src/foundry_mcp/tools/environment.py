@@ -127,3 +127,100 @@ def register_environment_tools(mcp: FastMCP, config: ServerConfig) -> None:
         except Exception as e:
             logger.exception("Error verifying toolchain")
             return asdict(error_response(f"Failed to verify toolchain: {e}"))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="sdd-init-workspace",
+    )
+    def sdd_init_workspace(
+        path: Optional[str] = None,
+        create_subdirs: bool = True,
+    ) -> dict:
+        """
+        Bootstrap working directory for SDD workflows.
+
+        Initializes the specs/ directory structure needed for SDD workflows.
+        Creates the standard folder hierarchy (active, pending, completed, archived).
+
+        WHEN TO USE:
+        - Setting up a new project for SDD
+        - Onboarding an existing repository to SDD
+        - Recreating missing directory structure
+
+        Args:
+            path: Project root path (default: current directory)
+            create_subdirs: Create standard subdirectories (default: True)
+
+        Returns:
+            JSON object with initialization status:
+            - success: Boolean indicating if initialization succeeded
+            - specs_dir: Path to the specs directory
+            - created_dirs: List of directories that were created
+            - existing_dirs: List of directories that already existed
+        """
+        import os
+        from pathlib import Path
+
+        try:
+            # Determine base path
+            base_path = Path(path) if path else Path.cwd()
+            specs_dir = base_path / "specs"
+
+            # Standard subdirectories
+            subdirs = ["active", "pending", "completed", "archived"]
+
+            created_dirs: List[str] = []
+            existing_dirs: List[str] = []
+
+            # Create specs directory if needed
+            if not specs_dir.exists():
+                specs_dir.mkdir(parents=True)
+                created_dirs.append(str(specs_dir))
+            else:
+                existing_dirs.append(str(specs_dir))
+
+            # Create subdirectories if requested
+            if create_subdirs:
+                for subdir in subdirs:
+                    subdir_path = specs_dir / subdir
+                    if not subdir_path.exists():
+                        subdir_path.mkdir(parents=True)
+                        created_dirs.append(str(subdir_path))
+                    else:
+                        existing_dirs.append(str(subdir_path))
+
+            data: Dict[str, Any] = {
+                "specs_dir": str(specs_dir),
+                "active_dir": str(specs_dir / "active"),
+            }
+
+            if created_dirs:
+                data["created_dirs"] = created_dirs
+            if existing_dirs:
+                data["existing_dirs"] = existing_dirs
+
+            # Add warning if nothing was created
+            warnings: List[str] = []
+            if not created_dirs:
+                warnings.append("All directories already existed, no changes made")
+
+            return asdict(
+                success_response(
+                    data=data,
+                    warnings=warnings if warnings else None,
+                )
+            )
+
+        except PermissionError as e:
+            logger.exception("Permission denied during workspace initialization")
+            return asdict(
+                error_response(
+                    f"Permission denied: {e}",
+                    error_code="FORBIDDEN",
+                    error_type="authorization",
+                    remediation="Check write permissions for the target directory.",
+                )
+            )
+        except Exception as e:
+            logger.exception("Error initializing workspace")
+            return asdict(error_response(f"Failed to initialize workspace: {e}"))

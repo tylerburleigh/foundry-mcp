@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T19:38:56.398561Z",
+  "last_updated": "2025-11-27T19:40:16.026766Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 1,
+    "progress_percentage": 2,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -60,7 +60,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 13,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Bootstrap tooling for workspace initialization and validation",
         "risk_level": "low"
@@ -86,7 +86,7 @@
         "task-1-5"
       ],
       "total_tasks": 10,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -109,7 +109,7 @@
         "task-1-1-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/environment.py",
         "task_category": "implementation",
@@ -147,13 +147,19 @@
     "task-1-1-2": {
       "type": "subtask",
       "title": "Implement sdd-init-workspace - bootstrap working directory for SDD workflows",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd init-env CLI command, create specs/ directory structure"
+        "details": "Wrap sdd init-env CLI command, create specs/ directory structure",
+        "started_at": "2025-11-27T19:39:36.572322Z",
+        "status_note": "Starting implementation of sdd-init-workspace tool",
+        "completed_at": "2025-11-27T19:40:16.018010Z",
+        "needs_journaling": false,
+        "actual_hours": 0.011,
+        "journaled_at": "2025-11-27T19:40:16.024841Z"
       }
     },
     "task-1-1-3": {
@@ -2177,6 +2183,15 @@
       "content": "Implemented sdd-verify-toolchain MCP tool adapter in src/foundry_mcp/tools/environment.py. The tool wraps the CLI's verify-tools command, checking for required binaries (python, git) and optional tools (grep, cat, find, node, npm). Returns structured JSON response following the MCP response contract with success/error states, warnings for missing optional tools, and remediation guidance. Also registered the tool in server.py and exported in tools/__init__.py. Fixed pre-existing test failure with code-impact-analysis tool name. All tests pass.",
       "metadata": {},
       "task_id": "task-1-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T19:40:16.024832Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement sdd-init-workspace - bootstrap working directory for SDD workflows",
+      "author": "claude-code",
+      "content": "Implemented sdd-init-workspace MCP tool adapter in src/foundry_mcp/tools/environment.py. The tool bootstraps the SDD directory structure by creating specs/ and standard subdirectories (active, pending, completed, archived). Features include: optional path parameter for custom root, create_subdirs toggle, tracking of created vs existing directories, proper permission error handling. Returns structured JSON with specs_dir, active_dir, created_dirs, and existing_dirs. Tool registered and verified working.",
+      "metadata": {},
+      "task_id": "task-1-1-2"
     }
   ]
 }
