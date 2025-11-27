@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T20:14:50.473615Z",
+  "last_updated": "2025-11-27T20:18:22.715612Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,9 +22,9 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 14,
+    "progress_percentage": 15,
     "status": "active",
-    "current_phase": "phase-1"
+    "current_phase": "phase-2"
   },
   "hierarchy": {
     "spec-root": {
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -456,7 +456,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Spec Discovery & Validation Helpers",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-2-files",
@@ -472,7 +472,7 @@
         ]
       },
       "total_tasks": 13,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Extend spec analysis and validation capabilities",
         "risk_level": "low"
@@ -481,7 +481,7 @@
     "phase-2-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [
         "task-2-1",
@@ -490,7 +490,7 @@
         "task-2-4"
       ],
       "total_tasks": 9,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -503,7 +503,7 @@
     "task-2-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/spec_helpers.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2-files",
       "children": [
         "task-2-1-1",
@@ -513,7 +513,7 @@
         "task-2-1-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/spec_helpers.py",
         "task_category": "implementation",
@@ -532,13 +532,19 @@
     "task-2-1-1": {
       "type": "subtask",
       "title": "Implement spec-find-related-files - locate files referenced by a spec node",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd find-related-files, scan spec for file_path metadata references"
+        "details": "Wrap sdd find-related-files, scan spec for file_path metadata references",
+        "started_at": "2025-11-27T20:15:27.538130Z",
+        "status_note": "Starting implementation of spec-find-related-files tool",
+        "completed_at": "2025-11-27T20:18:22.707691Z",
+        "needs_journaling": false,
+        "actual_hours": 0.049,
+        "journaled_at": "2025-11-27T20:18:22.713410Z"
       }
     },
     "task-2-1-2": {
@@ -2388,6 +2394,15 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2025-11-27T20:18:22.713401Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement spec-find-related-files - locate files referenced by a spec node",
+      "author": "claude-code",
+      "content": "Implemented spec-find-related-files MCP tool that wraps sdd find-related-files CLI command.\n\nFiles created:\n- src/foundry_mcp/tools/spec_helpers.py (new module for spec helper tools)\n- tests/unit/test_spec_helpers.py (9 unit tests)\n\nImplementation details:\n- Uses @canonical_tool decorator with name 'spec-find-related-files'\n- Accepts file_path (required), spec_id (optional), and include_metadata (optional) parameters\n- Wraps subprocess call to sdd find-related-files --json\n- Returns response-v2 envelope with related_files, spec_references, and total_count\n- Handles timeout (30s), CLI not found, and command failure errors\n- Includes audit_log and metrics tracking\n- All 9 unit tests passing",
+      "metadata": {},
+      "task_id": "task-2-1-1"
     }
   ]
 }
