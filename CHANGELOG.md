@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Security & Input Hygiene (Phase 1):
+  - Rate limiting module (`foundry_mcp.core.rate_limit`):
+    - `TokenBucketLimiter` - Token bucket algorithm with burst support
+    - `RateLimitManager` - Per-tool and per-tenant rate limit management
+    - `check_rate_limit` - Convenience function for rate limit checks
+    - `RateLimitConfig` / `RateLimitResult` - Configuration and result dataclasses
+    - Environment variable configuration (`FOUNDRY_RATE_LIMIT_*`)
+    - Manifest-based rate limit configuration support
+  - Observability module (`foundry_mcp.core.observability`):
+    - `AuditLogger` - Structured security audit logging
+    - `audit_log` - Convenience function for audit events
+    - `MetricsCollector` - Metrics emission (counter, gauge, timer)
+    - `mcp_tool` / `mcp_resource` - Decorators with automatic observability
+    - Audit event types: auth_success, auth_failure, rate_limit, resource_access, tool_invocation, permission_denied, config_change
+  - Documentation updates:
+    - Added recommended `MAX_*` limits table to validation docs
+    - Added rate limiting integration examples
+    - Added audit logging patterns for validation failures
+    - Strengthened cross-references to security guidance
+
 ## [0.2.0] - 2025-11-25
 
 ### Added

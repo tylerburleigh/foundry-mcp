@@ -197,6 +197,22 @@ def process_text(text: str) -> dict:
 
 ## Size and Rate Limiting
 
+### Recommended Limits
+
+Define consistent limits across your MCP tools:
+
+| Constant | Recommended Value | Purpose |
+|----------|------------------|---------|
+| `MAX_INPUT_SIZE` | 100,000 bytes (100KB) | Total request payload size |
+| `MAX_ARRAY_LENGTH` | 1,000 items | Maximum array/list elements |
+| `MAX_STRING_LENGTH` | 10,000 chars | Maximum string field length |
+| `MAX_NESTED_DEPTH` | 10 levels | JSON nesting depth |
+| `MAX_FIELD_COUNT` | 100 fields | Maximum object properties |
+
+See [Security & Trust Boundaries § Size Limits](./08-security-trust-boundaries.md) for additional guidance on enforcing resource limits.
+
+### Size Validation Helpers
+
 ```python
 MAX_INPUT_SIZE = 100_000  # 100KB
 MAX_ARRAY_LENGTH = 1000
@@ -220,6 +236,96 @@ def validate_string_length(value: str, max_length: int = MAX_STRING_LENGTH) -> N
     if len(value) > max_length:
         raise ValueError(f"String exceeds maximum length ({max_length} characters)")
 ```
+
+### Rate Limiting Integration
+
+Use the built-in rate limiting infrastructure to enforce request limits:
+
+```python
+from foundry_mcp.core.rate_limit import (
+    check_rate_limit,
+    RateLimitConfig,
+    get_rate_limit_manager
+)
+from foundry_mcp.core.responses import error_response
+
+@mcp.tool()
+def rate_limited_tool(user_id: str, data: dict) -> dict:
+    """Tool with rate limiting enforcement."""
+    # Check rate limit before processing
+    result = check_rate_limit("rate_limited_tool", tenant_id=user_id)
+
+    if not result.allowed:
+        return asdict(error_response(
+            error="Rate limit exceeded",
+            data={
+                "error_code": "RATE_LIMIT_EXCEEDED",
+                "retry_after_seconds": result.reset_in,
+                "limit": result.limit
+            }
+        ))
+
+    # Proceed with validated, rate-limited request
+    return asdict(success_response(data={"result": process(data)}))
+```
+
+Configure per-tool limits via environment variables:
+
+```bash
+# Global defaults
+export FOUNDRY_RATE_LIMIT_DEFAULT=60  # requests per minute
+export FOUNDRY_RATE_LIMIT_BURST=10    # burst limit
+
+# Per-tool overrides
+export FOUNDRY_RATE_LIMIT_RUN_TESTS=5
+export FOUNDRY_RATE_LIMIT_EXPENSIVE_OPERATION=10
+```
+
+### Audit Logging for Validation Failures
+
+Log validation failures for security monitoring:
+
+```python
+from foundry_mcp.core.observability import audit_log, get_audit_logger
+
+def validate_with_audit(data: dict, user_id: str) -> bool:
+    """Validate input and log failures for security review."""
+    try:
+        validated = InputSchema(**data)
+        return True
+    except ValidationError as e:
+        # Log validation failure for security monitoring
+        audit_log(
+            "tool_invocation",
+            tool="my_tool",
+            success=False,
+            user_id=user_id,
+            error="validation_failed",
+            validation_errors=str(e.errors())
+        )
+        return False
+
+# For structured audit events
+audit = get_audit_logger()
+
+@mcp.tool()
+def audited_tool(resource_id: str, action: str) -> dict:
+    """Tool with comprehensive audit logging."""
+    user_id = get_current_user()
+
+    # Log access attempt
+    audit.resource_access(
+        resource_type="sensitive_data",
+        resource_id=resource_id,
+        action=action,
+        user_id=user_id
+    )
+
+    # Validate and process...
+    return result
+```
+
+See [Security & Trust Boundaries § Audit Logging](./08-security-trust-boundaries.md#audit-logging) for comprehensive audit logging patterns.
 
 ## Error Message Best Practices
 
@@ -313,9 +419,14 @@ if not re.match(allowed_pattern, user_input):
 
 ## Related Documents
 
-- [Security & Trust Boundaries](./08-security-trust-boundaries.md) - Security patterns
-- [Error Semantics](./07-error-semantics.md) - Error handling
-- [AI/LLM Integration](./11-ai-llm-integration.md) - LLM-specific concerns
+- [Security & Trust Boundaries](./08-security-trust-boundaries.md) - Comprehensive security patterns including:
+  - [Prompt Injection Defense](./08-security-trust-boundaries.md#prompt-injection-defense)
+  - [Authorization Patterns](./08-security-trust-boundaries.md#authorization-patterns)
+  - [Rate Limiting](./08-security-trust-boundaries.md#rate-limiting)
+  - [Audit Logging](./08-security-trust-boundaries.md#audit-logging)
+- [Error Semantics](./07-error-semantics.md) - Error handling and response patterns
+- [AI/LLM Integration](./11-ai-llm-integration.md) - LLM-specific security concerns
+- [Observability & Telemetry](./05-observability-telemetry.md) - Metrics and structured logging
 
 ---
 

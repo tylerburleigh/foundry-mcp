@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-26T23:39:34.309305Z",
+  "last_updated": "2025-11-27T12:25:05.200768Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -28,13 +28,17 @@
       "docs/mcp_best_practices/14-feature-flags.md#L10-L330",
       "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
     ],
-    "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades."
+    "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
+    "status": "active",
+    "activated_date": "2025-11-27T12:17:19.958266Z",
+    "progress_percentage": 1,
+    "current_phase": "phase-1"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "MCP Best Practices Gap Remediation",
-      "status": "pending",
+      "status": "in_progress",
       "parent": null,
       "children": [
         "phase-1",
@@ -47,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 0,
+      "completed_tasks": 2,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -77,7 +81,7 @@
     "phase-1": {
       "type": "phase",
       "title": "Security & Input Hygiene",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-1-files",
@@ -85,7 +89,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 0,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
         "risk_level": "high",
@@ -2301,7 +2305,7 @@
     "phase-1-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1",
       "children": [
         "phase-1-docs-1",
@@ -2317,18 +2321,21 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 2,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
           "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T12:25:05.179546Z",
+        "journaled_at": "2025-11-27T12:25:05.200660Z"
       }
     },
     "phase-1-docs-1": {
       "type": "task",
       "title": "docs/mcp_best_practices/04-validation-input-hygiene.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-docs",
       "children": [
         "phase-1-docs-1-1"
@@ -2339,7 +2346,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "docs/mcp_best_practices/04-validation-input-hygiene.md",
         "task_category": "implementation",
@@ -2349,17 +2356,24 @@
     "phase-1-docs-1-1": {
       "type": "subtask",
       "title": "Document new security helpers, MAX_* limits, and link to 08-security guidance.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-docs-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T12:18:59.213978Z",
+        "status_note": "Updating 04-validation-input-hygiene.md with security helpers documentation",
+        "completed_at": "2025-11-27T12:20:38.626556Z",
+        "needs_journaling": false,
+        "actual_hours": 0.028,
+        "journaled_at": "2025-11-27T12:20:38.638398Z"
+      }
     },
     "phase-1-docs-2": {
       "type": "task",
       "title": "CHANGELOG.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-docs",
       "children": [
         "phase-1-docs-2-1"
@@ -2370,7 +2384,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "CHANGELOG.md",
         "task_category": "implementation",
@@ -2380,12 +2394,19 @@
     "phase-1-docs-2-1": {
       "type": "subtask",
       "title": "Log Phase 1 security guardrails and validation decorators.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-docs-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T12:24:23.538312Z",
+        "status_note": "Updating CHANGELOG.md with Phase 1 security features",
+        "completed_at": "2025-11-27T12:25:05.179484Z",
+        "needs_journaling": false,
+        "actual_hours": 0.012,
+        "journaled_at": "2025-11-27T12:25:05.190770Z"
+      }
     },
     "phase-2-docs": {
       "type": "group",
@@ -3133,5 +3154,34 @@
       "completed_tasks": 0,
       "metadata": {}
     }
-  }
+  },
+  "journal": [
+    {
+      "timestamp": "2025-11-27T12:20:38.638385Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Document new security helpers, MAX_* limits, and link to 08-security guidance.",
+      "author": "claude-code",
+      "content": "Updated docs/mcp_best_practices/04-validation-input-hygiene.md with:\n1. Added \"Recommended Limits\" table documenting MAX_* constants (MAX_INPUT_SIZE, MAX_ARRAY_LENGTH, MAX_STRING_LENGTH, MAX_NESTED_DEPTH, MAX_FIELD_COUNT) with recommended values and purposes\n2. Added \"Rate Limiting Integration\" section documenting foundry_mcp.core.rate_limit helpers (check_rate_limit, RateLimitConfig, get_rate_limit_manager) with code examples and environment variable configuration\n3. Added \"Audit Logging for Validation Failures\" section documenting foundry_mcp.core.observability helpers (audit_log, get_audit_logger) for security monitoring of validation failures\n4. Strengthened Related Documents section with specific subsection links to 08-security-trust-boundaries.md (Prompt Injection Defense, Authorization Patterns, Rate Limiting, Audit Logging)\n5. Added cross-reference to 05-observability-telemetry.md\n\nNo tests to run - this is a documentation-only task. Verification: Reviewed the updated file to ensure all sections render correctly and links are properly formatted.",
+      "metadata": {},
+      "task_id": "phase-1-docs-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T12:25:05.190752Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Log Phase 1 security guardrails and validation decorators.",
+      "author": "claude-code",
+      "content": "Updated CHANGELOG.md with [Unreleased] section documenting Phase 1 Security & Input Hygiene features:\n1. Rate limiting module (foundry_mcp.core.rate_limit) - TokenBucketLimiter, RateLimitManager, check_rate_limit, config/result dataclasses, env var and manifest configuration\n2. Observability module (foundry_mcp.core.observability) - AuditLogger, audit_log, MetricsCollector, mcp_tool/mcp_resource decorators, audit event types\n3. Documentation updates - MAX_* limits table, rate limiting integration examples, audit logging patterns, cross-references\n\nNo tests to run - this is a documentation-only changelog task. Verified the entry follows Keep a Changelog format.",
+      "metadata": {},
+      "task_id": "phase-1-docs-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T12:25:05.200645Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Documentation & Change Log",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-docs have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-docs"
+    }
+  ]
 }
