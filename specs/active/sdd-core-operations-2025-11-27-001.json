@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T21:26:45.900392Z",
+  "last_updated": "2025-11-27T21:28:02.656287Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 44,
+    "progress_percentage": 46,
     "status": "active",
     "current_phase": "phase-3"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 40,
+      "completed_tasks": 41,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -880,7 +880,7 @@
         ]
       },
       "total_tasks": 17,
-      "completed_tasks": 14,
+      "completed_tasks": 15,
       "metadata": {
         "purpose": "Basic spec and task creation/modification operations",
         "risk_level": "medium"
@@ -1247,7 +1247,7 @@
         "blocks": []
       },
       "total_tasks": 4,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "verify-3-1": {
@@ -1274,15 +1274,21 @@
     "verify-3-2": {
       "type": "verify",
       "title": "CRUD operations maintain hierarchy integrity",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "manual",
         "expected": "task-add/task-remove update parent-child relationships correctly",
-        "command": ""
+        "command": "",
+        "started_at": "2025-11-27T21:27:08.871458Z",
+        "status_note": "Starting manual verification of CRUD hierarchy integrity",
+        "completed_at": "2025-11-27T21:28:02.647976Z",
+        "needs_journaling": false,
+        "actual_hours": 0.015,
+        "journaled_at": "2025-11-27T21:28:02.653865Z"
       },
       "dependencies": {
         "blocks": [],
@@ -2844,6 +2850,15 @@
       "content": "Verified authoring module unit tests - all 58 tests pass (0.39s). Coverage includes: RunSddCommand (5), SpecCreate (8), SpecTemplate (6), TaskAdd (8), TaskRemove (6), AssumptionAdd (5), AssumptionList (4), RevisionAdd (4), SpecUpdateFrontmatter (7), ToolRegistration (2), ResponseContractCompliance (2). All MCP response contracts validated.",
       "metadata": {},
       "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2025-11-27T21:28:02.653857Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: CRUD operations maintain hierarchy integrity",
+      "author": "claude-code",
+      "content": "Manual verification of CRUD hierarchy integrity confirmed. task_add: validates parent required, handles parent-not-found errors, correctly associates tasks with parent nodes (phase-1 \u2192 task-1-3, task-1-2 \u2192 task-1-2-1). task_remove: non-cascade removal returns CONFLICT error when task has children (line 775-795), cascade deletion properly reports children_removed count. All parent-child relationship tests pass (6 TaskAdd tests, 6 TaskRemove tests covering hierarchy scenarios).",
+      "metadata": {},
+      "task_id": "verify-3-2"
     }
   ]
 }
