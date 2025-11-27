@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T22:55:54.416209Z",
+  "last_updated": "2025-11-27T23:02:41.926405Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 80,
+    "progress_percentage": 82,
     "status": "active",
     "current_phase": "phase-5"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 72,
+      "completed_tasks": 73,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1914,7 +1914,7 @@
         ]
       },
       "total_tasks": 14,
-      "completed_tasks": 9,
+      "completed_tasks": 10,
       "metadata": {
         "purpose": "Plan formatting, phase management, and state reconciliation",
         "risk_level": "medium"
@@ -1931,7 +1931,7 @@
         "task-5-3"
       ],
       "total_tasks": 11,
-      "completed_tasks": 9,
+      "completed_tasks": 10,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2120,7 +2120,7 @@
     "task-5-2": {
       "type": "task",
       "title": "src/foundry_mcp/tools/server.py",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-5-files",
       "children": [
         "task-5-2-1",
@@ -2134,7 +2134,7 @@
         "blocks": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/server.py",
         "task_category": "implementation",
@@ -2164,14 +2164,20 @@
     "task-5-2-2": {
       "type": "subtask",
       "title": "Update docs/backlog for planning utilities",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove planning-related backlog items and summarize behavior in docs/mcp_best_practices/README.md"
+        "details": "Remove planning-related backlog items and summarize behavior in docs/mcp_best_practices/README.md",
+        "started_at": "2025-11-27T23:01:35.254592Z",
+        "status_note": "Starting documentation update for planning utilities",
+        "completed_at": "2025-11-27T23:02:41.917481Z",
+        "needs_journaling": false,
+        "actual_hours": 0.019,
+        "journaled_at": "2025-11-27T23:02:41.923877Z"
       }
     },
     "task-5-3": {
@@ -3405,6 +3411,15 @@
       "content": "Added 7 planning tools to capabilities_manifest.json: plan-format, phase-list, phase-check-complete, phase-report-time, spec-reconcile-state, plan-report-time, spec-audit. Added planning_tools category with full parameter schemas, feature_flag entry (beta, enabled, 100% rollout), and server_capabilities entry listing all tools. JSON validation passed.",
       "metadata": {},
       "task_id": "task-5-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T23:02:41.923872Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Update docs/backlog for planning utilities",
+      "author": "claude-code",
+      "content": "Updated documentation for planning utilities - added \"Task Planning & Execution Utilities\" section to docs/mcp_best_practices/README.md documenting 7 planning tools (plan_format, phase_list, phase_check_complete, phase_report_time, spec_reconcile_state, plan_report_time, spec_audit) with feature flag planning_tools. Updated half_baked_plans/OPERATIONS_TO_ADD.md to add Phase 5 coverage summary and strike through all 7 planning utility items as covered. Updated README version to 2.4.0.",
+      "metadata": {},
+      "task_id": "task-5-2-2"
     }
   ]
 }

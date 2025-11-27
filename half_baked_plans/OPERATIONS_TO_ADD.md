@@ -81,6 +81,20 @@ Use these references when evaluating what actually remains to be wrapped.
 
 **Feature flag:** `mutation_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
 
+## Recently Covered via SDD Core Operations (Phase 5)
+
+`specs/active/sdd-core-operations-2025-11-27-001.json` (Phase 5) delivered task planning and execution utilities. These operations now have MCP manifest entries and feature flags:
+
+- **Plan formatting** (`plan-format`) – format task plans for human review with markdown, summary, and diff modes.
+- **Phase management** (`phase-list`, `phase-check-complete`, `phase-report-time`) – enumerate phases, verify completion readiness, and summarize phase timelines.
+- **State reconciliation** (`spec-reconcile-state`) – compare filesystem state vs spec state for drift detection.
+- **Time tracking** (`plan-report-time`) – generate aggregate time tracking reports across specs.
+- **Auditing** (`spec-audit`) – run higher-level audits beyond basic validation.
+
+**Implementation:** `src/foundry_mcp/tools/planning.py` with resilience features (circuit breaker, timing metrics, audit logging).
+
+**Feature flag:** `planning_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
+
 ---
 
 ## In-Scope Operations
@@ -106,13 +120,13 @@ Use these references when evaluating what actually remains to be wrapped.
 - `journal-bulk-add` (was `bulk-journal`) – add multiple journal entries in one shot.
 
 ### Task Planning & Execution Utilities
-- `plan-format` (was `format-plan`) – pretty-print task plans for sharing.
-- `phase-list` (was `list-phases`) – enumerate phases in a spec.
-- `phase-check-complete` (was `check-complete`) – verify completion readiness for a phase/spec.
-- `phase-report-time` (was `phase-time`) – summarize timelines per phase.
-- `spec-reconcile-state` (was `reconcile-state`) – compare file system vs. spec state for drift.
-- `plan-report-time` (was `time-report`) – summarize time tracking metrics.
-- `spec-audit` (was `audit-spec`) – run higher-level audits beyond basic validation.
+- ~~`plan-format` (was `format-plan`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`phase-list` (was `list-phases`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`phase-check-complete` (was `check-complete`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`phase-report-time` (was `phase-time`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`spec-reconcile-state` (was `reconcile-state`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`plan-report-time` (was `time-report`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
+- ~~`spec-audit` (was `audit-spec`)~~ – **COVERED** in Phase 5 (`planning_tools` flag).
 
 ### Lifecycle & Dependency Extras
 Most lifecycle mutation commands are now covered:

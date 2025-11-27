@@ -120,10 +120,27 @@ The following spec helper tools provide advanced analysis and validation capabil
 
 These tools are gated by the `spec_helpers` feature flag (beta, 100% rollout). They support both immediate diagnostics and integration into CI/validation pipelines. See [§4 Validation & Input Hygiene](./04-validation-input-hygiene.md) for input handling patterns and [§13 Tool Discovery](./13-tool-discovery.md) for discovery integration.
 
+## Task Planning & Execution Utilities
+
+The following planning tools support spec execution workflows:
+
+| Tool | Description | Feature Flag |
+|------|-------------|--------------|
+| `plan_format` | Format task plans for human review (markdown, summary, diff modes) | `planning_tools` |
+| `phase_list` | Enumerate phases in a specification with progress metrics | `planning_tools` |
+| `phase_check_complete` | Verify completion readiness for a phase or spec | `planning_tools` |
+| `phase_report_time` | Summarize time tracking metrics per phase | `planning_tools` |
+| `spec_reconcile_state` | Compare filesystem state vs spec state for drift detection | `planning_tools` |
+| `plan_report_time` | Generate aggregate time tracking reports across specs | `planning_tools` |
+| `spec_audit` | Run higher-level audits beyond basic validation | `planning_tools` |
+
+These tools are gated by the `planning_tools` feature flag (beta, 100% rollout). They support SDD workflow execution, progress tracking, and drift detection. See [§9 Spec-Driven Development](./09-spec-driven-development.md) for workflow patterns.
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.4.0 | 2025-11-27 | Added task planning & execution utilities section (planning_tools feature flag) |
 | 2.3.0 | 2025-11-27 | Added spec discovery & validation helpers section (spec_helpers feature flag) |
 | 2.2.0 | 2025-11-27 | Added environment tools section, capabilities manifest reference |
 | 2.1.0 | 2025-11-26 | Added feature flags, concurrency patterns, multi-tenancy |
