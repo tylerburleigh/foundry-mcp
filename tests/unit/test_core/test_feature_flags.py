@@ -378,3 +378,213 @@ class TestFlagRegistrationAndLookup:
         # Clear all
         registry.clear_all_overrides()
         assert registry.is_enabled("test_flag", client_id="client_b") is False
+
+
+class TestPercentageRollout:
+    """Tests for percentage-based rollout evaluation."""
+
+    def test_100_percent_rollout_always_enabled(self) -> None:
+        """Test that 100% rollout enables for all clients."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="full_rollout",
+            description="Full rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=100.0,
+        )
+        registry.register(flag)
+
+        # Should be enabled for any client
+        for i in range(100):
+            assert registry.is_enabled("full_rollout", client_id=f"client_{i}") is True
+
+    def test_0_percent_rollout_always_disabled(self) -> None:
+        """Test that 0% rollout disables for all clients."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="no_rollout",
+            description="No rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=0.0,
+        )
+        registry.register(flag)
+
+        # Should be disabled for any client (due to percentage rollout failing)
+        for i in range(100):
+            assert registry.is_enabled("no_rollout", client_id=f"client_{i}") is False
+
+    def test_percentage_rollout_is_deterministic(self) -> None:
+        """Test that same client always gets same rollout result."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="half_rollout",
+            description="Half rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=50.0,
+        )
+        registry.register(flag)
+
+        # Same client should always get same result
+        for _ in range(10):
+            result1 = registry.is_enabled("half_rollout", client_id="consistent_client")
+            result2 = registry.is_enabled("half_rollout", client_id="consistent_client")
+            assert result1 == result2
+
+    def test_percentage_rollout_distribution(self) -> None:
+        """Test that percentage rollout distributes clients approximately correctly."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="quarter_rollout",
+            description="Quarter rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=25.0,
+        )
+        registry.register(flag)
+
+        # Count how many clients are enabled out of a large sample
+        enabled_count = sum(
+            1
+            for i in range(1000)
+            if registry.is_enabled("quarter_rollout", client_id=f"client_{i}")
+        )
+
+        # Should be approximately 25% (with some tolerance for hash distribution)
+        # Allow 15-35% range for statistical variance
+        assert 150 <= enabled_count <= 350, f"Expected ~250, got {enabled_count}"
+
+    def test_percentage_rollout_client_specific(self) -> None:
+        """Test that different clients get different rollout results."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="half_rollout",
+            description="Half rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=50.0,
+        )
+        registry.register(flag)
+
+        # Collect results for many clients
+        results = [
+            registry.is_enabled("half_rollout", client_id=f"client_{i}")
+            for i in range(100)
+        ]
+
+        # Should have a mix of True and False (not all same)
+        assert True in results
+        assert False in results
+
+    def test_percentage_rollout_flag_specific(self) -> None:
+        """Test that same client gets different results for different flags."""
+        registry = FeatureFlagRegistry()
+
+        # Register two flags with same percentage but different names
+        flag1 = FeatureFlag(
+            name="feature_alpha",
+            description="Alpha",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=50.0,
+        )
+        flag2 = FeatureFlag(
+            name="feature_beta",
+            description="Beta",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=50.0,
+        )
+        registry.register(flag1)
+        registry.register(flag2)
+
+        # Find a client where results differ (should find one in a reasonable sample)
+        found_different = False
+        for i in range(100):
+            client = f"client_{i}"
+            if registry.is_enabled("feature_alpha", client_id=client) != registry.is_enabled(
+                "feature_beta", client_id=client
+            ):
+                found_different = True
+                break
+
+        assert found_different, "Expected at least one client with different results per flag"
+
+    def test_small_percentage_rollout(self) -> None:
+        """Test very small percentage rollouts."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="tiny_rollout",
+            description="Tiny rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=1.0,
+        )
+        registry.register(flag)
+
+        # Count enabled clients in a large sample
+        enabled_count = sum(
+            1
+            for i in range(10000)
+            if registry.is_enabled("tiny_rollout", client_id=f"client_{i}")
+        )
+
+        # Should be approximately 1% (with tolerance: 0.5%-2%)
+        assert 50 <= enabled_count <= 200, f"Expected ~100, got {enabled_count}"
+
+    def test_large_percentage_rollout(self) -> None:
+        """Test very large percentage rollouts."""
+        registry = FeatureFlagRegistry()
+        flag = FeatureFlag(
+            name="large_rollout",
+            description="Large rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=99.0,
+        )
+        registry.register(flag)
+
+        # Count enabled clients in a large sample
+        enabled_count = sum(
+            1
+            for i in range(1000)
+            if registry.is_enabled("large_rollout", client_id=f"client_{i}")
+        )
+
+        # Should be approximately 99% (with tolerance: 97%-100%)
+        assert 970 <= enabled_count <= 1000, f"Expected ~990, got {enabled_count}"
+
+    def test_percentage_rollout_interacts_with_default_enabled(self) -> None:
+        """Test that percentage rollout check happens before default_enabled."""
+        registry = FeatureFlagRegistry()
+
+        # Flag with default_enabled=False but 100% rollout
+        # The rollout check passes but default_enabled is still False
+        flag_disabled = FeatureFlag(
+            name="disabled_full_rollout",
+            description="Disabled with full rollout",
+            state=FlagState.STABLE,
+            default_enabled=False,
+            percentage_rollout=100.0,
+        )
+
+        # Flag with default_enabled=True but 0% rollout
+        # The rollout check fails so it's disabled
+        flag_enabled = FeatureFlag(
+            name="enabled_no_rollout",
+            description="Enabled with no rollout",
+            state=FlagState.STABLE,
+            default_enabled=True,
+            percentage_rollout=0.0,
+        )
+
+        registry.register(flag_disabled)
+        registry.register(flag_enabled)
+
+        # default_enabled=False, rollout passes -> False (returns default_enabled)
+        assert registry.is_enabled("disabled_full_rollout", client_id="any") is False
+
+        # default_enabled=True, rollout fails -> False (rollout failure)
+        assert registry.is_enabled("enabled_no_rollout", client_id="any") is False

@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:06:25.961463Z",
+  "last_updated": "2025-11-27T13:07:53.982802Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 22,
+    "progress_percentage": 23,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 23,
+      "completed_tasks": 24,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -552,7 +552,7 @@
         "task-2-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 6,
+      "completed_tasks": 7,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -697,7 +697,7 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "tests/unit/test_core/test_feature_flags.py",
         "task_category": "implementation",
@@ -724,12 +724,19 @@
     "task-2-2-2": {
       "type": "subtask",
       "title": "Test percentage rollout evaluation",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:06:57.965677Z",
+        "status_note": "Starting implementation of percentage rollout tests",
+        "completed_at": "2025-11-27T13:07:53.965734Z",
+        "needs_journaling": false,
+        "actual_hours": 0.016,
+        "journaled_at": "2025-11-27T13:07:53.977631Z"
+      }
     },
     "task-2-2-3": {
       "type": "subtask",
@@ -3555,6 +3562,15 @@
       "content": "Created TestFlagRegistrationAndLookup test class with 17 tests covering: basic flag registration, duplicate registration error, nonexistent flag lookup, listing flags, is_enabled with unknown flags, basic enabled/disabled flags, FlagState enum values, FeatureFlag to_dict serialization, flag expiration detection, expired flag behavior, client override precedence, blocklist access denial, allowlist access restriction, flag dependencies evaluation, get_flags_for_capabilities for endpoint response, global registry singleton, and clear_all_overrides. All 17 tests pass.",
       "metadata": {},
       "task_id": "task-2-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T13:07:53.977616Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test percentage rollout evaluation",
+      "author": "claude-code",
+      "content": "Created TestPercentageRollout test class with 9 tests covering: 100% rollout always enabled, 0% rollout always disabled, deterministic rollout for same client, distribution verification (25% rollout with statistical tolerance), client-specific rollout variation, flag-specific rollout variation, small percentage rollouts (1%), large percentage rollouts (99%), and interaction between percentage rollout and default_enabled. All 9 tests pass.",
+      "metadata": {},
+      "task_id": "task-2-2-2"
     }
   ]
 }
