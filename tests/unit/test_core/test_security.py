@@ -1,7 +1,8 @@
 """Tests for security utilities.
 
 Tests the prompt injection detection, sensitive data redaction,
-and input size validation functions from foundry_mcp.core.security.
+and input size validation functions from foundry_mcp.core.security
+and foundry_mcp.core.observability.
 """
 
 import pytest
@@ -11,6 +12,11 @@ from foundry_mcp.core.security import (
     InjectionDetectionResult,
     detect_prompt_injection,
     is_prompt_injection,
+)
+from foundry_mcp.core.observability import (
+    SENSITIVE_PATTERNS,
+    redact_sensitive_data,
+    redact_for_logging,
 )
 
 
@@ -285,3 +291,348 @@ class TestPromptInjectionDetection:
                 re.compile(pattern, re.IGNORECASE | re.MULTILINE)
             except re.error as e:
                 pytest.fail(f"Invalid regex pattern '{pattern}': {e}")
+
+
+class TestSensitiveDataRedaction:
+    """Tests for redact_sensitive_data() and related functions."""
+
+    # =========================================================================
+    # API Keys and Tokens
+    # =========================================================================
+
+    @pytest.mark.parametrize(
+        "sensitive_input,expected_label",
+        [
+            ("api_key=sk_live_abcdefghijklmnopqrstuvwxyz", "API_KEY"),
+            ("apikey: abcd1234efgh5678ijkl9012", "API_KEY"),
+            ("API-KEY = 'my_secret_api_key_value_here'", "API_KEY"),
+            ("secret_key=super_secret_1234567890abcdef", "SECRET_KEY"),
+            ("secretkey: my-secret-key-value-12345678", "SECRET_KEY"),
+            ("access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "ACCESS_TOKEN"),
+            ("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "BEARER_TOKEN"),
+        ],
+    )
+    def test_redacts_api_keys_and_tokens(
+        self, sensitive_input: str, expected_label: str
+    ) -> None:
+        """Redact API keys and tokens from strings."""
+        result = redact_sensitive_data(sensitive_input)
+        assert f"[REDACTED:{expected_label}]" in result
+        # Original sensitive value should not appear
+        if "=" in sensitive_input:
+            original_value = sensitive_input.split("=", 1)[1].strip().strip("'\"")
+            if len(original_value) > 5:
+                assert original_value not in result
+
+    # =========================================================================
+    # Passwords
+    # =========================================================================
+
+    @pytest.mark.parametrize(
+        "sensitive_input",
+        [
+            "password=mysecretpassword123",
+            "passwd: hunter2",
+            "pwd='my_password_here'",
+        ],
+    )
+    def test_redacts_passwords(self, sensitive_input: str) -> None:
+        """Redact password values from strings."""
+        result = redact_sensitive_data(sensitive_input)
+        assert "[REDACTED:PASSWORD]" in result
+
+    # =========================================================================
+    # AWS Credentials
+    # =========================================================================
+
+    def test_redacts_aws_access_key(self) -> None:
+        """Detect and redact AWS access key IDs."""
+        sensitive = "AKIAIOSFODNN7EXAMPLE"
+        result = redact_sensitive_data(f"aws key: {sensitive}")
+        assert "[REDACTED:AWS_ACCESS_KEY]" in result
+        assert sensitive not in result
+
+    def test_redacts_aws_secret(self) -> None:
+        """Detect and redact AWS secret access keys."""
+        # AWS secrets are 40-char base64
+        sensitive = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        result = redact_sensitive_data(f"aws_secret_access_key={sensitive}")
+        assert "[REDACTED:" in result
+
+    # =========================================================================
+    # Private Keys
+    # =========================================================================
+
+    def test_redacts_private_key_header(self) -> None:
+        """Detect and redact private key headers."""
+        sensitive = "-----BEGIN RSA PRIVATE KEY-----\nMIIE..."
+        result = redact_sensitive_data(sensitive)
+        assert "[REDACTED:PRIVATE_KEY]" in result
+
+    @pytest.mark.parametrize(
+        "key_type",
+        ["RSA ", "EC ", "DSA ", "OPENSSH ", ""],
+    )
+    def test_redacts_various_private_key_types(self, key_type: str) -> None:
+        """Detect various private key formats."""
+        sensitive = f"-----BEGIN {key_type}PRIVATE KEY-----"
+        result = redact_sensitive_data(sensitive)
+        assert "[REDACTED:PRIVATE_KEY]" in result
+
+    # =========================================================================
+    # PII - Email, SSN, Credit Cards, Phone
+    # =========================================================================
+
+    def test_redacts_email_addresses(self) -> None:
+        """Redact email addresses for PII protection."""
+        result = redact_sensitive_data("Contact: user@example.com")
+        assert "[REDACTED:EMAIL]" in result
+        assert "user@example.com" not in result
+
+    def test_redacts_ssn(self) -> None:
+        """Redact US Social Security Numbers."""
+        result = redact_sensitive_data("SSN: 123-45-6789")
+        assert "[REDACTED:SSN]" in result
+        assert "123-45-6789" not in result
+
+    def test_redacts_credit_card(self) -> None:
+        """Redact credit card numbers."""
+        result = redact_sensitive_data("Card: 4111-1111-1111-1111")
+        assert "[REDACTED:CREDIT_CARD]" in result
+        assert "4111" not in result
+
+    def test_redacts_phone_numbers(self) -> None:
+        """Redact phone numbers in various formats."""
+        test_cases = [
+            "555-123-4567",
+            "(555) 123-4567",
+            "+1 555 123 4567",
+            "555.123.4567",
+        ]
+        for phone in test_cases:
+            result = redact_sensitive_data(f"Phone: {phone}")
+            assert "[REDACTED:PHONE]" in result, f"Failed to redact: {phone}"
+
+    # =========================================================================
+    # GitHub/GitLab Tokens
+    # =========================================================================
+
+    @pytest.mark.parametrize(
+        "token,expected_label",
+        [
+            ("ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890", "GITHUB_TOKEN"),
+            ("gho_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890", "GITHUB_TOKEN"),
+            ("ghu_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890", "GITHUB_TOKEN"),
+            ("ghs_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890", "GITHUB_TOKEN"),
+            ("ghr_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890", "GITHUB_TOKEN"),
+            ("glpat-xxxxxxxxxxxxxxxxxxxx", "GITLAB_TOKEN"),
+        ],
+    )
+    def test_redacts_git_tokens(self, token: str, expected_label: str) -> None:
+        """Redact GitHub and GitLab tokens."""
+        result = redact_sensitive_data(f"Token: {token}")
+        assert f"[REDACTED:{expected_label}]" in result
+        assert token not in result
+
+    # =========================================================================
+    # Dictionary Key-Based Redaction
+    # =========================================================================
+
+    def test_redacts_dict_with_sensitive_keys(self) -> None:
+        """Dictionaries with sensitive key names have values fully redacted."""
+        data = {
+            "username": "john",
+            "password": "secret123",
+            "api_key": "sk_live_xyz",
+            "token": "abc123",
+        }
+        result = redact_sensitive_data(data)
+
+        assert result["username"] == "john"  # Not a sensitive key
+        assert "[REDACTED:" in result["password"]
+        assert "[REDACTED:" in result["api_key"]
+        assert "[REDACTED:" in result["token"]
+
+    def test_sensitive_key_variations(self) -> None:
+        """Various sensitive key name formats are detected."""
+        sensitive_keys = [
+            "password",
+            "passwd",
+            "pwd",
+            "secret",
+            "token",
+            "api_key",
+            "apikey",
+            "api-key",
+            "access_token",
+            "refresh_token",
+            "private_key",
+            "secret_key",
+            "auth",
+            "authorization",
+            "credential",
+            "credentials",
+            "ssn",
+            "credit_card",
+        ]
+        for key in sensitive_keys:
+            data = {key: "sensitive_value"}
+            result = redact_sensitive_data(data)
+            assert "[REDACTED:" in result[key], f"Key '{key}' not redacted"
+
+    # =========================================================================
+    # Nested Data Structures
+    # =========================================================================
+
+    def test_redacts_nested_dict(self) -> None:
+        """Recursively redact nested dictionaries."""
+        data = {
+            "user": {"name": "john", "password": "secret"},
+            "config": {"api_key": "sk_live_xyz", "debug": True},
+        }
+        result = redact_sensitive_data(data)
+
+        assert result["user"]["name"] == "john"
+        assert "[REDACTED:" in result["user"]["password"]
+        assert "[REDACTED:" in result["config"]["api_key"]
+        assert result["config"]["debug"] is True
+
+    def test_redacts_list(self) -> None:
+        """Redact sensitive data in lists."""
+        data = ["normal", "api_key=secret12345678901234", "also normal"]
+        result = redact_sensitive_data(data)
+
+        assert result[0] == "normal"
+        assert "[REDACTED:" in result[1]
+        assert result[2] == "also normal"
+
+    def test_redacts_tuple(self) -> None:
+        """Redact sensitive data in tuples, preserving type."""
+        data = ("normal", "api_key=secret12345678901234")
+        result = redact_sensitive_data(data)
+
+        assert isinstance(result, tuple)
+        assert result[0] == "normal"
+        assert "[REDACTED:" in result[1]
+
+    def test_deeply_nested_structures(self) -> None:
+        """Handle deeply nested data structures."""
+        data = {
+            "level1": {
+                "level2": {
+                    "level3": {"password": "deep_secret", "items": ["normal", "also"]}
+                }
+            }
+        }
+        result = redact_sensitive_data(data)
+        assert "[REDACTED:" in result["level1"]["level2"]["level3"]["password"]
+
+    # =========================================================================
+    # Max Depth Protection
+    # =========================================================================
+
+    def test_max_depth_exceeded(self) -> None:
+        """Prevent stack overflow with max_depth limit."""
+        # Create deeply nested structure
+        data: dict = {}
+        current = data
+        for i in range(15):
+            current["nested"] = {"value": "test"}
+            current = current["nested"]
+        current["password"] = "secret"
+
+        # With max_depth=10, should hit limit
+        result = redact_sensitive_data(data, max_depth=10)
+        # Should have "[MAX_DEPTH_EXCEEDED]" somewhere in the structure
+        result_str = str(result)
+        assert "[MAX_DEPTH_EXCEEDED]" in result_str
+
+    # =========================================================================
+    # Custom Redaction Format
+    # =========================================================================
+
+    def test_custom_redaction_format(self) -> None:
+        """Support custom redaction format strings."""
+        data = "api_key=abcdefghijklmnopqrstuvwxyz"
+        result = redact_sensitive_data(data, redaction_format="***{label}***")
+        assert "***API_KEY***" in result
+
+    # =========================================================================
+    # Custom Patterns
+    # =========================================================================
+
+    def test_custom_patterns(self) -> None:
+        """Use custom patterns for redaction."""
+        custom_patterns = [
+            (r"internal_id:\s*(\d+)", "INTERNAL_ID"),
+        ]
+        data = "internal_id: 12345"
+        result = redact_sensitive_data(data, patterns=custom_patterns)
+        assert "[REDACTED:INTERNAL_ID]" in result
+
+        # Default patterns should not apply with custom patterns
+        data_with_email = "user@example.com"
+        result = redact_sensitive_data(data_with_email, patterns=custom_patterns)
+        assert "user@example.com" in result  # Not redacted
+
+    # =========================================================================
+    # Safe Inputs (No Redaction Needed)
+    # =========================================================================
+
+    @pytest.mark.parametrize(
+        "safe_input",
+        [
+            "Hello, world!",
+            "This is a normal message",
+            {"name": "John", "age": 30},
+            ["item1", "item2", "item3"],
+            123,
+            45.67,
+            True,
+            None,
+        ],
+    )
+    def test_preserves_safe_data(self, safe_input) -> None:
+        """Safe data should pass through unchanged."""
+        result = redact_sensitive_data(safe_input)
+        assert result == safe_input
+
+    # =========================================================================
+    # redact_for_logging Helper
+    # =========================================================================
+
+    def test_redact_for_logging_returns_json(self) -> None:
+        """redact_for_logging returns JSON string."""
+        import json
+
+        data = {"password": "secret", "name": "test"}
+        result = redact_for_logging(data)
+
+        # Should be valid JSON
+        parsed = json.loads(result)
+        assert "[REDACTED:" in parsed["password"]
+        assert parsed["name"] == "test"
+
+    def test_redact_for_logging_handles_non_serializable(self) -> None:
+        """redact_for_logging handles non-JSON-serializable data."""
+
+        class CustomObject:
+            def __str__(self):
+                return "custom_object"
+
+        result = redact_for_logging(CustomObject())
+        assert "custom_object" in result
+
+    # =========================================================================
+    # Pattern Validity
+    # =========================================================================
+
+    def test_all_sensitive_patterns_are_valid_regex(self) -> None:
+        """All patterns in SENSITIVE_PATTERNS should be valid regex."""
+        import re
+
+        for pattern, label in SENSITIVE_PATTERNS:
+            try:
+                re.compile(pattern)
+            except re.error as e:
+                pytest.fail(f"Invalid regex pattern '{pattern}' ({label}): {e}")
