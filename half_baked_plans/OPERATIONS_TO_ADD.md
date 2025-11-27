@@ -67,6 +67,20 @@ Use these references when evaluating what actually remains to be wrapped.
 
 **Feature flag:** `authoring_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
 
+## Recently Covered via SDD Core Operations (Phase 4)
+
+`specs/active/sdd-core-operations-2025-11-27-001.json` (Phase 4) delivered mutation tools for bulk edits, verification management, and metadata updates. These operations now have MCP manifest entries and feature flags:
+
+- **Bulk plan application** (`spec-apply-plan`) – apply bulk structural edits from a diff/plan JSON file.
+- **Verification management** (`verification-add`, `verification-execute`, `verification-format-summary`) – add verification results, execute verification steps, format verification summaries.
+- **Estimate updates** (`task-update-estimate`) – update effort/time estimates including hours and complexity.
+- **Metadata updates** (`task-update-metadata`) – mutate per-task metadata payloads (file_path, description, category, actual_hours, etc.).
+- **Metadata sync** (`spec-sync-metadata`) – push/pull spec metadata across stores.
+
+**Implementation:** `src/foundry_mcp/tools/mutations.py` with resilience features (circuit breaker, timing metrics, audit logging).
+
+**Feature flag:** `mutation_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
+
 ---
 
 ## In-Scope Operations
@@ -78,16 +92,16 @@ Use these references when evaluating what actually remains to be wrapped.
 - ~~`spec-template` (was `template`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - `spec-analyze` (was `analyze`) – perform deep heuristics on an existing spec.
 - `spec-analyze-deps` (was `analyze-deps`) – inspect dependency graph health.
-- `spec-apply-plan` (was `apply-modifications`) – apply bulk structural edits from a diff/plan.
+- ~~`spec-apply-plan` (was `apply-modifications`)~~ – **COVERED** in Phase 4 (`mutation_tools` flag).
 - `review-parse-feedback` (was `parse-review`) – transform review feedback into structured actions.
 - ~~`spec-update-frontmatter` (was `update-frontmatter`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - ~~`task-add` / `task-remove` (were `add-task` / `remove-task`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - ~~`assumption-add` / `assumption-list` (were `add-assumption` / `list-assumptions`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - ~~`revision-add` (was `add-revision`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
-- `verification-add` / `verification-execute` / `verification-format-summary` (were `add-verification` / `execute-verify` / `format-verification-summary`) – manage verification artifacts attached to tasks/specs.
-- `task-update-estimate` (was `update-estimate`) – tweak effort/time estimates per task.
-- `spec-sync-metadata` (was `sync-metadata`) – push/pull spec metadata across stores.
-- `task-update-metadata` (was `update-task-metadata`) – mutate per-task metadata payloads.
+- ~~`verification-add` / `verification-execute` / `verification-format-summary` (were `add-verification` / `execute-verify` / `format-verification-summary`)~~ – **COVERED** in Phase 4 (`mutation_tools` flag).
+- ~~`task-update-estimate` (was `update-estimate`)~~ – **COVERED** in Phase 4 (`mutation_tools` flag).
+- ~~`spec-sync-metadata` (was `sync-metadata`)~~ – **COVERED** in Phase 4 (`mutation_tools` flag).
+- ~~`task-update-metadata` (was `update-task-metadata`)~~ – **COVERED** in Phase 4 (`mutation_tools` flag).
 - `task-create-commit` (was `create-task-commit`) – generate Git commits for task-scoped changes.
 - `journal-bulk-add` (was `bulk-journal`) – add multiple journal entries in one shot.
 
@@ -101,7 +115,13 @@ Use these references when evaluating what actually remains to be wrapped.
 - `spec-audit` (was `audit-spec`) – run higher-level audits beyond basic validation.
 
 ### Lifecycle & Dependency Extras
-Lifecycle mutation commands (assumption CRUD, revisions, verifications, estimate updates, task creation/deletion) remain unimplemented even after the remediation work. They rely on the same primitives listed in the Authoring section but need dedicated adapters because they affect dependency graphs and journaling requirements.
+Most lifecycle mutation commands are now covered:
+- **Phase 3** delivered assumption CRUD, revisions, and task creation/deletion via `authoring_tools` flag.
+- **Phase 4** delivered verifications, estimate updates, metadata mutations, and spec-apply-plan via `mutation_tools` flag.
+
+Remaining operations in this category:
+- `task-create-commit` – generate Git commits for task-scoped changes.
+- `journal-bulk-add` – add multiple journal entries in one shot.
 
 ### Validation, Reporting & Analytics
 - `spec-report` (was `report`) – produce human-readable validation/analysis reports (stat collection now covered via `spec_stats`, but higher-level reporting still missing).
