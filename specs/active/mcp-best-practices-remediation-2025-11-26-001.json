@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:33:45.757001Z",
+  "last_updated": "2025-11-27T13:34:42.985757Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 39,
+    "progress_percentage": 40,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 40,
+      "completed_tasks": 41,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -1163,14 +1163,14 @@
     "phase-4-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4",
       "children": [
         "task-4-1",
         "task-4-2"
       ],
       "total_tasks": 8,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1184,7 +1184,7 @@
     "task-4-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/resilience.py (NEW)",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4-files",
       "children": [
         "task-4-1-1",
@@ -1201,7 +1201,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/resilience.py",
         "task_category": "implementation",
@@ -1211,13 +1211,19 @@
     "task-4-1-1": {
       "type": "subtask",
       "title": "Define timeout budget constants",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "FAST_TIMEOUT=5s, MEDIUM_TIMEOUT=30s, SLOW_TIMEOUT=120s, BACKGROUND_TIMEOUT=600s"
+        "details": "FAST_TIMEOUT=5s, MEDIUM_TIMEOUT=30s, SLOW_TIMEOUT=120s, BACKGROUND_TIMEOUT=600s",
+        "started_at": "2025-11-27T13:34:10.672030Z",
+        "status_note": "Creating timeout budget constants",
+        "completed_at": "2025-11-27T13:34:42.967061Z",
+        "needs_journaling": false,
+        "actual_hours": 0.009,
+        "journaled_at": "2025-11-27T13:34:42.982830Z"
       }
     },
     "task-4-1-2": {
@@ -3920,6 +3926,15 @@
       "content": "All child tasks in group phase-4-docs have been completed.",
       "metadata": {},
       "task_id": "phase-4-docs"
+    },
+    {
+      "timestamp": "2025-11-27T13:34:42.982825Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Define timeout budget constants",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/resilience.py with timeout budget constants: FAST_TIMEOUT=5.0 (max 10), MEDIUM_TIMEOUT=30.0 (max 60), SLOW_TIMEOUT=120.0 (max 300), BACKGROUND_TIMEOUT=600.0 (max 3600). Module includes comprehensive docstring with usage examples. All constants import successfully.",
+      "metadata": {},
+      "task_id": "task-4-1-1"
     }
   ]
 }
