@@ -340,6 +340,57 @@
         ]
       }
     ],
+    "spec_helper_tools": [
+      {
+        "name": "spec_find_related_files",
+        "description": "Locate files referenced by a spec node including source files, test files, and documentation",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "spec_helpers",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "task_id", "type": "string", "required": false, "description": "Task ID to scope search"},
+          {"name": "include_tests", "type": "boolean", "required": false, "default": true},
+          {"name": "include_docs", "type": "boolean", "required": false, "default": true}
+        ]
+      },
+      {
+        "name": "spec_find_patterns",
+        "description": "Search specs for structural or code patterns across tasks and metadata",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "spec_helpers",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "pattern", "type": "string", "required": true, "description": "Pattern to search for (regex or literal)"},
+          {"name": "pattern_type", "type": "string", "required": false, "default": "literal", "enum": ["literal", "regex", "structural"]},
+          {"name": "scope", "type": "string", "required": false, "default": "all", "enum": ["all", "tasks", "metadata", "code"]}
+        ]
+      },
+      {
+        "name": "spec_detect_cycles",
+        "description": "Detect cyclic task dependencies within a specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "spec_helpers",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "include_soft_deps", "type": "boolean", "required": false, "default": false, "description": "Include soft dependencies in cycle detection"}
+        ]
+      },
+      {
+        "name": "spec_validate_paths",
+        "description": "Ensure file references in a spec exist on disk",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "spec_helpers",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "base_path", "type": "string", "required": false, "description": "Base path for relative file references"},
+          {"name": "fix_mode", "type": "string", "required": false, "default": "report", "enum": ["report", "suggest", "auto"]}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -539,6 +590,16 @@
         "dependencies": ["environment_tools"],
         "created_at": "2025-11-27T00:00:00Z",
         "expires_at": null
+      },
+      "spec_helpers": {
+        "description": "Spec helper tools for discovery, validation, and analysis (find-related-files, find-patterns, detect-cycles, validate-paths)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-11-27T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -600,6 +661,11 @@
         "supported": true,
         "description": "Environment verification and workspace initialization tools",
         "tools": ["sdd-verify-toolchain", "sdd-init-workspace", "sdd-detect-topology", "sdd-verify-environment"]
+      },
+      "spec_helpers": {
+        "supported": true,
+        "description": "Spec helper tools for discovery, validation, and analysis",
+        "tools": ["spec_find_related_files", "spec_find_patterns", "spec_detect_cycles", "spec_validate_paths"]
       }
     },
     "api_version": "2024-11-01"

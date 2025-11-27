@@ -62,3 +62,5 @@ specs/.fidelity-reviews/
 .mcp.json
 uv.lock
 .venv
+.hypothesis/
+.ruff_cache/

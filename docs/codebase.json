@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T20:27:23.981604Z",
-    "generated_at_commit": "dfaa6e4d0e183926945b99364c5a012f6bcb05c5",
+    "generated_at": "2025-11-27T20:32:06.167194Z",
+    "generated_at_commit": "a25a3bb306c87f9d46d10c27d25ad46f91671dee",
     "languages": [
       "python"
     ],
@@ -11,25 +11,25 @@
   },
   "statistics": {
     "total_files": 41,
-    "total_lines": 18452,
+    "total_lines": 18547,
     "total_classes": 72,
-    "total_functions": 204,
-    "avg_complexity": 6.81,
+    "total_functions": 205,
+    "avg_complexity": 6.82,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
       "register_task_tools (59)",
       "register_environment_tools (54)",
       "register_docs_tools (42)",
-      "register_lifecycle_tools (36)"
+      "register_spec_helper_tools (37)"
     ],
     "by_language": {
       "python": {
         "files": 41,
-        "lines": 18452,
+        "lines": 18547,
         "classes": 72,
-        "functions": 204,
-        "avg_complexity": 6.81
+        "functions": 205,
+        "avg_complexity": 6.82
       }
     }
   },
@@ -1301,15 +1301,17 @@
       "name": "spec_helpers",
       "file": "src/foundry_mcp/tools/spec_helpers.py",
       "language": "python",
-      "docstring": "Spec helper tools for foundry-mcp.\n\nProvides MCP tools for spec discovery, validation, and analysis.\nThese tools wrap SDD CLI commands to provide file relationship discovery,\npattern matching, dependency cycle detection, and path validation.",
+      "docstring": "Spec helper tools for foundry-mcp.\n\nProvides MCP tools for spec discovery, validation, and analysis.\nThese tools wrap SDD CLI commands to provide file relationship discovery,\npattern matching, dependency cycle detection, and path validation.\n\nResilience features:\n- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)\n- Timing metrics for all tool invocations\n- Configurable timeout (default 30s per operation)",
       "classes": [],
       "functions": [
+        "_run_sdd_command",
         "register_spec_helper_tools"
       ],
       "imports": [
         "json",
         "logging",
         "subprocess",
+        "time",
         "dataclasses.asdict",
         "typing.Any",
         "typing.Dict",
@@ -1321,10 +1323,13 @@
         "foundry_mcp.core.responses.error_response",
         "foundry_mcp.core.naming.canonical_tool",
         "foundry_mcp.core.observability.audit_log",
-        "foundry_mcp.core.observability.get_metrics"
+        "foundry_mcp.core.observability.get_metrics",
+        "foundry_mcp.core.resilience.CircuitBreaker",
+        "foundry_mcp.core.resilience.CircuitBreakerError",
+        "foundry_mcp.core.resilience.MEDIUM_TIMEOUT"
       ],
       "exports": [],
-      "lines": 538
+      "lines": 633
     },
     {
       "name": "tasks",
@@ -3547,10 +3552,18 @@
             "decorator",
             "wrapper"
           ]
+        },
+        {
+          "instantiator": "_run_sdd_command",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 76,
+          "context": [
+            "_run_sdd_command"
+          ]
         }
       ],
       "imported_by": [],
-      "instantiation_count": 1
+      "instantiation_count": 2
     },
     {
       "name": "CircuitBreaker",
@@ -3569,8 +3582,16 @@
       "properties": [],
       "is_exported": false,
       "is_public": true,
-      "instantiated_by": [],
-      "imported_by": []
+      "instantiated_by": [
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 40,
+          "context": []
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 1
     },
     {
       "name": "HealthStatus",
@@ -5263,13 +5284,13 @@
       "calls": [
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 771,
           "call_type": "method_call"
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
           "line": 772,
           "call_type": "method_call"
         },
@@ -5281,7 +5302,7 @@
         },
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 785,
           "call_type": "method_call"
         },
@@ -5323,7 +5344,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -9208,25 +9229,25 @@
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 37,
+          "line": 120,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 161,
+          "line": 247,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 284,
+          "line": 373,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 410,
+          "line": 502,
           "call_type": "function_call"
         },
         {
@@ -9532,7 +9553,7 @@
         {
           "name": "<module>",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 25,
+          "line": 36,
           "call_type": "function_call"
         }
       ],
@@ -9608,25 +9629,25 @@
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 79,
+          "line": 163,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 201,
+          "line": 288,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 321,
+          "line": 411,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 453,
+          "line": 546,
           "call_type": "function_call"
         }
       ],
@@ -13021,25 +13042,25 @@
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 122,
+          "line": 201,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 245,
+          "line": 327,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 371,
+          "line": 456,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 501,
+          "line": 589,
           "call_type": "function_call"
         },
         {
@@ -13940,97 +13961,121 @@
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 128,
+          "line": 207,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 137,
+          "line": 215,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 145,
+          "line": 223,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 154,
+          "line": 231,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_find_related_files",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 240,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 251,
+          "line": 333,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 260,
+          "line": 341,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 268,
+          "line": 349,
           "call_type": "function_call"
         },
         {
           "name": "spec_find_patterns",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 277,
+          "line": 357,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_find_patterns",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 366,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 377,
+          "line": 462,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 386,
+          "line": 470,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 394,
+          "line": 478,
           "call_type": "function_call"
         },
         {
           "name": "spec_detect_cycles",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 403,
+          "line": 486,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_detect_cycles",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 495,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 507,
+          "line": 595,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 516,
+          "line": 603,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 524,
+          "line": 611,
           "call_type": "function_call"
         },
         {
           "name": "spec_validate_paths",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
-          "line": 533,
+          "line": 619,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_validate_paths",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 628,
           "call_type": "function_call"
         },
         {
@@ -14408,7 +14453,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 196
+      "call_count": 200
     },
     {
       "name": "validation_error",
@@ -21596,9 +21641,140 @@
       "call_count": 1
     },
     {
+      "name": "_run_sdd_command",
+      "file": "src/foundry_mcp/tools/spec_helpers.py",
+      "line": 51,
+      "language": "python",
+      "docstring": "Execute an SDD CLI command with circuit breaker protection and timing.\n\nArgs:\n    cmd: Command list to execute\n    tool_name: Name of the calling tool (for metrics)\n    timeout: Timeout in seconds\n\nReturns:\n    CompletedProcess result from subprocess.run\n\nRaises:\n    CircuitBreakerError: If circuit breaker is open\n    subprocess.TimeoutExpired: If command times out\n    FileNotFoundError: If SDD CLI is not found",
+      "parameters": [
+        {
+          "name": "cmd",
+          "type": "List[str]",
+          "default": null
+        },
+        {
+          "name": "tool_name",
+          "type": "str",
+          "default": null
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "default": null
+        }
+      ],
+      "return_type": "subprocess.CompletedProcess",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": false,
+      "callers": [
+        {
+          "name": "spec_find_related_files",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 172,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_find_patterns",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 297,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_detect_cycles",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 419,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_validate_paths",
+          "file": "src/foundry_mcp/tools/spec_helpers.py",
+          "line": 555,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "can_execute",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 73,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get_status",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 74,
+          "call_type": "method_call"
+        },
+        {
+          "name": "counter",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 75,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 77,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 80,
+          "call_type": "method_call"
+        },
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 83,
+          "call_type": "method_call"
+        },
+        {
+          "name": "run",
+          "file": "/opt/anaconda3/lib/python3.13/subprocess.py",
+          "line": 85,
+          "call_type": "method_call"
+        },
+        {
+          "name": "record_success",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 94,
+          "call_type": "method_call"
+        },
+        {
+          "name": "record_failure",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 97,
+          "call_type": "method_call"
+        },
+        {
+          "name": "record_failure",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/resilience.py",
+          "line": 103,
+          "call_type": "method_call"
+        },
+        {
+          "name": "perf_counter",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/2and3/time.pyi",
+          "line": 107,
+          "call_type": "method_call"
+        },
+        {
+          "name": "timer",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 108,
+          "call_type": "method_call"
+        }
+      ],
+      "call_count": 4
+    },
+    {
       "name": "register_spec_helper_tools",
       "file": "src/foundry_mcp/tools/spec_helpers.py",
-      "line": 28,
+      "line": 111,
       "language": "python",
       "docstring": "Register spec helper tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -21614,7 +21790,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 33,
+      "complexity": 37,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -22325,6 +22501,7 @@
       "json",
       "logging",
       "subprocess",
+      "time",
       "dataclasses.asdict",
       "typing.Any",
       "typing.Dict",
@@ -22336,7 +22513,10 @@
       "foundry_mcp.core.responses.error_response",
       "foundry_mcp.core.naming.canonical_tool",
       "foundry_mcp.core.observability.audit_log",
-      "foundry_mcp.core.observability.get_metrics"
+      "foundry_mcp.core.observability.get_metrics",
+      "foundry_mcp.core.resilience.CircuitBreaker",
+      "foundry_mcp.core.resilience.CircuitBreakerError",
+      "foundry_mcp.core.resilience.MEDIUM_TIMEOUT"
     ],
     "src/foundry_mcp/tools/tasks.py": [
       "logging",
