@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:25:17.530506Z",
+  "last_updated": "2025-11-27T13:26:42.619650Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 34,
+    "progress_percentage": 35,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 35,
+      "completed_tasks": 36,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -860,7 +860,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {
         "purpose": "Make errors machine-readable and actionable for clients and LLMs",
         "risk_level": "low",
@@ -873,15 +873,19 @@
     "phase-3-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "task-3-1",
         "task-3-2"
       ],
       "total_tasks": 6,
-      "completed_tasks": 5,
-      "metadata": {},
+      "completed_tasks": 6,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T13:26:42.607109Z",
+        "journaled_at": "2025-11-27T13:26:42.619611Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-3-verify",
@@ -991,7 +995,7 @@
     "task-3-2": {
       "type": "task",
       "title": "tests/unit/test_core/test_responses.py",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-2-1",
@@ -1005,7 +1009,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "tests/unit/test_core/test_responses.py",
         "task_category": "implementation",
@@ -1032,12 +1036,19 @@
     "task-3-2-2": {
       "type": "subtask",
       "title": "Test specialized error helper functions",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:25:47.117570Z",
+        "status_note": "Writing tests for specialized error helpers",
+        "completed_at": "2025-11-27T13:26:42.606915Z",
+        "needs_journaling": false,
+        "actual_hours": 0.015,
+        "journaled_at": "2025-11-27T13:26:42.613541Z"
+      }
     },
     "phase-3-verify": {
       "type": "group",
@@ -3792,6 +3803,24 @@
       "content": "Added 12 tests for ErrorCode and ErrorType enums in tests/test_responses.py: TestErrorCodeEnum (7 tests) validates validation/resource/access/system error codes, string inheritance, serialization, and usage in error_response(). TestErrorTypeEnum (5 tests) validates all error type values, string serialization, response integration, and combined enum usage. All tests pass.",
       "metadata": {},
       "task_id": "task-3-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T13:26:42.613533Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test specialized error helper functions",
+      "author": "claude-code",
+      "content": "Added 29 tests for specialized error helpers in tests/test_responses.py: TestValidationError (4 tests), TestNotFoundError (4 tests), TestRateLimitError (4 tests), TestUnauthorizedError (3 tests), TestForbiddenError (3 tests), TestConflictError (3 tests), TestInternalError (3 tests), TestUnavailableError (5 tests). Tests cover error code/type values, message formatting, remediation defaults, and helper-specific features (field, retry_after, required_permission, etc.). All 29 tests pass.",
+      "metadata": {},
+      "task_id": "task-3-2-2"
+    },
+    {
+      "timestamp": "2025-11-27T13:26:42.619606Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
     }
   ]
 }
