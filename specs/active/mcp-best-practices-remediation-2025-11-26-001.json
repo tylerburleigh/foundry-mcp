@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:52:31.935789Z",
+  "last_updated": "2025-11-27T12:53:30.725527Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,8 +31,8 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 14,
-    "current_phase": "phase-1"
+    "progress_percentage": 15,
+    "current_phase": "phase-2"
   },
   "hierarchy": {
     "spec-root": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 15,
+      "completed_tasks": 16,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -515,7 +515,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Feature Flags Infrastructure",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-2-files",
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -2503,7 +2503,7 @@
     "phase-2-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [
         "phase-2-docs-1",
@@ -2519,7 +2519,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/14-feature-flags.md#L10-L330"
@@ -2529,7 +2529,7 @@
     "phase-2-docs-1": {
       "type": "task",
       "title": "docs/mcp_best_practices/14-feature-flags.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-docs",
       "children": [
         "phase-2-docs-1-1"
@@ -2540,7 +2540,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "docs/mcp_best_practices/14-feature-flags.md",
         "task_category": "implementation",
@@ -2550,12 +2550,19 @@
     "phase-2-docs-1-1": {
       "type": "subtask",
       "title": "Describe feature flag lifecycle, registry contracts, and override tooling.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-docs-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T12:53:04.108132Z",
+        "status_note": "Starting documentation of feature flag lifecycle and registry contracts",
+        "completed_at": "2025-11-27T12:53:30.703855Z",
+        "needs_journaling": false,
+        "actual_hours": 0.007,
+        "journaled_at": "2025-11-27T12:53:30.719921Z"
+      }
     },
     "phase-2-docs-2": {
       "type": "task",
@@ -3418,6 +3425,15 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2025-11-27T12:53:30.719901Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Describe feature flag lifecycle, registry contracts, and override tooling.",
+      "author": "claude-code",
+      "content": "Reviewed docs/mcp_best_practices/14-feature-flags.md and confirmed the documentation already comprehensively covers the required content: (1) Feature Flag Lifecycle - detailed diagram showing EXPERIMENTAL\u2192BETA\u2192STABLE\u2192DEPRECATED progression with descriptions for each state (opt-in, default behavior, SLA levels), (2) Registry Contracts - FlagState enum and FeatureFlag dataclass with all required fields (name, description, state, default_enabled, created_at, expires_at, owner, allowed/blocked_clients, percentage_rollout, dependencies, metadata), plus FLAGS dict registry pattern, (3) Override Tooling - FeatureFlagService class with set_override() and clear_override() methods, plus flag_override() context manager for testing. No additional documentation needed - existing content exceeds requirements.",
+      "metadata": {},
+      "task_id": "phase-2-docs-1-1"
     }
   ]
 }

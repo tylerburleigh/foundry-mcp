@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T12:49:48.302982Z",
-    "generated_at_commit": "3967f1cec5a8485b387abdb1711974a6f4b34dd7",
+    "generated_at": "2025-11-27T12:53:02.045310Z",
+    "generated_at_commit": "af9ada9f0cb1433c92c36f9fecd5ef4c748d29c1",
     "languages": [
       "python"
     ],
@@ -475,6 +475,7 @@
         "logging",
         "re",
         "dataclasses.dataclass",
+        "typing.Any",
         "typing.Final",
         "typing.Optional",
         "typing.Tuple"
@@ -5037,7 +5038,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -10273,7 +10274,7 @@
       "parameters": [
         {
           "name": "value",
-          "type": "any",
+          "type": "Any",
           "default": null
         },
         {
@@ -17329,6 +17330,7 @@
       "logging",
       "re",
       "dataclasses.dataclass",
+      "typing.Any",
       "typing.Final",
       "typing.Optional",
       "typing.Tuple"
