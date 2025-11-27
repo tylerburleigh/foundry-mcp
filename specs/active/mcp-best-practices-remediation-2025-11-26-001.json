@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:27:35.186842Z",
+  "last_updated": "2025-11-27T13:31:46.892364Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 36,
+    "progress_percentage": 37,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 37,
+      "completed_tasks": 38,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -842,7 +842,7 @@
     "phase-3": {
       "type": "phase",
       "title": "Enhanced Error Handling",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-3-files",
@@ -860,14 +860,17 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 9,
+      "completed_tasks": 10,
       "metadata": {
         "purpose": "Make errors machine-readable and actionable for clients and LLMs",
         "risk_level": "low",
         "doc_references": [
           "docs/codebase_standards/mcp_response_schema.md",
           "docs/mcp_best_practices/07-error-semantics.md#L11-L274"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T13:31:46.877804Z",
+        "journaled_at": "2025-11-27T13:31:46.892325Z"
       }
     },
     "phase-3-files": {
@@ -1053,7 +1056,7 @@
     "phase-3-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "verify-3-1",
@@ -1068,8 +1071,12 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T13:31:46.877801Z",
+        "journaled_at": "2025-11-27T13:31:46.889659Z"
+      }
     },
     "verify-3-1": {
       "type": "verify",
@@ -1099,17 +1106,23 @@
     "verify-3-2": {
       "type": "verify",
       "title": "Phase 3 fidelity review",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "fidelity",
         "skill": "sdd-fidelity-review",
         "scope": "phase",
         "target": "phase-3",
-        "agent": "sdd-fidelity-review"
+        "agent": "sdd-fidelity-review",
+        "started_at": "2025-11-27T13:28:03.309227Z",
+        "status_note": "Running fidelity review",
+        "completed_at": "2025-11-27T13:31:46.877623Z",
+        "needs_journaling": false,
+        "actual_hours": 0.062,
+        "journaled_at": "2025-11-27T13:31:46.883822Z"
       },
       "dependencies": {
         "blocks": [],
@@ -3836,6 +3849,33 @@
       "content": "Verification passed. All 71 tests in tests/test_responses.py pass including: TestToolResponse (4), TestSuccessResponse (6), TestErrorResponse (5), TestResponseContractCompliance (7), TestMetaVersionCompliance (8), TestErrorCodeEnum (7), TestErrorTypeEnum (5), TestValidationError (4), TestNotFoundError (4), TestRateLimitError (4), TestUnauthorizedError (3), TestForbiddenError (3), TestConflictError (3), TestInternalError (3), TestUnavailableError (5). Test execution time: 0.17s.",
       "metadata": {},
       "task_id": "verify-3-1"
+    },
+    {
+      "timestamp": "2025-11-27T13:31:46.883817Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 3 fidelity review",
+      "author": "claude-code",
+      "content": "Fidelity review completed with 3-model consensus. Core implementation verified correct. Fixed documentation alignment issues: (1) Updated docs/codebase_standards/mcp_response_schema.md error codes table - replaced STATE_CONFLICT\u2192CONFLICT, SERVICE_UNAVAILABLE\u2192UNAVAILABLE, added UNAUTHORIZED and FORBIDDEN; (2) Updated CHANGELOG.md error codes registry - same corrections. Test file location deviation (tests/test_responses.py vs tests/unit/test_core/test_responses.py) accepted - tests comprehensive and passing. Implementation matches spec requirements.",
+      "metadata": {},
+      "task_id": "verify-3-2"
+    },
+    {
+      "timestamp": "2025-11-27T13:31:46.889653Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-verify"
+    },
+    {
+      "timestamp": "2025-11-27T13:31:46.892317Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Enhanced Error Handling",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }

@@ -110,11 +110,13 @@ When `success` is `false`, the `data` object should contain structured error con
 | `SPEC_NOT_FOUND` | not_found | Specification file not found |
 | `TASK_NOT_FOUND` | not_found | Task ID not found in spec |
 | `DUPLICATE_ENTRY` | conflict | Resource already exists |
-| `STATE_CONFLICT` | conflict | Invalid state transition |
+| `CONFLICT` | conflict | State conflict or invalid transition |
+| `UNAUTHORIZED` | authentication | Invalid or missing credentials |
+| `FORBIDDEN` | authorization | Insufficient permissions |
 | `FEATURE_DISABLED` | feature_flag | Feature flag not enabled |
 | `RATE_LIMIT_EXCEEDED` | rate_limit | Too many requests |
 | `INTERNAL_ERROR` | internal | Unexpected server error |
-| `SERVICE_UNAVAILABLE` | unavailable | Dependency unavailable |
+| `UNAVAILABLE` | unavailable | Service temporarily unavailable |
 
 ## Helper Usage
 
