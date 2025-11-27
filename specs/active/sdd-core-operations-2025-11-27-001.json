@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T19:55:44.839997Z",
+  "last_updated": "2025-11-27T20:14:50.473615Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 13,
+    "progress_percentage": 14,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 12,
+      "completed_tasks": 13,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -53,17 +53,20 @@
     "phase-1": {
       "type": "phase",
       "title": "Environment & Project Setup",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-1-files",
         "phase-1-verify"
       ],
       "total_tasks": 13,
-      "completed_tasks": 12,
+      "completed_tasks": 13,
       "metadata": {
         "purpose": "Bootstrap tooling for workspace initialization and validation",
-        "risk_level": "low"
+        "risk_level": "low",
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T20:14:50.462291Z",
+        "journaled_at": "2025-11-27T20:14:50.473576Z"
       },
       "dependencies": {
         "blocks": [
@@ -367,7 +370,7 @@
     "phase-1-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-1",
       "children": [
         "verify-1-1",
@@ -382,8 +385,12 @@
         "blocks": []
       },
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T20:14:50.462287Z",
+        "journaled_at": "2025-11-27T20:14:50.471611Z"
+      }
     },
     "verify-1-1": {
       "type": "verify",
@@ -428,16 +435,22 @@
     "verify-1-3": {
       "type": "verify",
       "title": "Phase 1 implementation fidelity review",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "fidelity",
         "agent": "sdd-fidelity-review",
         "scope": "phase",
-        "target": "phase-1"
+        "target": "phase-1",
+        "started_at": "2025-11-27T20:06:18.357766Z",
+        "status_note": "Starting Phase 1 fidelity review",
+        "completed_at": "2025-11-27T20:14:50.462127Z",
+        "needs_journaling": false,
+        "actual_hours": 0.142,
+        "journaled_at": "2025-11-27T20:14:50.467264Z"
       }
     },
     "phase-2": {
@@ -2348,6 +2361,33 @@
       "content": "Integration tests verification passed. Ran pytest tests/integration/test_environment_tools.py -v. Result: 22 passed in 0.30s. All test classes passed: TestEnvironmentToolResponseEnvelopes (4), TestFeatureFlagIntegration (3), TestToolDiscoveryMetadata (4), TestToolRegistration (4), TestEnvironmentCapabilities (4), TestEndToEndWorkflow (3). V2 envelope assertions confirmed.",
       "metadata": {},
       "task_id": "verify-1-2"
+    },
+    {
+      "timestamp": "2025-11-27T20:14:50.467256Z",
+      "entry_type": "status_change",
+      "title": "Phase 1 Fidelity Review Complete",
+      "author": "claude-code",
+      "content": "Phase 1 fidelity review completed. Found and fixed critical naming mismatch (env_* vs sdd-* in discovery metadata). Remaining deviations documented and accepted:\n\nIssue #3 (no resilience wiring): Deferred to future phase - out of Phase 1 scope\nIssue #4 (tests don't invoke adapters): Tests cover registration/discovery infrastructure, not adapter execution - acceptable for Phase 1\n\nFiles modified to fix naming mismatch:\n- src/foundry_mcp/core/discovery.py (ENVIRONMENT_TOOL_METADATA)\n- mcp/capabilities_manifest.json (environment_tools section)\n- tests/unit/test_environment.py\n- tests/integration/test_environment_tools.py\n\nAll 48 environment tests passing after fix.",
+      "metadata": {},
+      "task_id": "verify-1-3"
+    },
+    {
+      "timestamp": "2025-11-27T20:14:50.471605Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-1-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-1-verify"
+    },
+    {
+      "timestamp": "2025-11-27T20:14:50.473571Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Environment & Project Setup",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
     }
   ]
 }

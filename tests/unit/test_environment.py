@@ -355,10 +355,10 @@ class TestDiscoveryMetadata:
         from foundry_mcp.core.discovery import ENVIRONMENT_TOOL_METADATA
 
         expected_tools = [
-            "env_verify_toolchain",
-            "env_init_workspace",
-            "env_detect_topology",
-            "env_verify_environment",
+            "sdd-verify-toolchain",
+            "sdd-init-workspace",
+            "sdd-detect-topology",
+            "sdd-verify-environment",
         ]
 
         for tool_name in expected_tools:
@@ -405,17 +405,17 @@ class TestDiscoveryMetadata:
         """Test is_environment_tool helper function."""
         from foundry_mcp.core.discovery import is_environment_tool
 
-        assert is_environment_tool("env_verify_toolchain") is True
-        assert is_environment_tool("env_init_workspace") is True
+        assert is_environment_tool("sdd-verify-toolchain") is True
+        assert is_environment_tool("sdd-init-workspace") is True
         assert is_environment_tool("nonexistent_tool") is False
 
     def test_get_environment_tool_metadata(self):
         """Test get_environment_tool_metadata helper function."""
         from foundry_mcp.core.discovery import get_environment_tool_metadata
 
-        metadata = get_environment_tool_metadata("env_verify_toolchain")
+        metadata = get_environment_tool_metadata("sdd-verify-toolchain")
         assert metadata is not None
-        assert metadata.name == "env_verify_toolchain"
+        assert metadata.name == "sdd-verify-toolchain"
         assert metadata.category == "environment"
 
         assert get_environment_tool_metadata("nonexistent") is None

@@ -15,6 +15,7 @@
     "assumptions": [
       "Option A selected: native CLI package lives under src/foundry_mcp/sdd_cli and is the source of truth for both CLI and MCP tool behavior",
       "Best-practices consulted prior to authoring: docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, 03-serialization-helpers.md, 04-validation-input-hygiene.md, 05-observability-telemetry.md, 06-pagination-streaming.md, 07-error-semantics.md, 08-security-trust-boundaries.md, 09-spec-driven-development.md, 10-testing-fixtures.md, 11-ai-llm-integration.md, 12-timeout-resilience.md, 13-tool-discovery.md, 14-feature-flags.md, 15-concurrency-patterns.md",
+      "User-facing output consolidates on JSON (with optional plain-text/markdown summaries) — no bespoke rich UI or pretty-print layers",
       "New CLI must expose readiness/status via mcp/capabilities_manifest.json and discovery helpers before rollout"
     ],
     "status": "draft",

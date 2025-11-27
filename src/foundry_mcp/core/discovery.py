@@ -610,8 +610,8 @@ def get_deprecation_info(func: Callable[..., Any]) -> Optional[Dict[str, str]]:
 
 # Pre-defined metadata for environment tools
 ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
-    "env_verify_toolchain": ToolMetadata(
-        name="env_verify_toolchain",
+    "sdd-verify-toolchain": ToolMetadata(
+        name="sdd-verify-toolchain",
         description="Verify local CLI/toolchain availability including git, python, node, and SDD CLI. "
         "Returns readiness status for each tool with version information.",
         parameters=[
@@ -633,7 +633,7 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
         category="environment",
         version="1.0.0",
         tags=["setup", "verification", "toolchain", "cli"],
-        related_tools=["env_verify_environment", "env_init_workspace"],
+        related_tools=["sdd-verify-environment", "sdd-init-workspace"],
         examples=[
             {
                 "description": "Verify all tools",
@@ -650,8 +650,8 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
             }
         ],
     ),
-    "env_init_workspace": ToolMetadata(
-        name="env_init_workspace",
+    "sdd-init-workspace": ToolMetadata(
+        name="sdd-init-workspace",
         description="Bootstrap working directory with specs folders, config files, and git integration. "
         "Creates specs/active, specs/pending, specs/completed, specs/archived directories.",
         parameters=[
@@ -679,7 +679,7 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
         category="environment",
         version="1.0.0",
         tags=["setup", "initialization", "workspace", "config"],
-        related_tools=["env_verify_toolchain", "env_detect_topology"],
+        related_tools=["sdd-verify-toolchain", "sdd-detect-topology"],
         examples=[
             {
                 "description": "Initialize workspace in current directory",
@@ -698,8 +698,8 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
             }
         ],
     ),
-    "env_detect_topology": ToolMetadata(
-        name="env_detect_topology",
+    "sdd-detect-topology": ToolMetadata(
+        name="sdd-detect-topology",
         description="Auto-detect repository layout for specs and documentation directories. "
         "Scans directory structure to identify existing SDD configuration.",
         parameters=[
@@ -721,7 +721,7 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
         category="environment",
         version="1.0.0",
         tags=["detection", "topology", "repository", "layout"],
-        related_tools=["env_init_workspace", "env_verify_environment"],
+        related_tools=["sdd-init-workspace", "sdd-verify-environment"],
         examples=[
             {
                 "description": "Detect repository topology",
@@ -738,8 +738,8 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
             }
         ],
     ),
-    "env_verify_environment": ToolMetadata(
-        name="env_verify_environment",
+    "sdd-verify-environment": ToolMetadata(
+        name="sdd-verify-environment",
         description="Validate OS packages, runtime versions, and credential availability. "
         "Performs comprehensive environment checks beyond basic toolchain verification.",
         parameters=[
@@ -761,7 +761,7 @@ ENVIRONMENT_TOOL_METADATA: Dict[str, ToolMetadata] = {
         category="environment",
         version="1.0.0",
         tags=["verification", "environment", "runtime", "credentials"],
-        related_tools=["env_verify_toolchain", "env_detect_topology"],
+        related_tools=["sdd-verify-toolchain", "sdd-detect-topology"],
         examples=[
             {
                 "description": "Run all environment checks",

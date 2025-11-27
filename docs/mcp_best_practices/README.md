@@ -19,6 +19,7 @@ This documentation follows [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2
 | **Process** | [Spec-Driven Dev](./09-spec-driven-development.md), [Testing](./10-testing-fixtures.md) | Development workflow |
 | **Integration** | [AI Integration](./11-ai-llm-integration.md), [Resilience](./12-timeout-resilience.md), [Discovery](./13-tool-discovery.md) | LLM patterns & resilience |
 | **Advanced** | [Feature Flags](./14-feature-flags.md), [Concurrency](./15-concurrency-patterns.md) | Rollouts & async patterns |
+| **CLI** | [CLI Best Practices](../cli_best_practices/README.md) | Runtime ergonomics & command design |
 
 ## Document Index
 
@@ -90,6 +91,8 @@ Use this checklist:
 - [Response Schema Reference](../codebase_standards/mcp_response_schema.md) - Canonical response contract
 - [Response Helpers](../../src/foundry_mcp/core/responses.py) - Implementation code
 - [Capabilities Manifest](../../mcp/capabilities_manifest.json) - Tool discovery and feature flags
+- [CLI Best Practices](../cli_best_practices/README.md) - First-party CLI runtime guidance
+- [CLI Output Standards](../codebase_standards/cli-output.md) - JSON-first output contract shared with MCP
 
 ## Environment & Setup Tools
 

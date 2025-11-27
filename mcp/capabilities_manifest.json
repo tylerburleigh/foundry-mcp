@@ -299,7 +299,7 @@
     ],
     "environment_tools": [
       {
-        "name": "env_verify_toolchain",
+        "name": "sdd-verify-toolchain",
         "description": "Verify local CLI/toolchain availability including git, python, node, and SDD CLI",
         "auth_required": false,
         "rate_limit": null,
@@ -309,7 +309,7 @@
         ]
       },
       {
-        "name": "env_init_workspace",
+        "name": "sdd-init-workspace",
         "description": "Bootstrap working directory with specs folders, config files, and git integration",
         "auth_required": false,
         "rate_limit": null,
@@ -320,7 +320,7 @@
         ]
       },
       {
-        "name": "env_detect_topology",
+        "name": "sdd-detect-topology",
         "description": "Auto-detect repository layout for specs and documentation directories",
         "auth_required": false,
         "rate_limit": null,
@@ -330,7 +330,7 @@
         ]
       },
       {
-        "name": "env_verify_environment",
+        "name": "sdd-verify-environment",
         "description": "Validate OS packages, runtime versions, and credential availability",
         "auth_required": false,
         "rate_limit": null,
@@ -599,7 +599,7 @@
       "environment_readiness": {
         "supported": true,
         "description": "Environment verification and workspace initialization tools",
-        "tools": ["env_verify_toolchain", "env_init_workspace", "env_detect_topology", "env_verify_environment"]
+        "tools": ["sdd-verify-toolchain", "sdd-init-workspace", "sdd-detect-topology", "sdd-verify-environment"]
       }
     },
     "api_version": "2024-11-01"

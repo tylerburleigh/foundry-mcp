@@ -128,10 +128,10 @@ class TestToolDiscoveryMetadata:
         from foundry_mcp.core.discovery import ENVIRONMENT_TOOL_METADATA
 
         expected_tools = [
-            "env_verify_toolchain",
-            "env_init_workspace",
-            "env_detect_topology",
-            "env_verify_environment",
+            "sdd-verify-toolchain",
+            "sdd-init-workspace",
+            "sdd-detect-topology",
+            "sdd-verify-environment",
         ]
 
         for tool in expected_tools:
@@ -196,9 +196,9 @@ class TestToolRegistration:
         assert len(tools) == 4
 
         # Verify can retrieve by name
-        toolchain = registry.get("env_verify_toolchain")
+        toolchain = registry.get("sdd-verify-toolchain")
         assert toolchain is not None
-        assert toolchain.name == "env_verify_toolchain"
+        assert toolchain.name == "sdd-verify-toolchain"
 
     def test_registry_category_filtering(self):
         """Test registry filters tools by category correctly."""
@@ -280,10 +280,10 @@ class TestEnvironmentCapabilities:
         from foundry_mcp.core.discovery import is_environment_tool
 
         # Valid environment tools
-        assert is_environment_tool("env_verify_toolchain") is True
-        assert is_environment_tool("env_init_workspace") is True
-        assert is_environment_tool("env_detect_topology") is True
-        assert is_environment_tool("env_verify_environment") is True
+        assert is_environment_tool("sdd-verify-toolchain") is True
+        assert is_environment_tool("sdd-init-workspace") is True
+        assert is_environment_tool("sdd-detect-topology") is True
+        assert is_environment_tool("sdd-verify-environment") is True
 
         # Non-environment tools
         assert is_environment_tool("list_specs") is False
@@ -295,9 +295,9 @@ class TestEnvironmentCapabilities:
         from foundry_mcp.core.discovery import get_environment_tool_metadata
 
         # Valid tools return metadata
-        metadata = get_environment_tool_metadata("env_verify_toolchain")
+        metadata = get_environment_tool_metadata("sdd-verify-toolchain")
         assert metadata is not None
-        assert metadata.name == "env_verify_toolchain"
+        assert metadata.name == "sdd-verify-toolchain"
         assert metadata.category == "environment"
 
         # Invalid tools return None
