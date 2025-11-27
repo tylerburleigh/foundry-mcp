@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:26:42.619650Z",
+  "last_updated": "2025-11-27T13:27:35.186842Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 35,
+    "progress_percentage": 36,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 36,
+      "completed_tasks": 37,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -860,7 +860,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {
         "purpose": "Make errors machine-readable and actionable for clients and LLMs",
         "risk_level": "low",
@@ -1053,7 +1053,7 @@
     "phase-3-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-3",
       "children": [
         "verify-3-1",
@@ -1068,21 +1068,27 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-3-1": {
       "type": "verify",
       "title": "Response tests pass",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "pytest tests/unit/test_core/test_responses.py -v",
-        "expected": ""
+        "expected": "",
+        "started_at": "2025-11-27T13:27:13.922197Z",
+        "status_note": "Running verification tests",
+        "completed_at": "2025-11-27T13:27:35.177455Z",
+        "needs_journaling": false,
+        "actual_hours": 0.006,
+        "journaled_at": "2025-11-27T13:27:35.183804Z"
       },
       "dependencies": {
         "blocks": [],
@@ -3821,6 +3827,15 @@
       "content": "All child tasks in group phase-3-files have been completed.",
       "metadata": {},
       "task_id": "phase-3-files"
+    },
+    {
+      "timestamp": "2025-11-27T13:27:35.183799Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Response tests pass",
+      "author": "claude-code",
+      "content": "Verification passed. All 71 tests in tests/test_responses.py pass including: TestToolResponse (4), TestSuccessResponse (6), TestErrorResponse (5), TestResponseContractCompliance (7), TestMetaVersionCompliance (8), TestErrorCodeEnum (7), TestErrorTypeEnum (5), TestValidationError (4), TestNotFoundError (4), TestRateLimitError (4), TestUnauthorizedError (3), TestForbiddenError (3), TestConflictError (3), TestInternalError (3), TestUnavailableError (5). Test execution time: 0.17s.",
+      "metadata": {},
+      "task_id": "verify-3-1"
     }
   ]
 }
