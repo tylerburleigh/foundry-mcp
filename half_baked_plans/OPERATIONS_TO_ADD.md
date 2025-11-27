@@ -52,6 +52,21 @@ Use these references when evaluating what actually remains to be wrapped.
 
 **Feature flag:** `spec_helpers` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
 
+## Recently Covered via SDD Core Operations (Phase 3)
+
+`specs/active/sdd-core-operations-2025-11-27-001.json` (Phase 3) delivered spec authoring and metadata CRUD tools. These operations now have MCP manifest entries and feature flags:
+
+- **Spec creation** (`spec-create`) – scaffold a brand-new SDD specification with template selection (simple, medium, complex, security).
+- **Template management** (`spec-template`) – emit opinionated templates/snippets for spec sections (list, show, apply).
+- **Task CRUD** (`task-add`, `task-remove`) – add and remove tasks within spec hierarchies with position control and cascade options.
+- **Assumption management** (`assumption-add`, `assumption-list`) – manage assumption blocks with type filtering (constraint, requirement).
+- **Revision tracking** (`revision-add`) – append revision history entries with version and changes.
+- **Metadata updates** (`spec-update-frontmatter`) – mutate top-level metadata blocks (title, status, version).
+
+**Implementation:** `src/foundry_mcp/tools/authoring.py` with resilience features (circuit breaker, timing metrics, audit logging).
+
+**Feature flag:** `authoring_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
+
 ---
 
 ## In-Scope Operations
@@ -59,16 +74,16 @@ Use these references when evaluating what actually remains to be wrapped.
 **Naming note:** All entries below list the canonical MCP tool name first, per [docs/codebase_standards/naming-conventions.md](../docs/codebase_standards/naming-conventions.md). Legacy CLI aliases remain in parentheses solely for migration tracking and should be removed once downstream clients finish the rename rollout.
 
 ### Authoring, Editing & Metadata
-- `spec-create` (was `create`) – scaffold a brand-new spec from scratch.
-- `spec-template` (was `template`) – emit opinionated templates/snippets for spec sections.
+- ~~`spec-create` (was `create`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
+- ~~`spec-template` (was `template`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - `spec-analyze` (was `analyze`) – perform deep heuristics on an existing spec.
 - `spec-analyze-deps` (was `analyze-deps`) – inspect dependency graph health.
 - `spec-apply-plan` (was `apply-modifications`) – apply bulk structural edits from a diff/plan.
 - `review-parse-feedback` (was `parse-review`) – transform review feedback into structured actions.
-- `spec-update-frontmatter` (was `update-frontmatter`) – mutate top-level metadata blocks.
-- `task-add` / `task-remove` (were `add-task` / `remove-task`) – CRUD operations for tasks within specs.
-- `assumption-add` / `assumption-list` (were `add-assumption` / `list-assumptions`) – manage assumption blocks.
-- `revision-add` (was `add-revision`) – append revision history entries.
+- ~~`spec-update-frontmatter` (was `update-frontmatter`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
+- ~~`task-add` / `task-remove` (were `add-task` / `remove-task`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
+- ~~`assumption-add` / `assumption-list` (were `add-assumption` / `list-assumptions`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
+- ~~`revision-add` (was `add-revision`)~~ – **COVERED** in Phase 3 (`authoring_tools` flag).
 - `verification-add` / `verification-execute` / `verification-format-summary` (were `add-verification` / `execute-verify` / `format-verification-summary`) – manage verification artifacts attached to tasks/specs.
 - `task-update-estimate` (was `update-estimate`) – tweak effort/time estimates per task.
 - `spec-sync-metadata` (was `sync-metadata`) – push/pull spec metadata across stores.
