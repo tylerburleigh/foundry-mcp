@@ -95,6 +95,17 @@ Use these references when evaluating what actually remains to be wrapped.
 
 **Feature flag:** `planning_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
 
+## Recently Covered via SDD Core Operations (Phase 6)
+
+`specs/active/sdd-core-operations-2025-11-27-001.json` (Phase 6) delivered validation, reporting, and analytics tools. These operations now have MCP manifest entries and feature flags:
+
+- **Comprehensive reporting** (`spec-report`) – generate human-readable validation/analysis reports with configurable sections (validation, stats, health) and formats (markdown, summary, json).
+- **Quick summary** (`spec-report-summary`) – condensed status view for dashboards and quick checks.
+
+**Implementation:** `src/foundry_mcp/tools/reporting.py` with resilience features (circuit breaker, timing metrics, audit logging, observability decorators).
+
+**Feature flag:** `reporting_tools` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
+
 ---
 
 ## In-Scope Operations
@@ -138,7 +149,8 @@ Remaining operations in this category:
 - `journal-bulk-add` – add multiple journal entries in one shot.
 
 ### Validation, Reporting & Analytics
-- `spec-report` (was `report`) – produce human-readable validation/analysis reports (stat collection now covered via `spec_stats`, but higher-level reporting still missing).
+- ~~`spec-report` (was `report`)~~ – **COVERED** in Phase 6 (`reporting_tools` flag) via `src/foundry_mcp/tools/reporting.py`.
+- `spec-report-summary` – **COVERED** in Phase 6 (`reporting_tools` flag) - quick status summary report.
 
 ### Collaboration, Review & PR Workflow (LLM-Powered)
 These operations require LLM integration - users configure their provider via MCP config:
