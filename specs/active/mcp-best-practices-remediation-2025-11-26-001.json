@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:34:42.985757Z",
+  "last_updated": "2025-11-27T13:35:46.804685Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 40,
+    "progress_percentage": 41,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 41,
+      "completed_tasks": 42,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -1170,7 +1170,7 @@
         "task-4-2"
       ],
       "total_tasks": 8,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1201,7 +1201,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/core/resilience.py",
         "task_category": "implementation",
@@ -1229,13 +1229,19 @@
     "task-4-1-2": {
       "type": "subtask",
       "title": "Create @with_timeout decorator for async functions",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Uses asyncio.wait_for, returns timeout error via error helpers"
+        "details": "Uses asyncio.wait_for, returns timeout error via error helpers",
+        "started_at": "2025-11-27T13:35:11.646913Z",
+        "status_note": "Creating with_timeout decorator",
+        "completed_at": "2025-11-27T13:35:46.793799Z",
+        "needs_journaling": false,
+        "actual_hours": 0.01,
+        "journaled_at": "2025-11-27T13:35:46.801529Z"
       }
     },
     "task-4-1-3": {
@@ -3935,6 +3941,15 @@
       "content": "Created src/foundry_mcp/core/resilience.py with timeout budget constants: FAST_TIMEOUT=5.0 (max 10), MEDIUM_TIMEOUT=30.0 (max 60), SLOW_TIMEOUT=120.0 (max 300), BACKGROUND_TIMEOUT=600.0 (max 3600). Module includes comprehensive docstring with usage examples. All constants import successfully.",
       "metadata": {},
       "task_id": "task-4-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T13:35:46.801525Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create @with_timeout decorator for async functions",
+      "author": "claude-code",
+      "content": "Added @with_timeout decorator and TimeoutException class to resilience.py. Decorator uses asyncio.wait_for for async timeout enforcement, accepts seconds and optional error_message params. TimeoutException includes timeout_seconds and operation attributes. Both import successfully.",
+      "metadata": {},
+      "task_id": "task-4-1-2"
     }
   ]
 }

@@ -2,16 +2,16 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:27:05.645484Z",
-    "generated_at_commit": "2f4d5be871a1862e2253c087525428ad3cc40feb",
+    "generated_at": "2025-11-27T13:35:05.063189Z",
+    "generated_at_commit": "86c39515281d9c5e08c48883e323a8426b4ba15e",
     "languages": [
       "python"
     ],
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 32,
-    "total_lines": 13277,
+    "total_files": 33,
+    "total_lines": 13339,
     "total_classes": 49,
     "total_functions": 157,
     "avg_complexity": 7.01,
@@ -25,8 +25,8 @@
     ],
     "by_language": {
       "python": {
-        "files": 32,
-        "lines": 13277,
+        "files": 33,
+        "lines": 13339,
         "classes": 49,
         "functions": 157,
         "avg_complexity": 7.01
@@ -471,6 +471,35 @@
       ],
       "exports": [],
       "lines": 491
+    },
+    {
+      "name": "resilience",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "language": "python",
+      "docstring": "Resilience primitives for MCP tool operations.\n\nProvides timeout budgets, retry patterns, circuit breakers, and health checks\nfor building robust MCP tools that handle failures gracefully.\n\nTimeout Budget Categories\n=========================\n\nUse the appropriate timeout category based on operation type:\n\n    FAST_TIMEOUT (5s)       - Cache lookups, simple queries\n    MEDIUM_TIMEOUT (30s)    - Database operations, API calls\n    SLOW_TIMEOUT (120s)     - File processing, complex operations\n    BACKGROUND_TIMEOUT (600s) - Batch jobs, large transfers\n\nExample usage:\n\n    from foundry_mcp.core.resilience import (\n        MEDIUM_TIMEOUT,\n        with_timeout,\n        retry_with_backoff,\n        CircuitBreaker,\n    )\n\n    @mcp.tool()\n    @with_timeout(MEDIUM_TIMEOUT, \"Database query timed out\")\n    async def query_database(query: str) -> dict:\n        result = await db.execute(query)\n        return asdict(success_response(data={\"result\": result}))",
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "dataclasses.dataclass",
+        "dataclasses.field",
+        "datetime.datetime",
+        "enum.Enum",
+        "functools.wraps",
+        "threading.Lock",
+        "typing.Any",
+        "typing.Callable",
+        "typing.Dict",
+        "typing.List",
+        "typing.Optional",
+        "typing.Tuple",
+        "typing.Type",
+        "typing.TypeVar",
+        "asyncio",
+        "random",
+        "time"
+      ],
+      "exports": [],
+      "lines": 62
     },
     {
       "name": "responses",
@@ -5304,7 +5333,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5316,7 +5345,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -17918,6 +17947,25 @@
       "typing.Dict",
       "typing.List",
       "typing.Optional"
+    ],
+    "src/foundry_mcp/core/resilience.py": [
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "datetime.datetime",
+      "enum.Enum",
+      "functools.wraps",
+      "threading.Lock",
+      "typing.Any",
+      "typing.Callable",
+      "typing.Dict",
+      "typing.List",
+      "typing.Optional",
+      "typing.Tuple",
+      "typing.Type",
+      "typing.TypeVar",
+      "asyncio",
+      "random",
+      "time"
     ],
     "src/foundry_mcp/core/responses.py": [
       "dataclasses.dataclass",
