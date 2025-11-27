@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T15:31:11.329747Z",
+  "last_updated": "2025-11-27T15:32:08.405670Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 97,
+    "progress_percentage": 98,
     "current_phase": "phase-8"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 99,
+      "completed_tasks": 100,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -2581,7 +2581,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {
         "purpose": "Improve test coverage and add property-based testing",
         "risk_level": "low",
@@ -2772,7 +2772,7 @@
     "phase-8-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-8",
       "children": [
         "verify-8-1",
@@ -2788,21 +2788,27 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-8-1": {
       "type": "verify",
       "title": "Property tests pass",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-8-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "pytest tests/property/ -v",
-        "expected": ""
+        "expected": "",
+        "started_at": "2025-11-27T15:31:44.139772Z",
+        "status_note": "Running property tests verification",
+        "completed_at": "2025-11-27T15:32:08.393694Z",
+        "needs_journaling": false,
+        "actual_hours": 0.007,
+        "journaled_at": "2025-11-27T15:32:08.401872Z"
       },
       "dependencies": {
         "blocks": [],
@@ -5015,6 +5021,15 @@
       "content": "All child tasks in group phase-8-files have been completed.",
       "metadata": {},
       "task_id": "phase-8-files"
+    },
+    {
+      "timestamp": "2025-11-27T15:32:08.401864Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Property tests pass",
+      "author": "claude-code",
+      "content": "All 34 property tests pass successfully. Test coverage includes comprehensive validation suites:\n\nTestInputValidationRobustness (3 tests): UTF8 handling, text handling, dict handling\nTestSizeLimitEnforcement (2 tests): Size limit compliance\nTestMalformedJsonHandling (2 tests): JSON parsing resilience\nTestValidSpecProperties (2 tests): Valid property structure\nTestStatusValidation (2 tests): Status field validation\nTestNodeTypeValidation (2 tests): Node type checking\nTestDiagnosticStructure (2 tests): Diagnostic data format\nTestPromptInjectionDetection (10 tests): Role injection detection, case sensitivity, custom pattern matching\nTestSizeValidation (7 tests): String, array, dict size limits with custom boundaries\nTestSecurityIntegration (3 tests): Combined security validation\n\nExecution time: 0.83s. All property-based tests execute correctly with Hypothesis framework generating diverse test cases for edge cases and robustness validation.",
+      "metadata": {},
+      "task_id": "verify-8-1"
     }
   ]
 }
