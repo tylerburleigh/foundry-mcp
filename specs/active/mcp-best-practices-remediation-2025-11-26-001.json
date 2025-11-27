@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:11:00.322885Z",
+  "last_updated": "2025-11-27T13:11:46.865926Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 25,
+    "progress_percentage": 26,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 26,
+      "completed_tasks": 27,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 11,
+      "completed_tasks": 12,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -762,7 +762,7 @@
     "phase-2-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [
         "verify-2-1",
@@ -777,21 +777,27 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-2-1": {
       "type": "verify",
       "title": "Feature flag tests pass",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "pytest tests/unit/test_core/test_feature_flags.py -v",
-        "expected": ""
+        "expected": "",
+        "started_at": "2025-11-27T13:11:25.803798Z",
+        "status_note": "Running feature flag tests verification",
+        "completed_at": "2025-11-27T13:11:46.848792Z",
+        "needs_journaling": false,
+        "actual_hours": 0.006,
+        "journaled_at": "2025-11-27T13:11:46.860770Z"
       },
       "dependencies": {
         "blocks": [],
@@ -3616,6 +3622,15 @@
       "content": "All child tasks in group phase-2-files have been completed.",
       "metadata": {},
       "task_id": "phase-2-files"
+    },
+    {
+      "timestamp": "2025-11-27T13:11:46.860755Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Feature flag tests pass",
+      "author": "claude-code",
+      "content": "All 39 feature flag tests pass (0.54s runtime). Test coverage includes: TestFlagRegistrationAndLookup (17 tests), TestPercentageRollout (9 tests), TestFlagOverrideContextManager (8 tests), TestFeatureFlagDecorator (5 tests). Verification successful.",
+      "metadata": {},
+      "task_id": "verify-2-1"
     }
   ]
 }
