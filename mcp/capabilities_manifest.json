@@ -296,6 +296,54 @@
           "reason": "Resource-intensive operation"
         }
       }
+    ],
+    "discovery_tools": [
+      {
+        "name": "foundry_list_tools",
+        "description": "List available tools with filtering by category, tag, and deprecation status. Returns paginated results.",
+        "auth_required": false,
+        "rate_limit": null,
+        "parameters": [
+          {"name": "category", "type": "string", "required": false, "description": "Filter by tool category"},
+          {"name": "tag", "type": "string", "required": false, "description": "Filter by semantic tag"},
+          {"name": "include_deprecated", "type": "boolean", "required": false, "default": false},
+          {"name": "cursor", "type": "string", "required": false, "description": "Pagination cursor"},
+          {"name": "limit", "type": "integer", "required": false, "default": 100, "max": 1000}
+        ]
+      },
+      {
+        "name": "foundry_get_tool_schema",
+        "description": "Get detailed JSON Schema for a specific tool, including examples, rate limits, and related tools.",
+        "auth_required": false,
+        "rate_limit": null,
+        "parameters": [
+          {"name": "tool_name", "type": "string", "required": true, "description": "Name of the tool to get schema for"}
+        ]
+      },
+      {
+        "name": "foundry_get_capabilities",
+        "description": "Get server capabilities for client negotiation including response version, streaming, batch operations, and feature flags.",
+        "auth_required": false,
+        "rate_limit": null,
+        "parameters": []
+      },
+      {
+        "name": "foundry_negotiate_capabilities",
+        "description": "Negotiate capabilities with the server, requesting specific response versions and features.",
+        "auth_required": false,
+        "rate_limit": null,
+        "parameters": [
+          {"name": "requested_version", "type": "string", "required": false, "description": "Desired response version"},
+          {"name": "requested_features", "type": "string", "required": false, "description": "Comma-separated feature list"}
+        ]
+      },
+      {
+        "name": "foundry_list_categories",
+        "description": "List tool categories with tool counts for browsing available functionality.",
+        "auth_required": false,
+        "rate_limit": null,
+        "parameters": []
+      }
     ]
   },
   "resources": [
@@ -453,8 +501,43 @@
       }
     }
   },
+  "server_capabilities": {
+    "_documentation": "Server capabilities returned by foundry_get_capabilities for client negotiation",
+    "response_version": {
+      "current": "response-v2",
+      "supported": ["response-v2"],
+      "description": "Response envelope contract version"
+    },
+    "features": {
+      "streaming": {
+        "supported": false,
+        "description": "Streaming responses for large payloads"
+      },
+      "batch_operations": {
+        "supported": true,
+        "max_batch_size": 100,
+        "description": "Batch tool invocations"
+      },
+      "pagination": {
+        "supported": true,
+        "default_page_size": 100,
+        "max_page_size": 1000,
+        "cursor_format": "opaque_base64",
+        "description": "Cursor-based pagination for list operations"
+      },
+      "rate_limit_headers": {
+        "supported": true,
+        "description": "Rate limit info in response meta"
+      },
+      "feature_flags": {
+        "supported": true,
+        "description": "Feature flag system for gradual rollouts"
+      }
+    },
+    "api_version": "2024-11-01"
+  },
   "metadata": {
-    "generated_at": "2025-11-27T13:10:00Z",
+    "generated_at": "2025-11-27T14:37:00Z",
     "generator": "foundry-mcp",
     "documentation_url": "https://github.com/foundry-mcp/foundry-mcp"
   }

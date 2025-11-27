@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T14:37:25.529232Z",
+  "last_updated": "2025-11-27T14:38:52.969247Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 76,
+    "progress_percentage": 77,
     "current_phase": "phase-6"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 78,
+      "completed_tasks": 79,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1876,7 +1876,7 @@
         "depends": []
       },
       "total_tasks": 16,
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "metadata": {
         "purpose": "Enable clients to discover tools and negotiate capabilities",
         "risk_level": "low",
@@ -1889,7 +1889,7 @@
     "phase-6-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-6",
       "children": [
         "task-6-1",
@@ -1899,8 +1899,12 @@
         "task-6-5"
       ],
       "total_tasks": 12,
-      "completed_tasks": 11,
-      "metadata": {},
+      "completed_tasks": 12,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T14:38:52.951091Z",
+        "journaled_at": "2025-11-27T14:38:52.969191Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-6-verify",
@@ -3654,7 +3658,7 @@
     "task-6-5": {
       "type": "task",
       "title": "mcp/capabilities_manifest.json",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-files",
       "children": [
         "task-6-5-1"
@@ -3669,7 +3673,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "mcp/capabilities_manifest.json",
         "task_category": "implementation",
@@ -3679,12 +3683,19 @@
     "task-6-5-1": {
       "type": "subtask",
       "title": "Include list/get tool schemas and capability payloads in manifest.",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-6-5",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T14:37:57.493160Z",
+        "status_note": "Updating capabilities_manifest.json with discovery tool schemas",
+        "completed_at": "2025-11-27T14:38:52.950734Z",
+        "needs_journaling": false,
+        "actual_hours": 0.015,
+        "journaled_at": "2025-11-27T14:38:52.961562Z"
+      }
     }
   },
   "journal": [
@@ -4578,6 +4589,24 @@
       "content": "Enhanced foundry_server_capabilities tool in server.py to integrate feature flag and capability metadata. Added imports for get_capabilities, get_tool_registry from discovery module and get_flag_service from feature_flags. Updated foundry_server_capabilities to return: merged capabilities from SERVER_CAPABILITIES and discovery module, feature_flags summary (enabled_count, total_count), tool_stats from registry, schema_version, and api_version. Added LLM-friendly WHEN TO USE documentation.",
       "metadata": {},
       "task_id": "task-6-4-2"
+    },
+    {
+      "timestamp": "2025-11-27T14:38:52.961548Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Include list/get tool schemas and capability payloads in manifest.",
+      "author": "claude-code",
+      "content": "Updated mcp/capabilities_manifest.json with discovery_tools section containing 5 tools: foundry_list_tools (with category/tag/deprecated/cursor/limit params), foundry_get_tool_schema (with tool_name param), foundry_get_capabilities, foundry_negotiate_capabilities (with requested_version/requested_features params), and foundry_list_categories. Also added server_capabilities section documenting the capability negotiation payload: response_version (response-v2), features (streaming, batch_operations with max_batch_size, pagination with cursor_format, rate_limit_headers, feature_flags), and api_version.",
+      "metadata": {},
+      "task_id": "task-6-5-1"
+    },
+    {
+      "timestamp": "2025-11-27T14:38:52.969177Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-6-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-6-files"
     }
   ]
 }
