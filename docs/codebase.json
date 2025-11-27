@@ -2,19 +2,19 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:52:47.597363Z",
-    "generated_at_commit": "f132d8ea583e539aa7c04fe0d1945b02a4913731",
+    "generated_at": "2025-11-27T13:57:25.465440Z",
+    "generated_at_commit": "5b02faa81bda235e02db15a216af1d824fbb9d5d",
     "languages": [
       "python"
     ],
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 33,
-    "total_lines": 13877,
-    "total_classes": 54,
-    "total_functions": 163,
-    "avg_complexity": 6.88,
+    "total_files": 34,
+    "total_lines": 14133,
+    "total_classes": 55,
+    "total_functions": 168,
+    "avg_complexity": 6.74,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -25,11 +25,11 @@
     ],
     "by_language": {
       "python": {
-        "files": 33,
-        "lines": 13877,
-        "classes": 54,
-        "functions": 163,
-        "avg_complexity": 6.88
+        "files": 34,
+        "lines": 14133,
+        "classes": 55,
+        "functions": 168,
+        "avg_complexity": 6.74
       }
     }
   },
@@ -379,6 +379,34 @@
       ],
       "exports": [],
       "lines": 645
+    },
+    {
+      "name": "pagination",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "language": "python",
+      "docstring": "Pagination utilities for MCP tool operations.\n\nProvides cursor-based pagination with opaque cursors, encoding/decoding,\nand response formatting helpers for list-style operations.\n\nPagination Defaults\n===================\n\nUse these constants for consistent pagination across tools:\n\n    DEFAULT_PAGE_SIZE (100)  - Default number of items per page\n    MAX_PAGE_SIZE (1000)     - Maximum allowed page size\n\nExample usage:\n\n    from foundry_mcp.core.pagination import (\n        DEFAULT_PAGE_SIZE,\n        MAX_PAGE_SIZE,\n        encode_cursor,\n        decode_cursor,\n        paginated_response,\n    )\n\n    @mcp.tool()\n    def list_items(cursor: str = None, limit: int = DEFAULT_PAGE_SIZE) -> dict:\n        limit = min(max(1, limit), MAX_PAGE_SIZE)\n\n        # Decode cursor if provided\n        start_after = None\n        if cursor:\n            cursor_data = decode_cursor(cursor)\n            start_after = cursor_data.get(\"last_id\")\n\n        # Fetch items (one extra to detect has_more)\n        items = db.list_items(start_after=start_after, limit=limit + 1)\n        has_more = len(items) > limit\n        if has_more:\n            items = items[:limit]\n\n        # Build response with pagination\n        next_cursor = None\n        if has_more and items:\n            next_cursor = encode_cursor({\"last_id\": items[-1][\"id\"]})\n\n        return paginated_response(\n            data={\"items\": items},\n            cursor=next_cursor,\n            has_more=has_more,\n            page_size=limit,\n        )",
+      "classes": [
+        "CursorError"
+      ],
+      "functions": [
+        "encode_cursor",
+        "decode_cursor",
+        "validate_cursor",
+        "paginated_response",
+        "normalize_page_size"
+      ],
+      "imports": [
+        "base64",
+        "json",
+        "dataclasses.asdict",
+        "datetime.datetime",
+        "typing.Any",
+        "typing.Dict",
+        "typing.Optional",
+        "foundry_mcp.core.responses.success_response"
+      ],
+      "exports": [],
+      "lines": 256
     },
     {
       "name": "progress",
@@ -2321,6 +2349,50 @@
       ],
       "imported_by": [],
       "instantiation_count": 1
+    },
+    {
+      "name": "CursorError",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 82,
+      "language": "python",
+      "docstring": "Error during cursor encoding or decoding.\n\nAttributes:\n    cursor: The invalid cursor string (if decoding).\n    reason: Description of what went wrong.",
+      "bases": [
+        "Exception"
+      ],
+      "methods": [
+        "__init__"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "decode_cursor",
+          "file": "src/foundry_mcp/core/pagination.py",
+          "line": 142,
+          "context": [
+            "decode_cursor"
+          ]
+        },
+        {
+          "instantiator": "decode_cursor",
+          "file": "src/foundry_mcp/core/pagination.py",
+          "line": 149,
+          "context": [
+            "decode_cursor"
+          ]
+        },
+        {
+          "instantiator": "decode_cursor",
+          "file": "src/foundry_mcp/core/pagination.py",
+          "line": 158,
+          "context": [
+            "decode_cursor"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 3
     },
     {
       "name": "RateLimitConfig",
@@ -5494,7 +5566,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -7018,6 +7090,249 @@
       "is_public": true,
       "callers": [],
       "calls": []
+    },
+    {
+      "name": "encode_cursor",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 101,
+      "language": "python",
+      "docstring": "Encode cursor data as opaque Base64 token.\n\nThe cursor is a URL-safe Base64-encoded JSON object containing\nposition information for resuming pagination.\n\nArgs:\n    data: Dictionary containing cursor data (typically last_id,\n          timestamp, or other position markers).\n\nReturns:\n    Opaque cursor string (URL-safe Base64 encoded).\n\nExample:\n    >>> cursor = encode_cursor({\"last_id\": \"item_123\"})\n    >>> # Returns: \"eyJsYXN0X2lkIjogIml0ZW1fMTIzIiwgInZlcnNpb24iOiAxfQ==\"",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "Dict[str, Any]",
+          "default": null
+        }
+      ],
+      "return_type": "str",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "dumps",
+          "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
+          "line": 120,
+          "call_type": "method_call"
+        },
+        {
+          "name": "decode",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 121,
+          "call_type": "method_call"
+        },
+        {
+          "name": "urlsafe_b64encode",
+          "file": "/opt/anaconda3/lib/python3.13/base64.py",
+          "line": 121,
+          "call_type": "method_call"
+        },
+        {
+          "name": "encode",
+          "file": "/opt/anaconda3/lib/python3.13/base64.py",
+          "line": 121,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "decode_cursor",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 124,
+      "language": "python",
+      "docstring": "Decode cursor token to dictionary.\n\nArgs:\n    cursor: Opaque cursor string from previous response.\n\nReturns:\n    Dictionary with cursor data including position markers.\n\nRaises:\n    CursorError: If cursor is invalid or cannot be decoded.\n\nExample:\n    >>> data = decode_cursor(\"eyJsYXN0X2lkIjogIml0ZW1fMTIzIiwgInZlcnNpb24iOiAxfQ==\")\n    >>> print(data[\"last_id\"])\n    \"item_123\"",
+      "parameters": [
+        {
+          "name": "cursor",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "validate_cursor",
+          "file": "src/foundry_mcp/core/pagination.py",
+          "line": 175,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "urlsafe_b64decode",
+          "file": "/opt/anaconda3/lib/python3.13/base64.py",
+          "line": 145,
+          "call_type": "method_call"
+        },
+        {
+          "name": "encode",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 145,
+          "call_type": "method_call"
+        },
+        {
+          "name": "loads",
+          "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
+          "line": 146,
+          "call_type": "method_call"
+        },
+        {
+          "name": "decode",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/pagination.py",
+          "line": 146,
+          "call_type": "method_call"
+        },
+        {
+          "name": "isinstance",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 148,
+          "call_type": "function_call"
+        },
+        {
+          "name": "str",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 159,
+          "call_type": "function_call"
+        }
+      ],
+      "call_count": 1
+    },
+    {
+      "name": "validate_cursor",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 165,
+      "language": "python",
+      "docstring": "Check if cursor is valid without raising exceptions.\n\nArgs:\n    cursor: Cursor string to validate.\n\nReturns:\n    True if cursor is valid, False otherwise.",
+      "parameters": [
+        {
+          "name": "cursor",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "bool",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "decode_cursor",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/pagination.py",
+          "line": 175,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "paginated_response",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 186,
+      "language": "python",
+      "docstring": "Create a success response with pagination metadata.\n\nWraps the data in a standard MCP response envelope with\nmeta.pagination containing cursor and pagination info.\n\nArgs:\n    data: Response data (typically contains items list).\n    cursor: Next page cursor (None if no more pages).\n    has_more: Whether more items exist after this page.\n    page_size: Number of items in this page.\n    total_count: Total count of items (optional, only if efficient).\n    **kwargs: Additional arguments passed to success_response.\n\nReturns:\n    Dict formatted as MCP response with pagination metadata.\n\nExample:\n    >>> response = paginated_response(\n    ...     data={\"items\": [...]},\n    ...     cursor=\"abc123\",\n    ...     has_more=True,\n    ...     page_size=100,\n    ... )\n    >>> # Response includes meta.pagination with cursor, has_more, etc.",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "Dict[str, Any]",
+          "default": null
+        },
+        {
+          "name": "cursor",
+          "type": "Optional[str]",
+          "default": null
+        },
+        {
+          "name": "has_more",
+          "type": "bool",
+          "default": null
+        },
+        {
+          "name": "page_size",
+          "type": "int",
+          "default": null
+        },
+        {
+          "name": "total_count",
+          "type": "Optional[int]",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "asdict",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/pagination.py",
+          "line": 228,
+          "call_type": "function_call"
+        },
+        {
+          "name": "success_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/pagination.py",
+          "line": 228,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "normalize_page_size",
+      "file": "src/foundry_mcp/core/pagination.py",
+      "line": 231,
+      "language": "python",
+      "docstring": "Normalize requested page size to valid range.\n\nArgs:\n    requested: Requested page size (may be None or out of range).\n    default: Default page size if None provided.\n    maximum: Maximum allowed page size.\n\nReturns:\n    Valid page size between 1 and maximum.\n\nExample:\n    >>> normalize_page_size(None)\n    100\n    >>> normalize_page_size(5000)\n    1000\n    >>> normalize_page_size(-1)\n    1",
+      "parameters": [
+        {
+          "name": "requested",
+          "type": "Optional[int]",
+          "default": null
+        },
+        {
+          "name": "default",
+          "type": "int",
+          "default": null
+        },
+        {
+          "name": "maximum",
+          "type": "int",
+          "default": null
+        }
+      ],
+      "return_type": "int",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "min",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 256,
+          "call_type": "function_call"
+        },
+        {
+          "name": "max",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 256,
+          "call_type": "function_call"
+        }
+      ]
     },
     {
       "name": "recalculate_progress",
@@ -9675,6 +9990,12 @@
       "is_public": true,
       "callers": [
         {
+          "name": "paginated_response",
+          "file": "src/foundry_mcp/core/pagination.py",
+          "line": 228,
+          "call_type": "function_call"
+        },
+        {
           "name": "prepare_task",
           "file": "src/foundry_mcp/core/task.py",
           "line": 566,
@@ -10013,7 +10334,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 52
+      "call_count": 53
     },
     {
       "name": "error_response",
@@ -18410,6 +18731,16 @@
       "dataclasses.field",
       "dataclasses.asdict",
       "enum.Enum"
+    ],
+    "src/foundry_mcp/core/pagination.py": [
+      "base64",
+      "json",
+      "dataclasses.asdict",
+      "datetime.datetime",
+      "typing.Any",
+      "typing.Dict",
+      "typing.Optional",
+      "foundry_mcp.core.responses.success_response"
     ],
     "src/foundry_mcp/core/progress.py": [
       "datetime.datetime",
