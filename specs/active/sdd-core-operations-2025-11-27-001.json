@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T21:20:45.103724Z",
+  "last_updated": "2025-11-27T21:24:16.579121Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 42,
+    "progress_percentage": 43,
     "status": "active",
     "current_phase": "phase-3"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 38,
+      "completed_tasks": 39,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -880,7 +880,7 @@
         ]
       },
       "total_tasks": 17,
-      "completed_tasks": 12,
+      "completed_tasks": 13,
       "metadata": {
         "purpose": "Basic spec and task creation/modification operations",
         "risk_level": "medium"
@@ -889,7 +889,7 @@
     "phase-3-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "task-3-1",
@@ -898,8 +898,12 @@
         "task-3-4"
       ],
       "total_tasks": 13,
-      "completed_tasks": 12,
-      "metadata": {},
+      "completed_tasks": 13,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T21:24:16.567989Z",
+        "journaled_at": "2025-11-27T21:24:16.579078Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-3-verify"
@@ -1199,7 +1203,7 @@
     "task-3-4": {
       "type": "task",
       "title": "tests/integration/test_authoring_tools.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [],
       "dependencies": {
@@ -1210,12 +1214,18 @@
         "blocks": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/integration/test_authoring_tools.py",
         "task_category": "implementation",
         "estimated_hours": 2,
-        "changes": "Add integration tests for authoring CRUD tools covering hierarchy integrity and envelopes"
+        "changes": "Add integration tests for authoring CRUD tools covering hierarchy integrity and envelopes",
+        "started_at": "2025-11-27T21:21:15.287342Z",
+        "status_note": "Starting integration test creation for authoring tools",
+        "completed_at": "2025-11-27T21:24:16.567818Z",
+        "needs_journaling": false,
+        "actual_hours": 0.05,
+        "journaled_at": "2025-11-27T21:24:16.573800Z"
       }
     },
     "phase-3-verify": {
@@ -2801,6 +2811,24 @@
       "content": "Created comprehensive unit tests for authoring tools in tests/unit/test_authoring.py. Tests cover all 8 authoring tools (spec_create, spec_template, task_add, task_remove, assumption_add, assumption_list, revision_add, spec_update_frontmatter) with 58 test cases. Test categories include: _run_sdd_command helper (5 tests), spec-create (8 tests), spec-template (6 tests), task-add (8 tests), task-remove (6 tests), assumption-add (5 tests), assumption-list (4 tests), revision-add (5 tests), spec-update-frontmatter (7 tests), tool registration (2 tests), response contract compliance (2 tests). All 58 tests passing. Tests verify circuit breaker protection, validation logic, CLI error handling, and response-v2 contract compliance.",
       "metadata": {},
       "task_id": "task-3-3"
+    },
+    {
+      "timestamp": "2025-11-27T21:24:16.573794Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: tests/integration/test_authoring_tools.py",
+      "author": "claude-code",
+      "content": "Created comprehensive integration tests for authoring tools in tests/integration/test_authoring_tools.py. Tests cover 45 test cases across 8 test classes: TestAuthoringToolsRegistration (9 tests verifying all 8 authoring tools registered), TestResponseEnvelopeCompliance (4 tests verifying response-v2 contract), TestHierarchyIntegrity (4 tests verifying hierarchy validation), TestMetadataOperations (5 tests for assumptions/revisions/frontmatter), TestTemplateOperations (4 tests for template actions), TestSpecCreation (4 tests for spec creation validation), TestTaskOperations (9 tests for task add/remove validation), TestAuthoringWorkflows (3 end-to-end workflow tests), TestErrorHandling (3 tests for circuit breaker/timeout/not found errors). All 45 tests passing. Tests verify tool registration, response envelope compliance, hierarchy integrity, and graceful CLI unavailability handling.",
+      "metadata": {},
+      "task_id": "task-3-4"
+    },
+    {
+      "timestamp": "2025-11-27T21:24:16.579068Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-3-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-3-files"
     }
   ]
 }
