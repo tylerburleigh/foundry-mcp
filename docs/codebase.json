@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T23:47:20.929513Z",
-    "generated_at_commit": "3762ecbca9a7a1d01adc04c8823f11f6324e80a7",
+    "generated_at": "2025-11-27T23:49:07.547383Z",
+    "generated_at_commit": "f80926a91e34468ee75293ffbc0b833d1d6574bd",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 48,
-    "total_lines": 24623,
+    "total_lines": 24720,
     "total_classes": 72,
     "total_functions": 223,
-    "avg_complexity": 8.88,
+    "avg_complexity": 8.91,
     "max_complexity": 160,
     "high_complexity_functions": [
       "register_mutation_tools (160)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 48,
-        "lines": 24623,
+        "lines": 24720,
         "classes": 72,
         "functions": 223,
-        "avg_complexity": 8.88
+        "avg_complexity": 8.91
       }
     }
   },
@@ -1639,7 +1639,7 @@
         "foundry_mcp.core.observability.mcp_tool"
       ],
       "exports": [],
-      "lines": 216
+      "lines": 313
     },
     {
       "name": "validation",
@@ -5616,13 +5616,13 @@
       "calls": [
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 771,
           "call_type": "method_call"
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
           "line": 772,
           "call_type": "method_call"
         },
@@ -5634,7 +5634,7 @@
         },
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 785,
           "call_type": "method_call"
         },
@@ -5676,7 +5676,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -9841,6 +9841,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 216,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_validate",
           "file": "src/foundry_mcp/tools/validation.py",
           "line": 42,
@@ -9866,7 +9872,7 @@
         }
       ],
       "calls": [],
-      "call_count": 90
+      "call_count": 91
     },
     {
       "name": "redact_sensitive_data",
@@ -10450,10 +10456,16 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 90,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 220,
+          "call_type": "function_call"
         }
       ],
       "calls": [],
-      "call_count": 5
+      "call_count": 6
     },
     {
       "name": "mcp_resource",
@@ -14124,6 +14136,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 292,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_validate",
           "file": "src/foundry_mcp/tools/validation.py",
           "line": 98,
@@ -14180,7 +14198,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 103
+      "call_count": 104
     },
     {
       "name": "error_response",
@@ -16765,6 +16783,36 @@
           "call_type": "function_call"
         },
         {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 256,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 268,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 285,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 303,
+          "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 311,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_validate",
           "file": "src/foundry_mcp/tools/validation.py",
           "line": 74,
@@ -16881,7 +16929,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 442
+      "call_count": 447
     },
     {
       "name": "validation_error",
@@ -24117,6 +24165,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -24193,7 +24247,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_analysis_tools",
@@ -24451,6 +24505,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -24527,7 +24587,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_authoring_tools",
@@ -24897,6 +24957,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -24973,7 +25039,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_git_integration_tools",
@@ -25307,6 +25373,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -25383,7 +25455,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_mutation_tools",
@@ -25641,6 +25713,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -25717,7 +25795,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_planning_tools",
@@ -26835,6 +26913,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -26911,7 +26995,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_spec_helper_tools",
@@ -27243,6 +27327,12 @@
           "file": "src/foundry_mcp/tools/utilities.py",
           "line": 164,
           "call_type": "function_call"
+        },
+        {
+          "name": "spec_schema_export",
+          "file": "src/foundry_mcp/tools/utilities.py",
+          "line": 274,
+          "call_type": "function_call"
         }
       ],
       "calls": [
@@ -27265,7 +27355,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 32
+      "call_count": 33
     },
     {
       "name": "register_utility_tools",
@@ -27286,7 +27376,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 12,
+      "complexity": 17,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -27315,7 +27405,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 216,
+          "line": 313,
           "call_type": "method_call"
         }
       ],

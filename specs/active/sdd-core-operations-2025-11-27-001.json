@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T23:48:37.853558Z",
+  "last_updated": "2025-11-27T23:49:33.591498Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 95,
+    "progress_percentage": 96,
     "status": "active",
     "current_phase": "phase-7"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 85,
+      "completed_tasks": 86,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -2556,7 +2556,7 @@
         "blocks": []
       },
       "total_tasks": 6,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "Cache management and schema export utilities",
         "risk_level": "low"
@@ -2572,7 +2572,7 @@
         "task-7-2"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2585,7 +2585,7 @@
     "task-7-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/utilities.py",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-7-files",
       "children": [
         "task-7-1-1",
@@ -2593,7 +2593,7 @@
         "task-7-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/utilities.py",
         "task_category": "implementation",
@@ -2645,13 +2645,18 @@
     "task-7-1-3": {
       "type": "subtask",
       "title": "Add resilience/telemetry to utility tooling",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-7-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Ensure cache/schema operations enforce timeouts, retries, and structured logging via core helpers"
+        "details": "Ensure cache/schema operations enforce timeouts, retries, and structured logging via core helpers",
+        "started_at": "2025-11-27T23:49:13.972120Z",
+        "completed_at": "2025-11-27T23:49:33.582075Z",
+        "needs_journaling": false,
+        "actual_hours": 0.005,
+        "journaled_at": "2025-11-27T23:49:33.588629Z"
       }
     },
     "task-7-2": {
@@ -3672,6 +3677,15 @@
       "content": "Implemented spec-schema-export MCP tool in src/foundry_mcp/tools/utilities.py. The tool wraps the sdd CLI schema command to emit the full JSON Schema for SDD specifications. Features: (1) Exports complete JSON Schema definition used for spec validation, (2) Returns schema with reference URL for documentation, (3) Uses shared circuit breaker with sdd-cache-manage, (4) Metrics instrumentation for observability. Updated capabilities_manifest.json with spec-schema-export tool definition. Added 2 new tests to tests/unit/test_utilities.py (total 10 tests passing). Server import verified working.",
       "metadata": {},
       "task_id": "task-7-1-2"
+    },
+    {
+      "timestamp": "2025-11-27T23:49:33.588623Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add resilience/telemetry to utility tooling",
+      "author": "claude-code",
+      "content": "Verified resilience and telemetry are properly integrated in src/foundry_mcp/tools/utilities.py. Resilience features: (1) Circuit breaker protection via shared _utility_breaker with 5 failure threshold and 30s recovery timeout, (2) 30-second subprocess timeout prevents hanging operations, (3) Comprehensive error handling for timeout/not-found/command-failure cases with structured error responses. Telemetry features: (1) metrics.counter for circuit breaker events, (2) metrics.timer for operation duration tracking with action/schema_type labels, (3) @mcp_tool decorator provides audit logging, (4) Structured logging via logger for errors/warnings/debug. All 10 unit tests pass covering error handling and circuit breaker behavior. No additional code changes needed - resilience/telemetry were implemented as part of the tool implementations in task-7-1-1 and task-7-1-2.",
+      "metadata": {},
+      "task_id": "task-7-1-3"
     }
   ]
 }
