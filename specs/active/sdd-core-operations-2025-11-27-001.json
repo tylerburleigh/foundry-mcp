@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T22:54:34.414491Z",
+  "last_updated": "2025-11-27T22:55:54.416209Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 79,
+    "progress_percentage": 80,
     "status": "active",
     "current_phase": "phase-5"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 71,
+      "completed_tasks": 72,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1914,7 +1914,7 @@
         ]
       },
       "total_tasks": 14,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {
         "purpose": "Plan formatting, phase management, and state reconciliation",
         "risk_level": "medium"
@@ -1931,7 +1931,7 @@
         "task-5-3"
       ],
       "total_tasks": 11,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2120,7 +2120,7 @@
     "task-5-2": {
       "type": "task",
       "title": "src/foundry_mcp/tools/server.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-5-files",
       "children": [
         "task-5-2-1",
@@ -2134,7 +2134,7 @@
         "blocks": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/server.py",
         "task_category": "implementation",
@@ -2145,14 +2145,20 @@
     "task-5-2-1": {
       "type": "subtask",
       "title": "Insert planning tools into mcp/capabilities_manifest",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "mcp/capabilities_manifest.json",
-        "details": "Expose plan-format/phase-list/plan-report tools with readiness metadata"
+        "details": "Expose plan-format/phase-list/plan-report tools with readiness metadata",
+        "started_at": "2025-11-27T22:55:01.005315Z",
+        "status_note": "Adding planning tools to capabilities manifest",
+        "completed_at": "2025-11-27T22:55:54.407718Z",
+        "needs_journaling": false,
+        "actual_hours": 0.015,
+        "journaled_at": "2025-11-27T22:55:54.413743Z"
       }
     },
     "task-5-2-2": {
@@ -3390,6 +3396,15 @@
       "content": "Verified resilience/telemetry already applied to all 7 planning tools via centralized _run_sdd_command() helper. Infrastructure includes: (1) Circuit breaker (sdd_cli_planning) with 5-failure threshold and 30s recovery, (2) Timing metrics via _metrics.timer() for every CLI call, (3) Audit logging in each tool function, (4) MEDIUM_TIMEOUT (30s) applied to subprocess calls, (5) Proper exception handling for CircuitBreakerError, TimeoutExpired, and FileNotFoundError in all tools. No additional changes required - architecture satisfies requirements.",
       "metadata": {},
       "task_id": "task-5-1-8"
+    },
+    {
+      "timestamp": "2025-11-27T22:55:54.413738Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Insert planning tools into mcp/capabilities_manifest",
+      "author": "claude-code",
+      "content": "Added 7 planning tools to capabilities_manifest.json: plan-format, phase-list, phase-check-complete, phase-report-time, spec-reconcile-state, plan-report-time, spec-audit. Added planning_tools category with full parameter schemas, feature_flag entry (beta, enabled, 100% rollout), and server_capabilities entry listing all tools. JSON validation passed.",
+      "metadata": {},
+      "task_id": "task-5-2-1"
     }
   ]
 }

@@ -500,6 +500,90 @@
         ]
       }
     ],
+    "planning_tools": [
+      {
+        "name": "plan-format",
+        "description": "Pretty-print a task plan for sharing and review",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "task_id", "type": "string", "required": true, "description": "Task ID to format"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "phase-list",
+        "description": "Enumerate all phases in a specification with completion status",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "phase-check-complete",
+        "description": "Verify completion readiness for a phase or spec",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "phase_id", "type": "string", "required": false, "description": "Phase ID to check (mutually exclusive with task_id)"},
+          {"name": "task_id", "type": "string", "required": false, "description": "Task ID to check (mutually exclusive with phase_id)"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "phase-report-time",
+        "description": "Summarize time tracking metrics for a phase",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "phase_id", "type": "string", "required": true, "description": "Phase ID to report"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "spec-reconcile-state",
+        "description": "Compare filesystem state against spec state to detect drift",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": true, "description": "Only report drift without changes"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "plan-report-time",
+        "description": "Generate comprehensive time tracking summary for a spec",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "spec-audit",
+        "description": "Run comprehensive quality audits on a specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "planning_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -719,6 +803,16 @@
         "dependencies": [],
         "created_at": "2025-11-27T00:00:00Z",
         "expires_at": null
+      },
+      "planning_tools": {
+        "description": "Planning and execution utilities for task formatting, phase management, time tracking, drift detection, and spec audits (plan-format, phase-list, phase-check-complete, phase-report-time, spec-reconcile-state, plan-report-time, spec-audit)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-11-27T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -790,6 +884,11 @@
         "supported": true,
         "description": "Spec authoring tools for creating specs, managing tasks, and updating metadata",
         "tools": ["spec-create", "spec-template", "task-add", "task-remove", "assumption-add", "assumption-list", "revision-add", "spec-update-frontmatter"]
+      },
+      "planning_tools": {
+        "supported": true,
+        "description": "Planning and execution utilities for task formatting, phase management, time tracking, and spec audits",
+        "tools": ["plan-format", "phase-list", "phase-check-complete", "phase-report-time", "spec-reconcile-state", "plan-report-time", "spec-audit"]
       }
     },
     "api_version": "2024-11-01"
