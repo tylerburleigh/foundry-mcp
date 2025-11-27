@@ -406,3 +406,193 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="phase-check-complete",
+    )
+    def phase_check_complete(
+        spec_id: str,
+        phase_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Verify completion readiness for a phase or spec.
+
+        Wraps the SDD CLI check-complete command to verify whether
+        all tasks in a phase or the entire spec are completed and
+        ready for sign-off.
+
+        WHEN TO USE:
+        - Verifying phase completion before moving to next phase
+        - Checking if a spec is ready for final review
+        - Validating that all tasks in a scope are done
+        - Pre-merge verification of spec completion
+
+        Args:
+            spec_id: Specification ID to check
+            phase_id: Optional phase ID to limit scope (mutually exclusive with task_id)
+            task_id: Optional task ID to limit scope (mutually exclusive with phase_id)
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with completion status:
+            - is_complete: Boolean indicating if scope is fully complete
+            - scope: The scope checked (spec, phase, or task)
+            - total_tasks: Total tasks in scope
+            - completed_tasks: Number of completed tasks
+            - pending_tasks: Array of pending task IDs (if any)
+            - blocked_tasks: Array of blocked task IDs (if any)
+        """
+        tool_name = "phase_check_complete"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            # Validate mutual exclusivity
+            if phase_id and task_id:
+                return asdict(error_response(
+                    "phase_id and task_id are mutually exclusive",
+                    error_code="INVALID_PARAMS",
+                    error_type="validation",
+                    remediation="Provide either phase_id or task_id, not both",
+                ))
+
+            # Build command
+            cmd = ["sdd", "check-complete", spec_id, "--json"]
+
+            if phase_id:
+                cmd.extend(["--phase", phase_id])
+            elif task_id:
+                cmd.extend(["--task", task_id])
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Determine scope for logging
+            scope = "spec"
+            scope_id = spec_id
+            if phase_id:
+                scope = "phase"
+                scope_id = phase_id
+            elif task_id:
+                scope = "task"
+                scope_id = task_id
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="phase-check-complete",
+                action="check_complete",
+                spec_id=spec_id,
+                scope=scope,
+                scope_id=scope_id,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                total = output_data.get("total_tasks", 0)
+                completed = output_data.get("completed_tasks", 0)
+                pending = output_data.get("pending_tasks", [])
+                blocked = output_data.get("blocked_tasks", [])
+
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "scope": scope,
+                    "is_complete": output_data.get("is_complete", total > 0 and total == completed),
+                    "total_tasks": total,
+                    "completed_tasks": completed,
+                    "pending_tasks": pending,
+                    "blocked_tasks": blocked,
+                }
+
+                if phase_id:
+                    data["phase_id"] = phase_id
+                elif task_id:
+                    data["task_id"] = task_id
+
+                # Track metrics
+                _metrics.counter(f"planning.{tool_name}", labels={"status": "success", "scope": scope})
+
+                # Craft appropriate message
+                if data["is_complete"]:
+                    message = f"{scope.title()} is complete ({completed}/{total} tasks)"
+                else:
+                    remaining = total - completed
+                    message = f"{scope.title()} incomplete: {remaining} tasks remaining"
+
+                return asdict(success_response(
+                    data=data,
+                    message=message,
+                ))
+            else:
+                # Handle specific error cases
+                stderr = result.stderr.strip()
+
+                if "not found" in stderr.lower():
+                    error_code = "NOT_FOUND"
+                    remediation = "Ensure the spec_id (and phase_id/task_id if provided) exists"
+                else:
+                    error_code = "CHECK_FAILED"
+                    remediation = "Check the spec_id and try again"
+
+                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
+
+                return asdict(error_response(
+                    stderr or "Failed to check completion",
+                    error_code=error_code,
+                    error_type="planning",
+                    remediation=remediation,
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="resilience",
+                remediation="Wait for circuit breaker recovery, then retry",
+            ))
+
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Completion check timed out after {CLI_TIMEOUT}s",
+                error_code="TIMEOUT",
+                error_type="timeout",
+                remediation="Try again or check system resources",
+            ))
+
+        except FileNotFoundError:
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="configuration",
+                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            ))
+
+        except Exception as e:
+            logger.exception(f"Unexpected error in {tool_name}")
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
