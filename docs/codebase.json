@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:03:13.174025Z",
-    "generated_at_commit": "a9473cd0c88e6983d7e9e3b80b77c5a698bf59f2",
+    "generated_at": "2025-11-27T13:05:17.636661Z",
+    "generated_at_commit": "9e9903545c05bf1a4347ce5bc0b67b2333f8f313",
     "languages": [
       "python"
     ],
@@ -11,9 +11,9 @@
   },
   "statistics": {
     "total_files": 32,
-    "total_lines": 12886,
+    "total_lines": 12956,
     "total_classes": 47,
-    "total_functions": 148,
+    "total_functions": 149,
     "avg_complexity": 7.26,
     "max_complexity": 59,
     "high_complexity_functions": [
@@ -26,9 +26,9 @@
     "by_language": {
       "python": {
         "files": 32,
-        "lines": 12886,
+        "lines": 12956,
         "classes": 47,
-        "functions": 148,
+        "functions": 149,
         "avg_complexity": 7.26
       }
     }
@@ -227,11 +227,13 @@
       ],
       "functions": [
         "get_registry",
-        "feature_flag"
+        "feature_flag",
+        "flag_override"
       ],
       "imports": [
         "hashlib",
         "logging",
+        "contextlib.contextmanager",
         "contextvars.ContextVar",
         "dataclasses.asdict",
         "dataclasses.dataclass",
@@ -243,6 +245,7 @@
         "typing.Any",
         "typing.Callable",
         "typing.Dict",
+        "typing.Generator",
         "typing.Optional",
         "typing.Set",
         "typing.TypeVar",
@@ -251,7 +254,7 @@
         "foundry_mcp.core.responses.error_response"
       ],
       "exports": [],
-      "lines": 462
+      "lines": 532
     },
     {
       "name": "journal",
@@ -1801,7 +1804,7 @@
     {
       "name": "FlagState",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 50,
+      "line": 51,
       "language": "python",
       "docstring": "Lifecycle state for feature flags.\n\nFeature flags progress through states as they mature:\n\nEXPERIMENTAL: Early development, opt-in only, may change without notice, no SLA\nBETA: Feature-complete but not fully validated, default off, opt-in available, some SLA\nSTABLE: Production-ready, default on, full SLA guarantees\nDEPRECATED: Being phased out, warns on use, will be removed after expiration\n\nExample:\n    >>> flag = FeatureFlag(name=\"my_feature\", state=FlagState.EXPERIMENTAL)\n    >>> if flag.state == FlagState.DEPRECATED:\n    ...     logger.warning(\"Feature is deprecated\")",
       "bases": [
@@ -1818,7 +1821,7 @@
     {
       "name": "FeatureFlag",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 73,
+      "line": 74,
       "language": "python",
       "docstring": "Definition of a feature flag with lifecycle and rollout configuration.\n\nAttributes:\n    name: Unique identifier for the flag (used in code and config)\n    description: Human-readable description of what this flag controls\n    state: Current lifecycle state (experimental/beta/stable/deprecated)\n    default_enabled: Whether the flag is enabled by default\n    created_at: When the flag was created (defaults to now)\n    expires_at: Optional expiration date after which flag should be removed\n    owner: Team or individual responsible for this flag\n    percentage_rollout: Percentage of clients that should have flag enabled (0-100)\n    allowed_clients: If non-empty, only these clients can access the flag\n    blocked_clients: These clients are explicitly denied access\n    dependencies: Other flags that must be enabled for this flag to be enabled\n    metadata: Additional key-value metadata for the flag\n\nExample:\n    >>> flag = FeatureFlag(\n    ...     name=\"new_search\",\n    ...     description=\"Enable new search algorithm\",\n    ...     state=FlagState.BETA,\n    ...     default_enabled=False,\n    ...     percentage_rollout=25.0,\n    ...     owner=\"search-team\",\n    ... )\n    >>> flag.is_expired()\n    False",
       "bases": [],
@@ -1835,7 +1838,7 @@
     {
       "name": "FeatureFlagRegistry",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 142,
+      "line": 143,
       "language": "python",
       "docstring": "Registry for managing feature flags with evaluation logic.\n\nProvides flag registration, client-specific evaluation, percentage rollouts,\nand override support for testing.\n\nExample:\n    >>> registry = FeatureFlagRegistry()\n    >>> registry.register(FeatureFlag(\n    ...     name=\"new_feature\",\n    ...     description=\"Test feature\",\n    ...     state=FlagState.BETA,\n    ...     default_enabled=False,\n    ... ))\n    >>> registry.is_enabled(\"new_feature\", client_id=\"user123\")\n    False",
       "bases": [],
@@ -1858,7 +1861,7 @@
         {
           "instantiator": "<module>",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 368,
+          "line": 369,
           "context": []
         }
       ],
@@ -4173,7 +4176,7 @@
     {
       "name": "get_registry",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 371,
+      "line": 372,
       "language": "python",
       "docstring": "Get the default feature flag registry.",
       "parameters": [],
@@ -4187,17 +4190,23 @@
         {
           "name": "wrapper",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 424,
+          "line": 425,
+          "call_type": "function_call"
+        },
+        {
+          "name": "flag_override",
+          "file": "src/foundry_mcp/core/feature_flags.py",
+          "line": 501,
           "call_type": "function_call"
         }
       ],
       "calls": [],
-      "call_count": 1
+      "call_count": 2
     },
     {
       "name": "feature_flag",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 380,
+      "line": 381,
       "language": "python",
       "docstring": "Decorator to gate function execution behind a feature flag.\n\nWhen the feature flag is not enabled for the current client, the decorated\nfunction will not execute. Instead, it returns a FEATURE_DISABLED error\nresponse (or invokes the fallback if provided).\n\nArgs:\n    flag_name: Name of the feature flag to check\n    fallback: Optional fallback function to call when flag is disabled.\n        If provided, this function is called with the same arguments.\n        If not provided, returns a FEATURE_DISABLED error response.\n    registry: Optional registry to use. Defaults to the global registry.\n\nReturns:\n    Decorated function that checks the flag before execution\n\nExample:\n    >>> @feature_flag(\"new_algorithm\")\n    ... def process_data(data: dict) -> dict:\n    ...     return {\"processed\": True}\n    ...\n    >>> # When flag is disabled, returns error response\n    >>> result = process_data({\"input\": \"test\"})\n    >>> result[\"success\"]\n    False\n    >>> result[\"data\"][\"error_code\"]\n    'FEATURE_DISABLED'\n\n    >>> # With fallback function\n    >>> @feature_flag(\"new_algorithm\", fallback=legacy_process)\n    ... def process_data(data: dict) -> dict:\n    ...     return {\"processed\": True, \"algorithm\": \"new\"}\n    ...\n    >>> # When flag is disabled, calls legacy_process instead",
       "parameters": [
@@ -4215,6 +4224,66 @@
       "is_public": true,
       "callers": [],
       "calls": []
+    },
+    {
+      "name": "flag_override",
+      "file": "src/foundry_mcp/core/feature_flags.py",
+      "line": 456,
+      "language": "python",
+      "docstring": "Context manager for temporarily overriding a feature flag value.\n\nUseful for testing code paths that depend on feature flags without\nmodifying the actual flag configuration. The override is automatically\ncleaned up when the context exits, even if an exception occurs.\n\nArgs:\n    flag_name: Name of the feature flag to override\n    enabled: The override value (True to enable, False to disable)\n    client_id: Optional client ID for the override (defaults to current_client_id)\n    registry: Optional registry to use (defaults to global registry)\n\nYields:\n    None\n\nExample:\n    >>> registry = FeatureFlagRegistry()\n    >>> registry.register(FeatureFlag(\n    ...     name=\"new_feature\",\n    ...     description=\"Test\",\n    ...     state=FlagState.BETA,\n    ...     default_enabled=False,\n    ... ))\n    >>> # Flag is disabled by default\n    >>> registry.is_enabled(\"new_feature\")\n    False\n    >>> # Override to enable temporarily\n    >>> with flag_override(\"new_feature\", True, registry=registry):\n    ...     registry.is_enabled(\"new_feature\")\n    True\n    >>> # Back to original state after context\n    >>> registry.is_enabled(\"new_feature\")\n    False\n\n    >>> # Use in tests to force flag states\n    >>> with flag_override(\"new_feature\", True):\n    ...     result = my_flagged_function()  # Runs with flag enabled",
+      "parameters": [
+        {
+          "name": "flag_name",
+          "type": "str",
+          "default": null
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "default": null
+        }
+      ],
+      "return_type": "Generator[None, None, None]",
+      "complexity": 6,
+      "decorators": [
+        "contextmanager"
+      ],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "get_registry",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
+          "line": 501,
+          "call_type": "function_call"
+        },
+        {
+          "name": "get",
+          "file": "src/foundry_mcp/core/feature_flags.py",
+          "line": 502,
+          "call_type": "method_call"
+        },
+        {
+          "name": "set_override",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
+          "line": 513,
+          "call_type": "method_call"
+        },
+        {
+          "name": "set_override",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
+          "line": 518,
+          "call_type": "method_call"
+        },
+        {
+          "name": "clear_override",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
+          "line": 520,
+          "call_type": "method_call"
+        }
+      ]
     },
     {
       "name": "add_journal_entry",
@@ -5189,7 +5258,7 @@
         },
         {
           "name": "read",
-          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -9400,7 +9469,7 @@
         {
           "name": "wrapper",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 436,
+          "line": 437,
           "call_type": "function_call"
         },
         {
@@ -17400,6 +17469,7 @@
     "src/foundry_mcp/core/feature_flags.py": [
       "hashlib",
       "logging",
+      "contextlib.contextmanager",
       "contextvars.ContextVar",
       "dataclasses.asdict",
       "dataclasses.dataclass",
@@ -17411,6 +17481,7 @@
       "typing.Any",
       "typing.Callable",
       "typing.Dict",
+      "typing.Generator",
       "typing.Optional",
       "typing.Set",
       "typing.TypeVar",

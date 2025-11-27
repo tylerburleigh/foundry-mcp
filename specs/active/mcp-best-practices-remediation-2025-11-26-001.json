@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:04:42.159502Z",
+  "last_updated": "2025-11-27T13:06:25.961463Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 21,
+    "progress_percentage": 22,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 22,
+      "completed_tasks": 23,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -552,7 +552,7 @@
         "task-2-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -682,7 +682,7 @@
     "task-2-2": {
       "type": "task",
       "title": "tests/unit/test_core/test_feature_flags.py (NEW)",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2-files",
       "children": [
         "task-2-2-1",
@@ -697,7 +697,7 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_core/test_feature_flags.py",
         "task_category": "implementation",
@@ -707,12 +707,19 @@
     "task-2-2-1": {
       "type": "subtask",
       "title": "Test flag registration and lookup",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:05:18.651985Z",
+        "status_note": "Starting implementation of flag registration and lookup tests",
+        "completed_at": "2025-11-27T13:06:25.940915Z",
+        "needs_journaling": false,
+        "actual_hours": 0.019,
+        "journaled_at": "2025-11-27T13:06:25.953719Z"
+      }
     },
     "task-2-2-2": {
       "type": "subtask",
@@ -3539,6 +3546,15 @@
       "content": "Implemented flag_override context manager for testing. Features: temporarily overrides flag values within a context, automatically restores original state on exit (including exception scenarios), supports nested overrides, client-specific overrides, and custom registry. All 5 test scenarios pass: basic enable override, disable override, nested overrides, exception handling cleanup, and client-specific overrides.",
       "metadata": {},
       "task_id": "task-2-1-5"
+    },
+    {
+      "timestamp": "2025-11-27T13:06:25.953695Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test flag registration and lookup",
+      "author": "claude-code",
+      "content": "Created TestFlagRegistrationAndLookup test class with 17 tests covering: basic flag registration, duplicate registration error, nonexistent flag lookup, listing flags, is_enabled with unknown flags, basic enabled/disabled flags, FlagState enum values, FeatureFlag to_dict serialization, flag expiration detection, expired flag behavior, client override precedence, blocklist access denial, allowlist access restriction, flag dependencies evaluation, get_flags_for_capabilities for endpoint response, global registry singleton, and clear_all_overrides. All 17 tests pass.",
+      "metadata": {},
+      "task_id": "task-2-2-1"
     }
   ]
 }
