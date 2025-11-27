@@ -1,6 +1,10 @@
 """
 Validation operations for SDD spec files.
 Provides spec validation, auto-fix capabilities, and statistics.
+
+Security Note:
+    This module uses size limits from foundry_mcp.core.security to protect
+    against resource exhaustion attacks. See docs/mcp_best_practices/04-validation-input-hygiene.md
 """
 
 from dataclasses import dataclass, field
@@ -10,6 +14,13 @@ import json
 import re
 import copy
 from datetime import datetime, timezone
+
+from foundry_mcp.core.security import (
+    MAX_INPUT_SIZE,
+    MAX_ARRAY_LENGTH,
+    MAX_STRING_LENGTH,
+    MAX_NESTED_DEPTH,
+)
 
 
 # Validation result data structures

@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T12:32:33.676514Z",
-    "generated_at_commit": "3ba8eed1aa686f2ab12d9bb5c2f6d875f56a4250",
+    "generated_at": "2025-11-27T12:33:47.418795Z",
+    "generated_at_commit": "ec13f1da375da7a75da9f998bfcb9aa3ac60499a",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 31,
-    "total_lines": 12129,
+    "total_lines": 12236,
     "total_classes": 44,
-    "total_functions": 141,
-    "avg_complexity": 7.38,
+    "total_functions": 143,
+    "avg_complexity": 7.35,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 31,
-        "lines": 12129,
+        "lines": 12236,
         "classes": 44,
-        "functions": 141,
-        "avg_complexity": 7.38
+        "functions": 143,
+        "avg_complexity": 7.35
       }
     }
   },
@@ -306,6 +306,8 @@
         "AuditLogger"
       ],
       "functions": [
+        "redact_sensitive_data",
+        "redact_for_logging",
         "get_metrics",
         "get_audit_logger",
         "audit_log",
@@ -335,7 +337,7 @@
         "enum.Enum"
       ],
       "exports": [],
-      "lines": 538
+      "lines": 645
     },
     {
       "name": "progress",
@@ -1937,7 +1939,7 @@
     {
       "name": "MetricType",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 99,
+      "line": 206,
       "language": "python",
       "docstring": "Types of metrics that can be emitted.",
       "bases": [
@@ -1953,7 +1955,7 @@
     {
       "name": "AuditEventType",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 107,
+      "line": 214,
       "language": "python",
       "docstring": "Types of audit events for security logging.",
       "bases": [
@@ -1967,7 +1969,7 @@
         {
           "instantiator": "audit_log",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 352,
+          "line": 459,
           "context": [
             "audit_log"
           ]
@@ -1979,7 +1981,7 @@
     {
       "name": "Metric",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 119,
+      "line": 226,
       "language": "python",
       "docstring": "Structured metric data.",
       "bases": [],
@@ -1993,7 +1995,7 @@
         {
           "instantiator": "counter",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 190,
+          "line": 297,
           "context": [
             "MetricsCollector",
             "counter"
@@ -2002,7 +2004,7 @@
         {
           "instantiator": "gauge",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 204,
+          "line": 311,
           "context": [
             "MetricsCollector",
             "gauge"
@@ -2011,7 +2013,7 @@
         {
           "instantiator": "timer",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 218,
+          "line": 325,
           "context": [
             "MetricsCollector",
             "timer"
@@ -2024,7 +2026,7 @@
     {
       "name": "AuditEvent",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 139,
+      "line": 246,
       "language": "python",
       "docstring": "Structured audit event for security logging.",
       "bases": [],
@@ -2038,7 +2040,7 @@
         {
           "instantiator": "auth_success",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 259,
+          "line": 366,
           "context": [
             "AuditLogger",
             "auth_success"
@@ -2047,7 +2049,7 @@
         {
           "instantiator": "auth_failure",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 273,
+          "line": 380,
           "context": [
             "AuditLogger",
             "auth_failure"
@@ -2056,7 +2058,7 @@
         {
           "instantiator": "rate_limit",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 287,
+          "line": 394,
           "context": [
             "AuditLogger",
             "rate_limit"
@@ -2065,7 +2067,7 @@
         {
           "instantiator": "resource_access",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 301,
+          "line": 408,
           "context": [
             "AuditLogger",
             "resource_access"
@@ -2074,7 +2076,7 @@
         {
           "instantiator": "tool_invocation",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 319,
+          "line": 426,
           "context": [
             "AuditLogger",
             "tool_invocation"
@@ -2083,7 +2085,7 @@
         {
           "instantiator": "audit_log",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 357,
+          "line": 464,
           "context": [
             "audit_log"
           ]
@@ -2095,7 +2097,7 @@
     {
       "name": "MetricsCollector",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 164,
+      "line": 271,
       "language": "python",
       "docstring": "Collects and emits metrics to the standard logger.\n\nMetrics are logged as structured JSON for easy parsing by\nlog aggregation systems (e.g., Datadog, Splunk, CloudWatch).",
       "bases": [],
@@ -2113,7 +2115,7 @@
         {
           "instantiator": "<module>",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 227,
+          "line": 334,
           "context": []
         }
       ],
@@ -2123,7 +2125,7 @@
     {
       "name": "AuditLogger",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 235,
+      "line": 342,
       "language": "python",
       "docstring": "Structured audit logging for security events.\n\nAudit logs are written to a separate logger for easy filtering\nand compliance requirements.",
       "bases": [],
@@ -2143,7 +2145,7 @@
         {
           "instantiator": "<module>",
           "file": "src/foundry_mcp/core/observability.py",
-          "line": 331,
+          "line": 438,
           "context": []
         }
       ],
@@ -4964,7 +4966,7 @@
         },
         {
           "name": "read",
-          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5891,9 +5893,177 @@
       "call_count": 1
     },
     {
+      "name": "redact_sensitive_data",
+      "file": "src/foundry_mcp/core/observability.py",
+      "line": 97,
+      "language": "python",
+      "docstring": "Recursively redact sensitive data from strings, dicts, and lists.\n\nScans input data for sensitive patterns (API keys, passwords, PII, etc.)\nand replaces matches with redaction markers. Safe for use before logging\nor including data in error messages.\n\nArgs:\n    data: The data to redact (string, dict, list, or nested structure)\n    patterns: Custom patterns to use (default: SENSITIVE_PATTERNS)\n    redaction_format: Format string for redaction markers (uses {label})\n    max_depth: Maximum recursion depth to prevent stack overflow\n\nReturns:\n    A copy of the data with sensitive values redacted\n\nExample:\n    >>> data = {\"api_key\": \"sk_live_abc123...\", \"user\": \"john\"}\n    >>> safe_data = redact_sensitive_data(data)\n    >>> logger.info(\"Request data\", extra={\"data\": safe_data})",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "Any",
+          "default": null
+        }
+      ],
+      "return_type": "Any",
+      "complexity": 8,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "redact_sensitive_data",
+          "file": "src/foundry_mcp/core/observability.py",
+          "line": 157,
+          "call_type": "function_call"
+        },
+        {
+          "name": "redact_sensitive_data",
+          "file": "src/foundry_mcp/core/observability.py",
+          "line": 167,
+          "call_type": "function_call"
+        },
+        {
+          "name": "redact_for_logging",
+          "file": "src/foundry_mcp/core/observability.py",
+          "line": 196,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "isinstance",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 138,
+          "call_type": "function_call"
+        },
+        {
+          "name": "redact_string",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 139,
+          "call_type": "function_call"
+        },
+        {
+          "name": "isinstance",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 141,
+          "call_type": "function_call"
+        },
+        {
+          "name": "items",
+          "file": "built-in",
+          "line": 150,
+          "call_type": "method_call"
+        },
+        {
+          "name": "replace",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 151,
+          "call_type": "method_call"
+        },
+        {
+          "name": "lower",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 151,
+          "call_type": "method_call"
+        },
+        {
+          "name": "str",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 151,
+          "call_type": "function_call"
+        },
+        {
+          "name": "upper",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 154,
+          "call_type": "method_call"
+        },
+        {
+          "name": "redact_sensitive_data",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 157,
+          "call_type": "function_call"
+        },
+        {
+          "name": "isinstance",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 165,
+          "call_type": "function_call"
+        },
+        {
+          "name": "redact_sensitive_data",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 167,
+          "call_type": "function_call"
+        },
+        {
+          "name": "isinstance",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 175,
+          "call_type": "function_call"
+        },
+        {
+          "name": "type",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 175,
+          "call_type": "function_call"
+        },
+        {
+          "name": "type",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 175,
+          "call_type": "function_call"
+        }
+      ],
+      "call_count": 3
+    },
+    {
+      "name": "redact_for_logging",
+      "file": "src/foundry_mcp/core/observability.py",
+      "line": 182,
+      "language": "python",
+      "docstring": "Convenience function to redact and serialize data for logging.\n\nCombines redaction with JSON serialization for safe logging.\n\nArgs:\n    data: Data to redact and serialize\n\nReturns:\n    JSON string with sensitive data redacted\n\nExample:\n    >>> logger.info(f\"Processing request: {redact_for_logging(request_data)}\")",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "Any",
+          "default": null
+        }
+      ],
+      "return_type": "str",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "redact_sensitive_data",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
+          "line": 196,
+          "call_type": "function_call"
+        },
+        {
+          "name": "dumps",
+          "file": "/home/tyler/anaconda3/lib/python3.11/json/__init__.py",
+          "line": 198,
+          "call_type": "method_call"
+        },
+        {
+          "name": "str",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 200,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
       "name": "get_metrics",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 230,
+      "line": 337,
       "language": "python",
       "docstring": "Get the global metrics collector.",
       "parameters": [],
@@ -5917,7 +6087,7 @@
     {
       "name": "get_audit_logger",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 334,
+      "line": 441,
       "language": "python",
       "docstring": "Get the global audit logger.",
       "parameters": [],
@@ -5933,7 +6103,7 @@
     {
       "name": "audit_log",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 339,
+      "line": 446,
       "language": "python",
       "docstring": "Convenience function for audit logging.\n\nArgs:\n    event_type: Type of event (auth_success, auth_failure, rate_limit,\n                resource_access, tool_invocation, permission_denied, config_change)\n    **details: Additional details to include in the audit log",
       "parameters": [
@@ -5979,7 +6149,7 @@
         {
           "name": "log",
           "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/observability.py",
-          "line": 357,
+          "line": 464,
           "call_type": "method_call"
         }
       ],
@@ -5988,7 +6158,7 @@
     {
       "name": "mcp_tool",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 360,
+      "line": 467,
       "language": "python",
       "docstring": "Decorator for MCP tool handlers with observability.\n\nAutomatically:\n- Logs tool invocations\n- Emits latency and status metrics\n- Creates audit log entries\n\nArgs:\n    tool_name: Override tool name (defaults to function name)\n    emit_metrics: Whether to emit metrics\n    audit: Whether to create audit log entries",
       "parameters": [
@@ -6304,7 +6474,7 @@
     {
       "name": "mcp_resource",
       "file": "src/foundry_mcp/core/observability.py",
-      "line": 448,
+      "line": 555,
       "language": "python",
       "docstring": "Decorator for MCP resource handlers with observability.\n\nAutomatically:\n- Logs resource access\n- Emits latency and status metrics\n- Creates audit log entries\n\nArgs:\n    resource_type: Type of resource (e.g., \"spec\", \"journal\")\n    emit_metrics: Whether to emit metrics\n    audit: Whether to create audit log entries",
       "parameters": [
