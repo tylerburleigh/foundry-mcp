@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T20:38:58.128281Z",
+  "last_updated": "2025-11-27T20:46:14.933189Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 26,
+    "progress_percentage": 28,
     "status": "active",
     "current_phase": "phase-2"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 24,
+      "completed_tasks": 25,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -472,7 +472,7 @@
         ]
       },
       "total_tasks": 13,
-      "completed_tasks": 11,
+      "completed_tasks": 12,
       "metadata": {
         "purpose": "Extend spec analysis and validation capabilities",
         "risk_level": "low"
@@ -763,7 +763,7 @@
         "blocks": []
       },
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "verify-2-1": {
@@ -815,16 +815,22 @@
     "verify-2-3": {
       "type": "verify",
       "title": "Phase 2 implementation fidelity review",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "fidelity",
         "agent": "sdd-fidelity-review",
         "scope": "phase",
-        "target": "phase-2"
+        "target": "phase-2",
+        "started_at": "2025-11-27T20:39:22.448912Z",
+        "status_note": "Running fidelity review for phase-2",
+        "completed_at": "2025-11-27T20:46:14.923668Z",
+        "needs_journaling": false,
+        "actual_hours": 0.115,
+        "journaled_at": "2025-11-27T20:46:14.930010Z"
       }
     },
     "verify-2-4": {
@@ -2566,6 +2572,15 @@
       "content": "Manual verification PASSED. Cycle detection functionality confirmed working via 10 dedicated tests (6 unit + 4 integration). Tests verify: simple A->B->A cycles, complex A->B->C->D->B cycles, multiple independent cycles, acyclic graph validation, affected_tasks derivation, metadata inclusion, error handling, and timeout scenarios. All tests pass (0.28s).",
       "metadata": {},
       "task_id": "verify-2-2"
+    },
+    {
+      "timestamp": "2025-11-27T20:46:14.930000Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 2 implementation fidelity review",
+      "author": "claude-code",
+      "content": "Fidelity review identified 2 CRITICAL blocking issues - tools not registered in server.py and tools/__init__.py. Both issues FIXED: (1) Added import and export of register_spec_helper_tools in tools/__init__.py, (2) Added import and call to register_spec_helper_tools(mcp, config) in server.py:86. Import verified working. Phase 2 implementation now complete with tools properly registered and accessible to clients.",
+      "metadata": {},
+      "task_id": "verify-2-3"
     }
   ]
 }
