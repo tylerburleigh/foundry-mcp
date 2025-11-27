@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T14:26:52.114346Z",
-    "generated_at_commit": "e8c7ad3c85218d5194fd2f9b7903aad578cbd971",
+    "generated_at": "2025-11-27T14:28:03.465026Z",
+    "generated_at_commit": "4af70bbb9f75a44ccfc2a139f148de56857a1f2d",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 35,
-    "total_lines": 14650,
-    "total_classes": 58,
-    "total_functions": 168,
-    "avg_complexity": 7.07,
+    "total_lines": 14828,
+    "total_classes": 59,
+    "total_functions": 169,
+    "avg_complexity": 7.04,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 35,
-        "lines": 14650,
-        "classes": 58,
-        "functions": 168,
-        "avg_complexity": 7.07
+        "lines": 14828,
+        "classes": 59,
+        "functions": 169,
+        "avg_complexity": 7.04
       }
     }
   },
@@ -188,9 +188,12 @@
       "classes": [
         "ParameterType",
         "ParameterMetadata",
-        "ToolMetadata"
+        "ToolMetadata",
+        "ToolRegistry"
       ],
-      "functions": [],
+      "functions": [
+        "get_tool_registry"
+      ],
       "imports": [
         "dataclasses.dataclass",
         "dataclasses.field",
@@ -204,7 +207,7 @@
         "typing.TypeVar"
       ],
       "exports": [],
-      "lines": 181
+      "lines": 359
     },
     {
       "name": "docs",
@@ -1464,6 +1467,39 @@
       "is_public": true,
       "instantiated_by": [],
       "imported_by": []
+    },
+    {
+      "name": "ToolRegistry",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 184,
+      "language": "python",
+      "docstring": "Central registry for MCP tool metadata.\n\nProvides tool registration, discovery, and filtering capabilities.\nUsed by MCP servers to expose tool information to clients.\n\nExample:\n    >>> registry = ToolRegistry()\n    >>> registry.register(ToolMetadata(\n    ...     name=\"get_user\",\n    ...     description=\"Get user by ID\",\n    ...     category=\"users\",\n    ... ))\n    >>> tools = registry.list_tools(category=\"users\")",
+      "bases": [],
+      "methods": [
+        "__init__",
+        "register",
+        "unregister",
+        "get",
+        "list_tools",
+        "get_tool_schema",
+        "list_categories",
+        "get_stats"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "get_tool_registry",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 358,
+          "context": [
+            "get_tool_registry"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 1
     },
     {
       "name": "QueryResult",
@@ -3963,6 +3999,22 @@
       ]
     },
     {
+      "name": "get_tool_registry",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 354,
+      "language": "python",
+      "docstring": "Get the global tool registry.",
+      "parameters": [],
+      "return_type": "ToolRegistry",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
+    },
+    {
       "name": "load_docs",
       "file": "src/foundry_mcp/core/docs.py",
       "line": 730,
@@ -5643,7 +5695,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
