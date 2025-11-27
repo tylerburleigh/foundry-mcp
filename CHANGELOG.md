@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Tool Discovery & Lifecycle (Phase 6):
+  - Documentation for tool metadata and discovery (`docs/mcp_best_practices/13-tool-discovery.md`):
+    - `ToolDefinition` dataclass with name, description, parameters, category, version, deprecation markers
+    - `Parameter` dataclass with type, constraints, examples, and defaults
+    - JSON Schema generation from tool definitions via `tool_to_json_schema()`
+    - Discovery endpoints: `list_tools()` with category/tag filtering, `get_tool_schema()` for detailed schemas
+    - Capability negotiation: `ServerCapabilities` dataclass, `get_capabilities()`, `negotiate_capabilities()`
+    - LLM-friendly description patterns with WHEN TO USE/WHEN NOT TO USE guidance
+    - Tool category organization for grouping related tools
+    - `@deprecated_tool` decorator with replacement and removal version markers
+    - Rate limit documentation patterns with `RateLimitInfo` dataclass
+    - Anti-patterns guidance (vague descriptions, missing parameters, hidden breaking changes)
 - Pagination System (Phase 5):
   - Cursor-based pagination for all list-style tools:
     - Opaque Base64-encoded cursors with `last_id`, `version` fields

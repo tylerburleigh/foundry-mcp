@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T14:18:58.750782Z",
+  "last_updated": "2025-11-27T14:25:07.792276Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 64,
+    "progress_percentage": 65,
     "current_phase": "phase-6"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 66,
+      "completed_tasks": 67,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1876,7 +1876,7 @@
         "depends": []
       },
       "total_tasks": 16,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Enable clients to discover tools and negotiate capabilities",
         "risk_level": "low",
@@ -3206,7 +3206,7 @@
     "phase-6-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-6",
       "children": [
         "phase-6-docs-1",
@@ -3222,12 +3222,15 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
           "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T14:25:07.777672Z",
+        "journaled_at": "2025-11-27T14:25:07.792236Z"
       }
     },
     "phase-6-docs-1": {
@@ -3271,7 +3274,7 @@
     "phase-6-docs-2": {
       "type": "task",
       "title": "CHANGELOG.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-docs",
       "children": [
         "phase-6-docs-2-1"
@@ -3282,7 +3285,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "CHANGELOG.md",
         "task_category": "implementation",
@@ -3292,12 +3295,19 @@
     "phase-6-docs-2-1": {
       "type": "subtask",
       "title": "Document discovery feature launch and capability exposure.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-docs-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T14:24:35.066311Z",
+        "status_note": "Starting CHANGELOG documentation for discovery feature",
+        "completed_at": "2025-11-27T14:25:07.777461Z",
+        "needs_journaling": false,
+        "actual_hours": 0.009,
+        "journaled_at": "2025-11-27T14:25:07.785129Z"
+      }
     },
     "phase-7-docs": {
       "type": "group",
@@ -4390,6 +4400,24 @@
       "content": "Verified docs/mcp_best_practices/13-tool-discovery.md already contains comprehensive documentation for: (1) Discovery endpoints - list_tools() and get_tool_schema() functions (lines 178-243); (2) Capability negotiation - ServerCapabilities dataclass, get_capabilities(), and negotiate_capabilities() with version/feature negotiation (lines 245-330); (3) Deprecation markers - deprecated_tool decorator with replacement and removal_version parameters (lines 417-454). No additional changes needed - documentation is complete and comprehensive.",
       "metadata": {},
       "task_id": "phase-6-docs-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T14:25:07.785123Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Document discovery feature launch and capability exposure.",
+      "author": "claude-code",
+      "content": "Added Tool Discovery & Lifecycle (Phase 6) section to CHANGELOG.md documenting ToolDefinition and Parameter dataclasses, JSON Schema generation, discovery endpoints (list_tools, get_tool_schema), capability negotiation (ServerCapabilities, get_capabilities, negotiate_capabilities), LLM-friendly description patterns, category organization, @deprecated_tool decorator, rate limit documentation, and anti-patterns guidance.",
+      "metadata": {},
+      "task_id": "phase-6-docs-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T14:25:07.792228Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Documentation & Change Log",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-6-docs have been completed.",
+      "metadata": {},
+      "task_id": "phase-6-docs"
     }
   ]
 }
