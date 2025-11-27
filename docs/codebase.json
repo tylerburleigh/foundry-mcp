@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:22:55.039564Z",
-    "generated_at_commit": "93fd0a416ac0cee6fd56c7974182aba546893bf6",
+    "generated_at": "2025-11-27T13:24:18.398256Z",
+    "generated_at_commit": "0aa7b5be5392dd471c19651d6186847f06f9c7df",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 32,
-    "total_lines": 13023,
+    "total_lines": 13277,
     "total_classes": 49,
-    "total_functions": 149,
-    "avg_complexity": 7.26,
+    "total_functions": 157,
+    "avg_complexity": 7.01,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 32,
-        "lines": 13023,
+        "lines": 13277,
         "classes": 49,
-        "functions": 149,
-        "avg_complexity": 7.26
+        "functions": 157,
+        "avg_complexity": 7.01
       }
     }
   },
@@ -485,7 +485,15 @@
       "functions": [
         "_build_meta",
         "success_response",
-        "error_response"
+        "error_response",
+        "validation_error",
+        "not_found_error",
+        "rate_limit_error",
+        "unauthorized_error",
+        "forbidden_error",
+        "conflict_error",
+        "internal_error",
+        "unavailable_error"
       ],
       "imports": [
         "dataclasses.dataclass",
@@ -499,7 +507,7 @@
         "typing.Union"
       ],
       "exports": [],
-      "lines": 295
+      "lines": 549
     },
     {
       "name": "security",
@@ -5296,7 +5304,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -9511,6 +9519,54 @@
           "call_type": "function_call"
         },
         {
+          "name": "validation_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 331,
+          "call_type": "function_call"
+        },
+        {
+          "name": "not_found_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 359,
+          "call_type": "function_call"
+        },
+        {
+          "name": "rate_limit_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 389,
+          "call_type": "function_call"
+        },
+        {
+          "name": "unauthorized_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 416,
+          "call_type": "function_call"
+        },
+        {
+          "name": "forbidden_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 450,
+          "call_type": "function_call"
+        },
+        {
+          "name": "conflict_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 481,
+          "call_type": "function_call"
+        },
+        {
+          "name": "internal_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 509,
+          "call_type": "function_call"
+        },
+        {
+          "name": "unavailable_error",
+          "file": "src/foundry_mcp/core/responses.py",
+          "line": 542,
+          "call_type": "function_call"
+        },
+        {
           "name": "wrapper",
           "file": "src/foundry_mcp/core/security.py",
           "line": 337,
@@ -10431,7 +10487,266 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 150
+      "call_count": 158
+    },
+    {
+      "name": "validation_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 303,
+      "language": "python",
+      "docstring": "Create a validation error response (HTTP 400 analog).\n\nArgs:\n    message: Human-readable description of the validation failure.\n    field: The field that failed validation.\n    details: Additional context (e.g., constraint violated, value received).\n    remediation: Guidance on how to fix the input.\n    request_id: Correlation identifier.\n\nExample:\n    >>> validation_error(\n    ...     \"Invalid email format\",\n    ...     field=\"email\",\n    ...     remediation=\"Provide email in format: user@domain.com\",\n    ... )",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "dict",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 327,
+          "call_type": "function_call"
+        },
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 331,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "not_found_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 341,
+      "language": "python",
+      "docstring": "Create a not found error response (HTTP 404 analog).\n\nArgs:\n    resource_type: Type of resource (e.g., \"Spec\", \"Task\", \"User\").\n    resource_id: Identifier of the missing resource.\n    remediation: Guidance on how to resolve (defaults to verification hint).\n    request_id: Correlation identifier.\n\nExample:\n    >>> not_found_error(\"Spec\", \"my-spec-001\")",
+      "parameters": [
+        {
+          "name": "resource_type",
+          "type": "str",
+          "default": null
+        },
+        {
+          "name": "resource_id",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 359,
+          "call_type": "function_call"
+        },
+        {
+          "name": "lower",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 364,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "rate_limit_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 369,
+      "language": "python",
+      "docstring": "Create a rate limit error response (HTTP 429 analog).\n\nArgs:\n    limit: Maximum requests allowed in the period.\n    period: Time window (e.g., \"minute\", \"hour\").\n    retry_after_seconds: Seconds until client can retry.\n    remediation: Guidance on how to proceed.\n    request_id: Correlation identifier.\n\nExample:\n    >>> rate_limit_error(100, \"minute\", 45)",
+      "parameters": [
+        {
+          "name": "limit",
+          "type": "int",
+          "default": null
+        },
+        {
+          "name": "period",
+          "type": "str",
+          "default": null
+        },
+        {
+          "name": "retry_after_seconds",
+          "type": "int",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 389,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "unauthorized_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 400,
+      "language": "python",
+      "docstring": "Create an unauthorized error response (HTTP 401 analog).\n\nArgs:\n    message: Human-readable description.\n    remediation: Guidance on how to authenticate.\n    request_id: Correlation identifier.\n\nExample:\n    >>> unauthorized_error(\"Invalid API key\")",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 416,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "forbidden_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 425,
+      "language": "python",
+      "docstring": "Create a forbidden error response (HTTP 403 analog).\n\nArgs:\n    message: Human-readable description.\n    required_permission: The permission needed for this operation.\n    remediation: Guidance on how to obtain access.\n    request_id: Correlation identifier.\n\nExample:\n    >>> forbidden_error(\n    ...     \"Cannot delete project\",\n    ...     required_permission=\"project:delete\",\n    ... )",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 450,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "conflict_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 460,
+      "language": "python",
+      "docstring": "Create a conflict error response (HTTP 409 analog).\n\nArgs:\n    message: Human-readable description of the conflict.\n    details: Context about the conflicting state.\n    remediation: Guidance on how to resolve the conflict.\n    request_id: Correlation identifier.\n\nExample:\n    >>> conflict_error(\n    ...     \"Resource already exists\",\n    ...     details={\"existing_id\": \"spec-001\"},\n    ... )",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 481,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "internal_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 491,
+      "language": "python",
+      "docstring": "Create an internal error response (HTTP 500 analog).\n\nArgs:\n    message: Human-readable description (keep vague for security).\n    request_id: Correlation identifier for log correlation.\n\nExample:\n    >>> internal_error(request_id=\"req_abc123\")",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 509,
+          "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "unavailable_error",
+      "file": "src/foundry_mcp/core/responses.py",
+      "line": 518,
+      "language": "python",
+      "docstring": "Create an unavailable error response (HTTP 503 analog).\n\nArgs:\n    message: Human-readable description.\n    retry_after_seconds: Suggested retry delay.\n    request_id: Correlation identifier.\n\nExample:\n    >>> unavailable_error(\"Database maintenance in progress\", retry_after_seconds=300)",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "ToolResponse",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "error_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/responses.py",
+          "line": 542,
+          "call_type": "function_call"
+        }
+      ]
     },
     {
       "name": "detect_prompt_injection",

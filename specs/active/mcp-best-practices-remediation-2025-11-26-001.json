@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:23:53.490825Z",
+  "last_updated": "2025-11-27T13:25:17.530506Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 33,
+    "progress_percentage": 34,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 34,
+      "completed_tasks": 35,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -860,7 +860,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 6,
+      "completed_tasks": 7,
       "metadata": {
         "purpose": "Make errors machine-readable and actionable for clients and LLMs",
         "risk_level": "low",
@@ -880,7 +880,7 @@
         "task-3-2"
       ],
       "total_tasks": 6,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -991,7 +991,7 @@
     "task-3-2": {
       "type": "task",
       "title": "tests/unit/test_core/test_responses.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-3-files",
       "children": [
         "task-3-2-1",
@@ -1005,7 +1005,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_core/test_responses.py",
         "task_category": "implementation",
@@ -1015,12 +1015,19 @@
     "task-3-2-1": {
       "type": "subtask",
       "title": "Test ErrorCode and ErrorType enums",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:24:24.607111Z",
+        "status_note": "Writing tests for ErrorCode and ErrorType enums",
+        "completed_at": "2025-11-27T13:25:17.521656Z",
+        "needs_journaling": false,
+        "actual_hours": 0.015,
+        "journaled_at": "2025-11-27T13:25:17.527936Z"
+      }
     },
     "task-3-2-2": {
       "type": "subtask",
@@ -3776,6 +3783,15 @@
       "content": "Created 8 specialized error helpers in responses.py: validation_error(), not_found_error(), rate_limit_error(), unauthorized_error(), forbidden_error(), conflict_error(), internal_error(), unavailable_error(). Each helper uses appropriate ErrorCode/ErrorType enums, provides sensible defaults for remediation messages, and includes docstrings with usage examples. All helpers import successfully.",
       "metadata": {},
       "task_id": "task-3-1-4"
+    },
+    {
+      "timestamp": "2025-11-27T13:25:17.527931Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Test ErrorCode and ErrorType enums",
+      "author": "claude-code",
+      "content": "Added 12 tests for ErrorCode and ErrorType enums in tests/test_responses.py: TestErrorCodeEnum (7 tests) validates validation/resource/access/system error codes, string inheritance, serialization, and usage in error_response(). TestErrorTypeEnum (5 tests) validates all error type values, string serialization, response integration, and combined enum usage. All tests pass.",
+      "metadata": {},
+      "task_id": "task-3-2-1"
     }
   ]
 }

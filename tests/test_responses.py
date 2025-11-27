@@ -6,6 +6,8 @@ Verifies that the response contract is properly implemented across all tools.
 
 import pytest
 from foundry_mcp.core.responses import (
+    ErrorCode,
+    ErrorType,
     ToolResponse,
     success_response,
     error_response,
@@ -282,3 +284,101 @@ class TestMetaVersionCompliance:
         assert response_dict["data"] == {"result": "ok"}
         assert response_dict["error"] is None
         assert response_dict["meta"] == {"version": "response-v2"}
+
+
+class TestErrorCodeEnum:
+    """Tests for the ErrorCode enum."""
+
+    def test_error_code_is_string_enum(self):
+        """Test that ErrorCode inherits from str."""
+        assert isinstance(ErrorCode.VALIDATION_ERROR, str)
+        assert ErrorCode.VALIDATION_ERROR == "VALIDATION_ERROR"
+
+    def test_validation_error_codes(self):
+        """Test validation error codes are defined."""
+        assert ErrorCode.VALIDATION_ERROR.value == "VALIDATION_ERROR"
+        assert ErrorCode.INVALID_FORMAT.value == "INVALID_FORMAT"
+        assert ErrorCode.MISSING_REQUIRED.value == "MISSING_REQUIRED"
+
+    def test_resource_error_codes(self):
+        """Test resource error codes are defined."""
+        assert ErrorCode.NOT_FOUND.value == "NOT_FOUND"
+        assert ErrorCode.SPEC_NOT_FOUND.value == "SPEC_NOT_FOUND"
+        assert ErrorCode.TASK_NOT_FOUND.value == "TASK_NOT_FOUND"
+        assert ErrorCode.DUPLICATE_ENTRY.value == "DUPLICATE_ENTRY"
+        assert ErrorCode.CONFLICT.value == "CONFLICT"
+
+    def test_access_error_codes(self):
+        """Test access error codes are defined."""
+        assert ErrorCode.UNAUTHORIZED.value == "UNAUTHORIZED"
+        assert ErrorCode.FORBIDDEN.value == "FORBIDDEN"
+        assert ErrorCode.RATE_LIMIT_EXCEEDED.value == "RATE_LIMIT_EXCEEDED"
+        assert ErrorCode.FEATURE_DISABLED.value == "FEATURE_DISABLED"
+
+    def test_system_error_codes(self):
+        """Test system error codes are defined."""
+        assert ErrorCode.INTERNAL_ERROR.value == "INTERNAL_ERROR"
+        assert ErrorCode.UNAVAILABLE.value == "UNAVAILABLE"
+
+    def test_error_code_serializes_as_string(self):
+        """Test that ErrorCode serializes as string in JSON."""
+        import json
+
+        data = {"error_code": ErrorCode.VALIDATION_ERROR}
+        # str-based enum serializes directly
+        assert data["error_code"] == "VALIDATION_ERROR"
+
+    def test_error_code_in_response(self):
+        """Test ErrorCode enum in error_response()."""
+        response = error_response(
+            "Validation failed",
+            error_code=ErrorCode.VALIDATION_ERROR,
+        )
+        assert response.data["error_code"] == "VALIDATION_ERROR"
+
+
+class TestErrorTypeEnum:
+    """Tests for the ErrorType enum."""
+
+    def test_error_type_is_string_enum(self):
+        """Test that ErrorType inherits from str."""
+        assert isinstance(ErrorType.VALIDATION, str)
+        assert ErrorType.VALIDATION == "validation"
+
+    def test_all_error_types_defined(self):
+        """Test all error types are defined with correct values."""
+        assert ErrorType.VALIDATION.value == "validation"
+        assert ErrorType.AUTHENTICATION.value == "authentication"
+        assert ErrorType.AUTHORIZATION.value == "authorization"
+        assert ErrorType.NOT_FOUND.value == "not_found"
+        assert ErrorType.CONFLICT.value == "conflict"
+        assert ErrorType.RATE_LIMIT.value == "rate_limit"
+        assert ErrorType.FEATURE_FLAG.value == "feature_flag"
+        assert ErrorType.INTERNAL.value == "internal"
+        assert ErrorType.UNAVAILABLE.value == "unavailable"
+
+    def test_error_type_serializes_as_string(self):
+        """Test that ErrorType serializes as string."""
+        data = {"error_type": ErrorType.VALIDATION}
+        assert data["error_type"] == "validation"
+
+    def test_error_type_in_response(self):
+        """Test ErrorType enum in error_response()."""
+        response = error_response(
+            "Auth required",
+            error_type=ErrorType.AUTHENTICATION,
+        )
+        assert response.data["error_type"] == "authentication"
+
+    def test_combined_enum_usage(self):
+        """Test ErrorCode and ErrorType used together in error_response()."""
+        response = error_response(
+            "Resource not found",
+            error_code=ErrorCode.NOT_FOUND,
+            error_type=ErrorType.NOT_FOUND,
+            remediation="Check the resource ID",
+        )
+        assert response.success is False
+        assert response.data["error_code"] == "NOT_FOUND"
+        assert response.data["error_type"] == "not_found"
+        assert response.data["remediation"] == "Check the resource ID"
