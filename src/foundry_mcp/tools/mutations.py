@@ -320,3 +320,200 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="verification-add",
+    )
+    def verification_add(
+        spec_id: str,
+        verify_id: str,
+        result: str,
+        command: Optional[str] = None,
+        output: Optional[str] = None,
+        issues: Optional[str] = None,
+        notes: Optional[str] = None,
+        dry_run: bool = False,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Add verification result to a task or spec verification node.
+
+        Wraps the SDD CLI add-verification command to record verification
+        results including test outcomes, command output, and issues found.
+
+        WHEN TO USE:
+        - Recording test execution results
+        - Documenting manual verification outcomes
+        - Adding verification data to verify-type tasks
+        - Capturing CI/CD pipeline verification results
+
+        Args:
+            spec_id: Specification ID containing the verification
+            verify_id: Verification ID (e.g., verify-1-1)
+            result: Verification result (PASSED, FAILED, PARTIAL)
+            command: Command that was run for verification
+            output: Command output or test results
+            issues: Issues found during verification
+            notes: Additional notes about the verification
+            dry_run: Preview changes without applying them
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with verification results:
+            - spec_id: The specification ID
+            - verify_id: The verification ID
+            - result: Verification result
+            - command: Command run (if provided)
+            - dry_run: Whether this was a dry run
+        """
+        tool_name = "verification_add"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            if not verify_id:
+                return asdict(error_response(
+                    "verify_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a verify_id parameter (e.g., verify-1-1)",
+                ))
+
+            # Validate result
+            valid_results = ("PASSED", "FAILED", "PARTIAL")
+            if result not in valid_results:
+                return asdict(error_response(
+                    f"Invalid result '{result}'. Must be one of: {', '.join(valid_results)}",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation=f"Use one of: {', '.join(valid_results)}",
+                ))
+
+            # Build command
+            cmd = ["sdd", "add-verification", spec_id, verify_id, result, "--json"]
+
+            if command:
+                cmd.extend(["--command", command])
+
+            if output:
+                cmd.extend(["--output", output])
+
+            if issues:
+                cmd.extend(["--issues", issues])
+
+            if notes:
+                cmd.extend(["--notes", notes])
+
+            if dry_run:
+                cmd.append("--dry-run")
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="verification-add",
+                action="add_verification",
+                spec_id=spec_id,
+                verify_id=verify_id,
+                result=result,
+                dry_run=dry_run,
+            )
+
+            # Execute the command with resilience
+            result_proc = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result_proc.returncode == 0:
+                try:
+                    output_data = json.loads(result_proc.stdout) if result_proc.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "verify_id": verify_id,
+                    "result": result,
+                    "dry_run": dry_run,
+                }
+
+                if command:
+                    data["command"] = command
+
+                if output_data.get("timestamp"):
+                    data["timestamp"] = output_data["timestamp"]
+
+                # Track metrics
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "result": result})
+
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result_proc.stderr.strip() if result_proc.stderr else "Command failed"
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+
+                # Check for common errors
+                if "not found" in error_msg.lower():
+                    if "spec" in error_msg.lower():
+                        return asdict(error_response(
+                            f"Specification '{spec_id}' not found",
+                            error_code="SPEC_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the spec ID exists using spec-list",
+                        ))
+                    elif "verify" in error_msg.lower() or verify_id in error_msg:
+                        return asdict(error_response(
+                            f"Verification '{verify_id}' not found in spec",
+                            error_code="NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the verification ID exists in the specification",
+                        ))
+
+                return asdict(error_response(
+                    f"Failed to add verification: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the spec and verification ID exist",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in verification-add")
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
