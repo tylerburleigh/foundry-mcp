@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T14:28:50.202546Z",
+  "last_updated": "2025-11-27T14:29:52.814962Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 68,
+    "progress_percentage": 69,
     "current_phase": "phase-6"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 70,
+      "completed_tasks": 71,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1876,7 +1876,7 @@
         "depends": []
       },
       "total_tasks": 16,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Enable clients to discover tools and negotiate capabilities",
         "risk_level": "low",
@@ -1899,7 +1899,7 @@
         "task-6-5"
       ],
       "total_tasks": 12,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1913,7 +1913,7 @@
     "task-6-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/discovery.py (NEW)",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-6-files",
       "children": [
         "task-6-1-1",
@@ -1930,7 +1930,7 @@
         "depends": []
       },
       "total_tasks": 4,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "file_path": "src/foundry_mcp/core/discovery.py",
         "task_category": "implementation",
@@ -1994,13 +1994,19 @@
     "task-6-1-4": {
       "type": "subtask",
       "title": "Create @deprecated_tool decorator",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-6-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Adds deprecation warning to meta.warnings, documents replacement and removal_version"
+        "details": "Adds deprecation warning to meta.warnings, documents replacement and removal_version",
+        "started_at": "2025-11-27T14:29:18.967504Z",
+        "status_note": "Creating @deprecated_tool decorator in discovery.py",
+        "completed_at": "2025-11-27T14:29:52.804148Z",
+        "needs_journaling": false,
+        "actual_hours": 0.009,
+        "journaled_at": "2025-11-27T14:29:52.811805Z"
       }
     },
     "task-6-2": {
@@ -4463,6 +4469,15 @@
       "content": "Created ServerCapabilities dataclass in src/foundry_mcp/core/discovery.py with fields: response_version, supports_streaming, supports_batch, supports_pagination, max_batch_size, rate_limit_headers, supported_formats, feature_flags_enabled. Added to_dict() method for response serialization. Created get_capabilities() returning capabilities with schema_version, server_version, api_version. Created negotiate_capabilities() for version/feature negotiation with warnings for unsupported requests. Added set_capabilities() for testing.",
       "metadata": {},
       "task_id": "task-6-1-3"
+    },
+    {
+      "timestamp": "2025-11-27T14:29:52.811798Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create @deprecated_tool decorator",
+      "author": "claude-code",
+      "content": "Created @deprecated_tool decorator in src/foundry_mcp/core/discovery.py that takes replacement and removal_version parameters. Decorator modifies function docstring with deprecation notice and adds deprecation warning to response meta.warnings. Also stores _deprecated, _replacement, _removal_version attributes on wrapper for introspection. Added helper functions is_deprecated() and get_deprecation_info() for checking deprecation status.",
+      "metadata": {},
+      "task_id": "task-6-1-4"
     }
   ]
 }

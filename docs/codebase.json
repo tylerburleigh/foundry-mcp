@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T14:28:03.465026Z",
-    "generated_at_commit": "4af70bbb9f75a44ccfc2a139f148de56857a1f2d",
+    "generated_at": "2025-11-27T14:29:13.239840Z",
+    "generated_at_commit": "31ab85a9df70b33291c7e73df4e40b0791c204de",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 35,
-    "total_lines": 14828,
-    "total_classes": 59,
-    "total_functions": 169,
-    "avg_complexity": 7.04,
+    "total_lines": 14969,
+    "total_classes": 60,
+    "total_functions": 172,
+    "avg_complexity": 6.98,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 35,
-        "lines": 14828,
-        "classes": 59,
-        "functions": 169,
-        "avg_complexity": 7.04
+        "lines": 14969,
+        "classes": 60,
+        "functions": 172,
+        "avg_complexity": 6.98
       }
     }
   },
@@ -189,10 +189,14 @@
         "ParameterType",
         "ParameterMetadata",
         "ToolMetadata",
-        "ToolRegistry"
+        "ToolRegistry",
+        "ServerCapabilities"
       ],
       "functions": [
-        "get_tool_registry"
+        "get_tool_registry",
+        "get_capabilities",
+        "negotiate_capabilities",
+        "set_capabilities"
       ],
       "imports": [
         "dataclasses.dataclass",
@@ -207,7 +211,7 @@
         "typing.TypeVar"
       ],
       "exports": [],
-      "lines": 359
+      "lines": 500
     },
     {
       "name": "docs",
@@ -1500,6 +1504,40 @@
       ],
       "imported_by": [],
       "instantiation_count": 1
+    },
+    {
+      "name": "ServerCapabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 363,
+      "language": "python",
+      "docstring": "Server capabilities for client negotiation.\n\nClients call get_capabilities() to understand what features are supported\nbefore making assumptions about available functionality.\n\nAttributes:\n    response_version: Response contract version (e.g., \"response-v2\")\n    supports_streaming: Whether server supports streaming responses\n    supports_batch: Whether server supports batch operations\n    supports_pagination: Whether server supports cursor-based pagination\n    max_batch_size: Maximum items in a batch request\n    rate_limit_headers: Whether responses include rate limit headers\n    supported_formats: List of supported response formats\n    feature_flags_enabled: Whether feature flags are active",
+      "bases": [],
+      "methods": [
+        "to_dict"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "get_capabilities",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 425,
+          "context": [
+            "get_capabilities"
+          ]
+        },
+        {
+          "instantiator": "negotiate_capabilities",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 451,
+          "context": [
+            "negotiate_capabilities"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 2
     },
     {
       "name": "QueryResult",
@@ -4007,6 +4045,91 @@
       "parameters": [],
       "return_type": "ToolRegistry",
       "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
+    },
+    {
+      "name": "get_capabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 413,
+      "language": "python",
+      "docstring": "Get server capabilities for client negotiation.\n\nClients should call this to understand server features before making\nassumptions about available functionality.\n\nReturns:\n    Dict with capabilities, server version, and API version",
+      "parameters": [],
+      "return_type": "Dict[str, Any]",
+      "complexity": 2,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "to_dict",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 429,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "negotiate_capabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 435,
+      "language": "python",
+      "docstring": "Negotiate capabilities with client.\n\nArgs:\n    requested_version: Desired response version\n    requested_features: List of requested feature names\n\nReturns:\n    Dict with negotiated capabilities and any warnings",
+      "parameters": [
+        {
+          "name": "requested_version",
+          "type": "Optional[str]",
+          "default": null
+        },
+        {
+          "name": "requested_features",
+          "type": "Optional[List[str]]",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 7,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 462,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 483,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "set_capabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 492,
+      "language": "python",
+      "docstring": "Set server capabilities (for testing or custom configuration).\n\nArgs:\n    capabilities: ServerCapabilities instance to use",
+      "parameters": [
+        {
+          "name": "capabilities",
+          "type": "ServerCapabilities",
+          "default": null
+        }
+      ],
+      "return_type": "None",
+      "complexity": 1,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
