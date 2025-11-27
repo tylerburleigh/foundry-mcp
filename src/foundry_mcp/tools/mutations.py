@@ -1069,3 +1069,241 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="task-update-metadata",
+    )
+    def task_update_metadata(
+        spec_id: str,
+        task_id: str,
+        file_path: Optional[str] = None,
+        description: Optional[str] = None,
+        task_category: Optional[str] = None,
+        actual_hours: Optional[float] = None,
+        status_note: Optional[str] = None,
+        verification_type: Optional[str] = None,
+        command: Optional[str] = None,
+        metadata_json: Optional[str] = None,
+        dry_run: bool = False,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Update arbitrary metadata fields for a task.
+
+        Wraps the SDD CLI update-task-metadata command to mutate per-task
+        metadata payloads. Supports both named fields and custom JSON metadata.
+
+        WHEN TO USE:
+        - Updating task file paths after implementation
+        - Recording actual hours spent
+        - Adding status notes or completion notes
+        - Setting verification type and commands
+        - Storing custom metadata fields
+
+        Args:
+            spec_id: Specification ID containing the task
+            task_id: Task ID to update
+            file_path: File path for this task
+            description: Task description
+            task_category: Task category (implementation, testing, etc.)
+            actual_hours: Actual hours spent on task
+            status_note: Status note or completion note
+            verification_type: Verification type (auto, manual, none)
+            command: Command executed
+            metadata_json: JSON string with custom metadata fields
+            dry_run: Preview changes without saving
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with update results:
+            - spec_id: The specification ID
+            - task_id: The task ID
+            - fields_updated: List of fields that were updated
+            - dry_run: Whether this was a dry run
+        """
+        tool_name = "task_update_metadata"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            if not task_id:
+                return asdict(error_response(
+                    "task_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a task_id parameter",
+                ))
+
+            # Validate at least one update field is provided
+            has_update = any([
+                file_path, description, task_category, actual_hours is not None,
+                status_note, verification_type, command, metadata_json
+            ])
+            if not has_update:
+                return asdict(error_response(
+                    "At least one metadata field must be provided",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide at least one field to update",
+                ))
+
+            # Validate verification_type if provided
+            if verification_type and verification_type not in ("auto", "manual", "none"):
+                return asdict(error_response(
+                    f"Invalid verification_type '{verification_type}'. Must be one of: auto, manual, none",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Use one of: auto, manual, none",
+                ))
+
+            # Build command
+            cmd = ["sdd", "update-task-metadata", spec_id, task_id, "--json"]
+
+            fields_updated = []
+            if file_path:
+                cmd.extend(["--file-path", file_path])
+                fields_updated.append("file_path")
+            if description:
+                cmd.extend(["--description", description])
+                fields_updated.append("description")
+            if task_category:
+                cmd.extend(["--task-category", task_category])
+                fields_updated.append("task_category")
+            if actual_hours is not None:
+                cmd.extend(["--actual-hours", str(actual_hours)])
+                fields_updated.append("actual_hours")
+            if status_note:
+                cmd.extend(["--status-note", status_note])
+                fields_updated.append("status_note")
+            if verification_type:
+                cmd.extend(["--verification-type", verification_type])
+                fields_updated.append("verification_type")
+            if command:
+                cmd.extend(["--command", command])
+                fields_updated.append("command")
+            if metadata_json:
+                cmd.extend(["--metadata", metadata_json])
+                fields_updated.append("custom_metadata")
+
+            if dry_run:
+                cmd.append("--dry-run")
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="task-update-metadata",
+                action="update_metadata",
+                spec_id=spec_id,
+                task_id=task_id,
+                fields_updated=fields_updated,
+                dry_run=dry_run,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "task_id": task_id,
+                    "fields_updated": fields_updated,
+                    "dry_run": dry_run,
+                }
+
+                # Include previous values if available
+                if "previous_values" in output_data:
+                    data["previous_values"] = output_data["previous_values"]
+
+                # Track metrics
+                _metrics.counter(f"mutations.{tool_name}", labels={
+                    "status": "success",
+                    "field_count": str(len(fields_updated)),
+                })
+
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+
+                # Check for common errors
+                if "not found" in error_msg.lower():
+                    if "spec" in error_msg.lower():
+                        return asdict(error_response(
+                            f"Specification '{spec_id}' not found",
+                            error_code="SPEC_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the spec ID exists using spec-list",
+                        ))
+                    elif "task" in error_msg.lower() or task_id in error_msg:
+                        return asdict(error_response(
+                            f"Task '{task_id}' not found in spec",
+                            error_code="TASK_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the task ID exists in the specification",
+                        ))
+
+                if "invalid" in error_msg.lower() and "json" in error_msg.lower():
+                    return asdict(error_response(
+                        "Invalid JSON in metadata_json parameter",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Ensure metadata_json contains valid JSON",
+                    ))
+
+                return asdict(error_response(
+                    f"Failed to update metadata: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the spec and task ID exist",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in task-update-metadata")
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
