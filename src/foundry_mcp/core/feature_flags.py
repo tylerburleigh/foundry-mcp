@@ -30,13 +30,18 @@ Example:
         result = process_data({"input": "test"})
 """
 
+import hashlib
 import logging
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional, Set
+from typing import Any, Callable, Dict, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+# Context variable for current client ID
+current_client_id: ContextVar[str] = ContextVar("client_id", default="anonymous")
 
 
 class FlagState(str, Enum):
@@ -131,8 +136,245 @@ class FeatureFlag:
         }
 
 
+class FeatureFlagRegistry:
+    """Registry for managing feature flags with evaluation logic.
+
+    Provides flag registration, client-specific evaluation, percentage rollouts,
+    and override support for testing.
+
+    Example:
+        >>> registry = FeatureFlagRegistry()
+        >>> registry.register(FeatureFlag(
+        ...     name="new_feature",
+        ...     description="Test feature",
+        ...     state=FlagState.BETA,
+        ...     default_enabled=False,
+        ... ))
+        >>> registry.is_enabled("new_feature", client_id="user123")
+        False
+    """
+
+    def __init__(self) -> None:
+        """Initialize an empty flag registry."""
+        self._flags: Dict[str, FeatureFlag] = {}
+        self._overrides: Dict[str, Dict[str, bool]] = {}  # client_id -> flag_name -> value
+
+    def register(self, flag: FeatureFlag) -> None:
+        """Register a feature flag.
+
+        Args:
+            flag: The feature flag to register
+
+        Raises:
+            ValueError: If a flag with the same name already exists
+        """
+        if flag.name in self._flags:
+            raise ValueError(f"Flag '{flag.name}' is already registered")
+        self._flags[flag.name] = flag
+        logger.debug(f"Registered feature flag: {flag.name} ({flag.state.value})")
+
+    def get(self, flag_name: str) -> Optional[FeatureFlag]:
+        """Get a flag by name.
+
+        Args:
+            flag_name: Name of the flag to retrieve
+
+        Returns:
+            The FeatureFlag if found, None otherwise
+        """
+        return self._flags.get(flag_name)
+
+    def is_enabled(
+        self,
+        flag_name: str,
+        client_id: Optional[str] = None,
+        default: bool = False,
+    ) -> bool:
+        """Check if a feature flag is enabled for a client.
+
+        Evaluation order:
+        1. Check for client-specific override
+        2. Check if flag exists
+        3. Check if flag is expired
+        4. Check client blocklist
+        5. Check client allowlist
+        6. Check flag dependencies
+        7. Evaluate percentage rollout
+        8. Return default_enabled value
+
+        Args:
+            flag_name: Name of the flag to check
+            client_id: Client ID for evaluation (defaults to context variable)
+            default: Value to return if flag doesn't exist
+
+        Returns:
+            True if the flag is enabled for this client, False otherwise
+        """
+        client_id = client_id or current_client_id.get()
+
+        # Check for client-specific override first
+        if client_id in self._overrides:
+            if flag_name in self._overrides[client_id]:
+                return self._overrides[client_id][flag_name]
+
+        # Check if flag exists
+        flag = self._flags.get(flag_name)
+        if not flag:
+            logger.warning(f"Unknown feature flag: {flag_name}")
+            return default
+
+        # Warn if deprecated
+        if flag.state == FlagState.DEPRECATED:
+            logger.warning(
+                f"Deprecated feature flag '{flag_name}' accessed",
+                extra={"client_id": client_id, "flag": flag_name}
+            )
+
+        # Check expiration
+        if flag.is_expired():
+            logger.warning(f"Expired feature flag: {flag_name}")
+            return default
+
+        # Check blocklist
+        if flag.blocked_clients and client_id in flag.blocked_clients:
+            return False
+
+        # Check allowlist (empty means all allowed)
+        if flag.allowed_clients and client_id not in flag.allowed_clients:
+            return False
+
+        # Check dependencies
+        for dep_flag in flag.dependencies:
+            if not self.is_enabled(dep_flag, client_id):
+                return False
+
+        # Evaluate percentage rollout
+        if not self._evaluate_percentage(flag, client_id):
+            return False
+
+        return flag.default_enabled
+
+    def _evaluate_percentage(self, flag: FeatureFlag, client_id: str) -> bool:
+        """Evaluate percentage-based rollout using deterministic hashing.
+
+        Args:
+            flag: The feature flag to evaluate
+            client_id: Client ID for bucket assignment
+
+        Returns:
+            True if client falls within rollout percentage, False otherwise
+        """
+        if flag.percentage_rollout >= 100.0:
+            return True
+
+        if flag.percentage_rollout <= 0.0:
+            return False
+
+        # Use consistent hashing for stable bucket assignment
+        hash_input = f"{flag.name}:{client_id}"
+        hash_value = int(hashlib.md5(hash_input.encode()).hexdigest(), 16)
+        bucket = (hash_value % 100) + 1
+
+        return bucket <= flag.percentage_rollout
+
+    def set_override(self, client_id: str, flag_name: str, enabled: bool) -> None:
+        """Set a client-specific override for a flag.
+
+        Args:
+            client_id: The client to override for
+            flag_name: Name of the flag to override
+            enabled: Override value
+        """
+        if client_id not in self._overrides:
+            self._overrides[client_id] = {}
+        self._overrides[client_id][flag_name] = enabled
+        logger.debug(f"Set override: {flag_name}={enabled} for client {client_id}")
+
+    def clear_override(self, client_id: str, flag_name: str) -> None:
+        """Clear a client-specific override.
+
+        Args:
+            client_id: The client to clear override for
+            flag_name: Name of the flag to clear
+        """
+        if client_id in self._overrides:
+            self._overrides[client_id].pop(flag_name, None)
+            if not self._overrides[client_id]:
+                del self._overrides[client_id]
+
+    def clear_all_overrides(self, client_id: Optional[str] = None) -> None:
+        """Clear all overrides, optionally for a specific client.
+
+        Args:
+            client_id: If provided, only clear overrides for this client
+        """
+        if client_id:
+            self._overrides.pop(client_id, None)
+        else:
+            self._overrides.clear()
+
+    def get_flags_for_capabilities(
+        self,
+        client_id: Optional[str] = None,
+    ) -> Dict[str, Dict[str, Any]]:
+        """Get flag status for capabilities endpoint.
+
+        Returns a dictionary suitable for including in a capabilities response,
+        showing each flag's enabled status, state, and description.
+
+        Args:
+            client_id: Client ID for evaluation (defaults to context variable)
+
+        Returns:
+            Dictionary mapping flag names to their status information
+        """
+        client_id = client_id or current_client_id.get()
+        result = {}
+
+        for name, flag in self._flags.items():
+            status = {
+                "enabled": self.is_enabled(name, client_id),
+                "state": flag.state.value,
+                "description": flag.description,
+            }
+
+            if flag.state == FlagState.DEPRECATED:
+                expires_str = (
+                    flag.expires_at.isoformat()
+                    if flag.expires_at
+                    else "unspecified"
+                )
+                status["deprecation_notice"] = (
+                    f"This feature is deprecated and will be removed after {expires_str}"
+                )
+
+            result[name] = status
+
+        return result
+
+    def list_flags(self) -> Dict[str, FeatureFlag]:
+        """Get all registered flags.
+
+        Returns:
+            Dictionary mapping flag names to FeatureFlag objects
+        """
+        return dict(self._flags)
+
+
+# Global registry instance
+_default_registry = FeatureFlagRegistry()
+
+
+def get_registry() -> FeatureFlagRegistry:
+    """Get the default feature flag registry."""
+    return _default_registry
+
+
 # Export all public symbols
 __all__ = [
     "FlagState",
     "FeatureFlag",
+    "FeatureFlagRegistry",
+    "current_client_id",
+    "get_registry",
 ]
