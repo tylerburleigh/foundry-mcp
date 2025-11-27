@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T19:50:04.757047Z",
+  "last_updated": "2025-11-27T19:52:31.379356Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 8,
+    "progress_percentage": 10,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -60,7 +60,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 13,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {
         "purpose": "Bootstrap tooling for workspace initialization and validation",
         "risk_level": "low"
@@ -86,7 +86,7 @@
         "task-1-5"
       ],
       "total_tasks": 10,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -307,7 +307,7 @@
     "task-1-4": {
       "type": "task",
       "title": "tests/unit/test_environment.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-files",
       "children": [],
       "dependencies": {
@@ -320,12 +320,17 @@
         ]
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_environment.py",
         "task_category": "implementation",
         "estimated_hours": 2,
-        "changes": "Create unit tests for environment tools"
+        "changes": "Create unit tests for environment tools",
+        "started_at": "2025-11-27T19:50:34.814600Z",
+        "completed_at": "2025-11-27T19:52:31.370988Z",
+        "needs_journaling": false,
+        "actual_hours": 0.032,
+        "journaled_at": "2025-11-27T19:52:31.377074Z"
       }
     },
     "task-1-5": {
@@ -2279,6 +2284,15 @@
       "content": "Added discovery metadata and capability descriptors for environment tools in src/foundry_mcp/core/discovery.py. Changes: (1) ENVIRONMENT_TOOL_METADATA dict with full ToolMetadata for 4 tools (env_verify_toolchain, env_init_workspace, env_detect_topology, env_verify_environment) including parameters, examples, tags, related_tools. (2) FeatureFlagDescriptor dataclass for feature flag definitions. (3) ENVIRONMENT_FEATURE_FLAGS dict with environment_tools (beta) and env_auto_fix (experimental) flags. (4) Helper functions: register_environment_tools(), get_environment_capabilities(), is_environment_tool(), get_environment_tool_metadata(). Imports verified working.",
       "metadata": {},
       "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2025-11-27T19:52:31.377060Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: tests/unit/test_environment.py",
+      "author": "claude-code",
+      "content": "Created tests/unit/test_environment.py with 26 unit tests covering: (1) TestVerifyToolchain - 4 tests for toolchain verification logic including tool availability checks and missing tool handling. (2) TestInitWorkspace - 3 tests for workspace initialization including directory creation and permission error handling. (3) TestDetectTopology - 5 tests for topology detection including Python/Node project detection, specs directory detection, git repository detection. (4) TestVerifyEnvironment - 6 tests for environment verification including Python version, git availability, package imports. (5) TestDiscoveryMetadata - 8 tests for discovery metadata from discovery.py including tool metadata, feature flags, and helper functions. All 26 tests pass.",
+      "metadata": {},
+      "task_id": "task-1-4"
     }
   ]
 }

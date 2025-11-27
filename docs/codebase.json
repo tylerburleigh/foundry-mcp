@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T19:46:14.487128Z",
-    "generated_at_commit": "ae56cd5232dd2405efa58a545b2bd8a666817978",
+    "generated_at": "2025-11-27T19:50:28.549090Z",
+    "generated_at_commit": "e42dc4d54da2212b81fa1792d97af6925f7adcbe",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 40,
-    "total_lines": 17615,
-    "total_classes": 71,
-    "total_functions": 199,
-    "avg_complexity": 6.78,
+    "total_lines": 17914,
+    "total_classes": 72,
+    "total_functions": 203,
+    "avg_complexity": 6.68,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 40,
-        "lines": 17615,
-        "classes": 71,
-        "functions": 199,
-        "avg_complexity": 6.78
+        "lines": 17914,
+        "classes": 72,
+        "functions": 203,
+        "avg_complexity": 6.68
       }
     }
   },
@@ -244,7 +244,8 @@
         "ParameterMetadata",
         "ToolMetadata",
         "ToolRegistry",
-        "ServerCapabilities"
+        "ServerCapabilities",
+        "FeatureFlagDescriptor"
       ],
       "functions": [
         "get_tool_registry",
@@ -253,7 +254,11 @@
         "set_capabilities",
         "deprecated_tool",
         "is_deprecated",
-        "get_deprecation_info"
+        "get_deprecation_info",
+        "register_environment_tools",
+        "get_environment_capabilities",
+        "is_environment_tool",
+        "get_environment_tool_metadata"
       ],
       "imports": [
         "dataclasses.dataclass",
@@ -268,7 +273,7 @@
         "typing.TypeVar"
       ],
       "exports": [],
-      "lines": 603
+      "lines": 902
     },
     {
       "name": "docs",
@@ -1851,8 +1856,64 @@
       "properties": [],
       "is_exported": false,
       "is_public": true,
-      "instantiated_by": [],
-      "imported_by": []
+      "instantiated_by": [
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 618,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 625,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 658,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 664,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 671,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 706,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 712,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 746,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 753,
+          "context": []
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 9
     },
     {
       "name": "ToolMetadata",
@@ -1869,8 +1930,34 @@
       "properties": [],
       "is_exported": false,
       "is_public": true,
-      "instantiated_by": [],
-      "imported_by": []
+      "instantiated_by": [
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 613,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 653,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 701,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 741,
+          "context": []
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 4
     },
     {
       "name": "ToolRegistry",
@@ -1934,6 +2021,36 @@
           "context": [
             "negotiate_capabilities"
           ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 2
+    },
+    {
+      "name": "FeatureFlagDescriptor",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 784,
+      "language": "python",
+      "docstring": "Descriptor for a feature flag used in capability negotiation.\n\nAttributes:\n    name: Unique flag identifier\n    description: Human-readable description\n    state: Lifecycle state (experimental, beta, stable, deprecated)\n    default_enabled: Whether flag is enabled by default\n    percentage_rollout: Rollout percentage (0-100)\n    dependencies: List of other flags this depends on",
+      "bases": [],
+      "methods": [
+        "to_dict"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 818,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 826,
+          "context": []
         }
       ],
       "imported_by": [],
@@ -5117,7 +5234,7 @@
       "calls": [
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 771,
           "call_type": "method_call"
         },
@@ -5135,7 +5252,7 @@
         },
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 785,
           "call_type": "method_call"
         },
@@ -5177,7 +5294,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -5210,6 +5327,12 @@
       "is_public": true,
       "callers": [
         {
+          "name": "register_environment_tools",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 848,
+          "call_type": "function_call"
+        },
+        {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
           "line": 127,
@@ -5235,7 +5358,7 @@
         }
       ],
       "calls": [],
-      "call_count": 4
+      "call_count": 5
     },
     {
       "name": "get_capabilities",
@@ -5446,6 +5569,147 @@
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 602,
           "call_type": "function_call"
+        }
+      ]
+    },
+    {
+      "name": "register_environment_tools",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 837,
+      "language": "python",
+      "docstring": "Register all environment tools in the registry.\n\nArgs:\n    registry: Optional registry to use. If None, uses global registry.\n\nReturns:\n    The registry with environment tools registered.",
+      "parameters": [
+        {
+          "name": "registry",
+          "type": "Optional[ToolRegistry]",
+          "default": null
+        }
+      ],
+      "return_type": "ToolRegistry",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "create_server",
+          "file": "src/foundry_mcp/server.py",
+          "line": 84,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "get_tool_registry",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 848,
+          "call_type": "function_call"
+        },
+        {
+          "name": "values",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 850,
+          "call_type": "method_call"
+        },
+        {
+          "name": "register",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 852,
+          "call_type": "method_call"
+        }
+      ],
+      "call_count": 1
+    },
+    {
+      "name": "get_environment_capabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 860,
+      "language": "python",
+      "docstring": "Get environment-related capabilities for capability negotiation.\n\nReturns:\n    Dict with environment tool availability and feature flags.",
+      "parameters": [],
+      "return_type": "Dict[str, Any]",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "list",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 870,
+          "call_type": "function_call"
+        },
+        {
+          "name": "keys",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 870,
+          "call_type": "method_call"
+        },
+        {
+          "name": "to_dict",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 874,
+          "call_type": "method_call"
+        },
+        {
+          "name": "items",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 874,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "is_environment_tool",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 879,
+      "language": "python",
+      "docstring": "Check if a tool name is an environment tool.\n\nArgs:\n    tool_name: Name of the tool to check\n\nReturns:\n    True if tool is an environment tool",
+      "parameters": [
+        {
+          "name": "tool_name",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "bool",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
+    },
+    {
+      "name": "get_environment_tool_metadata",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 892,
+      "language": "python",
+      "docstring": "Get metadata for a specific environment tool.\n\nArgs:\n    tool_name: Name of the environment tool\n\nReturns:\n    ToolMetadata if found, None otherwise",
+      "parameters": [
+        {
+          "name": "tool_name",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "Optional[ToolMetadata]",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 902,
+          "call_type": "method_call"
         }
       ]
     },
@@ -7142,7 +7406,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
