@@ -13,6 +13,14 @@ from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.observability import mcp_tool
+from foundry_mcp.core.pagination import (
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    encode_cursor,
+    decode_cursor,
+    CursorError,
+    normalize_page_size,
+)
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.spec import (
     find_specs_directory,
@@ -162,21 +170,25 @@ def register_query_tools(mcp: FastMCP, config: ServerConfig) -> None:
     def foundry_list_specs(
         status: str = "all",
         workspace: Optional[str] = None,
-        include_progress: bool = True
+        include_progress: bool = True,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> dict:
         """
-        List all specifications with optional filtering.
+        List all specifications with optional filtering and pagination.
 
         Returns a list of specifications with their IDs, titles, status,
-        and optionally progress information.
+        and optionally progress information. Supports cursor-based pagination.
 
         Args:
             status: Filter by status folder (active, pending, completed, archived, or all)
             workspace: Optional workspace path
             include_progress: Whether to include task progress (default: True)
+            cursor: Pagination cursor from previous response
+            limit: Number of specs per page (default: 100, max: 1000)
 
         Returns:
-            JSON object with list of specs and count
+            JSON object with list of specs, count, and pagination metadata
         """
         try:
             # Determine specs directory
@@ -188,9 +200,40 @@ def register_query_tools(mcp: FastMCP, config: ServerConfig) -> None:
             if not specs_dir:
                 return asdict(error_response("No specs directory found"))
 
-            # List specs
+            # Normalize page size
+            page_size = normalize_page_size(limit)
+
+            # Decode cursor if provided
+            start_after_id = None
+            if cursor:
+                try:
+                    cursor_data = decode_cursor(cursor)
+                    start_after_id = cursor_data.get("last_id")
+                except CursorError:
+                    return asdict(error_response("Invalid pagination cursor"))
+
+            # List all specs (sorted by spec_id)
             filter_status = None if status == "all" else status
-            specs = list_specs(specs_dir=specs_dir, status=filter_status)
+            all_specs = list_specs(specs_dir=specs_dir, status=filter_status)
+
+            # Sort by spec_id for consistent pagination
+            all_specs.sort(key=lambda s: s.get("spec_id", ""))
+
+            # Apply cursor-based pagination
+            if start_after_id:
+                # Find index of cursor position
+                start_index = 0
+                for i, spec in enumerate(all_specs):
+                    if spec.get("spec_id") == start_after_id:
+                        start_index = i + 1
+                        break
+                all_specs = all_specs[start_index:]
+
+            # Fetch one extra to detect has_more
+            specs = all_specs[: page_size + 1]
+            has_more = len(specs) > page_size
+            if has_more:
+                specs = specs[:page_size]
 
             # Optionally strip progress info
             if not include_progress:
@@ -203,9 +246,18 @@ def register_query_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     for s in specs
                 ]
 
+            # Build next cursor
+            next_cursor = None
+            if has_more and specs:
+                next_cursor = encode_cursor({"last_id": specs[-1]["spec_id"]})
+
             return asdict(success_response(
-                specs=specs,
-                count=len(specs)
+                data={"specs": specs, "count": len(specs)},
+                pagination={
+                    "cursor": next_cursor,
+                    "has_more": has_more,
+                    "page_size": page_size,
+                }
             ))
 
         except Exception as e:
