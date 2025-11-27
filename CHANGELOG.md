@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Concurrency & LLM Patterns (Phase 7):
+  - Documentation for concurrency patterns (`docs/mcp_best_practices/15-concurrency-patterns.md`):
+    - Async vs sync tool guidance with operation type decision matrix
+    - `ConcurrencyLimiter` class with semaphore-based parallel operation limiting
+    - `TokenBucket` rate limiter for request throttling with burst support
+    - Per-tool concurrency limiters registry pattern (`TOOL_LIMITERS`)
+    - Parallel operations with `asyncio.gather()` and individual error handling
+    - Streaming results with `asyncio.as_completed()` for progress updates
+    - CPU-bound work handling via `ThreadPoolExecutor` and `ProcessPoolExecutor`
+    - Cancellation handling with checkpoints and graceful cleanup patterns
+    - Async context variables for request-scoped state propagation
+    - LLM response ergonomics for concurrent operations:
+      - Progress and status reporting with summary-first responses
+      - Timeout context with timing metadata and headroom warnings
+      - Cancellation feedback with clear state objects
+      - Concurrency state exposure for LLM capacity understanding
+      - Response chunking with pagination for large result sets
+    - Anti-patterns: blocking event loop, unbounded concurrency, ignored cancellation
 - Tool Discovery & Lifecycle (Phase 6):
   - Documentation for tool metadata and discovery (`docs/mcp_best_practices/13-tool-discovery.md`):
     - `ToolDefinition` dataclass with name, description, parameters, category, version, deprecation markers
