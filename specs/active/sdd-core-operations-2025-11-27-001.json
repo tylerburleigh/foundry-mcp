@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T22:00:04.263116Z",
+  "last_updated": "2025-11-27T22:02:03.678646Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 66,
+    "progress_percentage": 67,
     "status": "active",
     "current_phase": "phase-4"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 59,
+      "completed_tasks": 60,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1364,7 +1364,7 @@
         ]
       },
       "total_tasks": 20,
-      "completed_tasks": 16,
+      "completed_tasks": 17,
       "metadata": {
         "purpose": "Analysis, bulk operations, and specialized mutations",
         "risk_level": "medium"
@@ -1373,7 +1373,7 @@
     "phase-4-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-4",
       "children": [
         "task-4-1",
@@ -1382,8 +1382,12 @@
         "task-4-4"
       ],
       "total_tasks": 17,
-      "completed_tasks": 16,
-      "metadata": {},
+      "completed_tasks": 17,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T22:02:03.665488Z",
+        "journaled_at": "2025-11-27T22:02:03.678602Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-4-verify"
@@ -1769,7 +1773,7 @@
     "task-4-4": {
       "type": "task",
       "title": "tests/unit/test_mutations.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-files",
       "children": [],
       "dependencies": {
@@ -1782,12 +1786,18 @@
         "blocks": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_mutations.py",
         "task_category": "implementation",
         "estimated_hours": 5,
-        "changes": "Create unit tests for analysis, mutation, and git integration tools"
+        "changes": "Create unit tests for analysis, mutation, and git integration tools",
+        "started_at": "2025-11-27T22:00:25.314872Z",
+        "status_note": "Creating unit tests for Phase 4 tools",
+        "completed_at": "2025-11-27T22:02:03.665312Z",
+        "needs_journaling": false,
+        "actual_hours": 0.027,
+        "journaled_at": "2025-11-27T22:02:03.671873Z"
       }
     },
     "phase-4-verify": {
@@ -3172,6 +3182,24 @@
       "content": "All 3 subtasks completed for git_integration.py. Created new module with 2 MCP tools: task-create-commit and journal-bulk-add. Both tools have circuit breaker, timing metrics, and audit logging integration.",
       "metadata": {},
       "task_id": "task-4-3"
+    },
+    {
+      "timestamp": "2025-11-27T22:02:03.671858Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: tests/unit/test_mutations.py",
+      "author": "claude-code",
+      "content": "Created tests/unit/test_mutations.py with 25 passing tests covering mutations.py (7 tools) and git_integration.py (2 tools). Tests include: circuit breaker behavior, validation errors, error handling (timeout, CLI not found), tool registration, and response contract compliance.",
+      "metadata": {},
+      "task_id": "task-4-4"
+    },
+    {
+      "timestamp": "2025-11-27T22:02:03.678589Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-files"
     }
   ]
 }
