@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T20:46:14.933189Z",
+  "last_updated": "2025-11-27T20:50:40.305412Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 28,
+    "progress_percentage": 29,
     "status": "active",
     "current_phase": "phase-2"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 25,
+      "completed_tasks": 26,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -456,7 +456,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Spec Discovery & Validation Helpers",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-2-files",
@@ -472,10 +472,13 @@
         ]
       },
       "total_tasks": 13,
-      "completed_tasks": 12,
+      "completed_tasks": 13,
       "metadata": {
         "purpose": "Extend spec analysis and validation capabilities",
-        "risk_level": "low"
+        "risk_level": "low",
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T20:50:40.293693Z",
+        "journaled_at": "2025-11-27T20:50:40.305380Z"
       }
     },
     "phase-2-files": {
@@ -747,7 +750,7 @@
     "phase-2-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [
         "verify-2-1",
@@ -763,8 +766,12 @@
         "blocks": []
       },
       "total_tasks": 4,
-      "completed_tasks": 3,
-      "metadata": {}
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T20:50:40.293690Z",
+        "journaled_at": "2025-11-27T20:50:40.303161Z"
+      }
     },
     "verify-2-1": {
       "type": "verify",
@@ -836,16 +843,22 @@
     "verify-2-4": {
       "type": "verify",
       "title": "Integration tests pass for spec helper tools",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "agent": "run-tests",
         "command": "pytest tests/integration/test_spec_helpers.py -v",
-        "expected": "Integration coverage passes including pagination/cycle detection guards"
+        "expected": "Integration coverage passes including pagination/cycle detection guards",
+        "started_at": "2025-11-27T20:50:17.871223Z",
+        "status_note": "Running integration tests for spec helper tools",
+        "completed_at": "2025-11-27T20:50:40.293473Z",
+        "needs_journaling": false,
+        "actual_hours": 0.006,
+        "journaled_at": "2025-11-27T20:50:40.298451Z"
       }
     },
     "phase-3": {
@@ -2581,6 +2594,33 @@
       "content": "Fidelity review identified 2 CRITICAL blocking issues - tools not registered in server.py and tools/__init__.py. Both issues FIXED: (1) Added import and export of register_spec_helper_tools in tools/__init__.py, (2) Added import and call to register_spec_helper_tools(mcp, config) in server.py:86. Import verified working. Phase 2 implementation now complete with tools properly registered and accessible to clients.",
       "metadata": {},
       "task_id": "verify-2-3"
+    },
+    {
+      "timestamp": "2025-11-27T20:50:40.298446Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Integration tests pass for spec helper tools",
+      "author": "claude-code",
+      "content": "All 21 integration tests in tests/integration/test_spec_helpers.py PASSED (0.28s). Tests verified: response envelope validation (success/error formats, warnings, remediation), feature flag integration (flag in manifest, tools in manifest, feature flag references, server capabilities), cycle detection scenarios (simple cycles, complex cycles, multiple independent cycles, acyclic graphs), path validation workflows (existing paths, mixed paths, empty path list), pattern search workflows (TypeScript files, test files), related files workflows (files related to source, files scoped to spec), and end-to-end workflows (spec validation workflow, file reference audit workflow). Integration coverage passes including pagination/cycle detection guards as expected.",
+      "metadata": {},
+      "task_id": "verify-2-4"
+    },
+    {
+      "timestamp": "2025-11-27T20:50:40.303152Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-verify"
+    },
+    {
+      "timestamp": "2025-11-27T20:50:40.305374Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Spec Discovery & Validation Helpers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
