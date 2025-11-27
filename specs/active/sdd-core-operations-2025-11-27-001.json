@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T21:46:52.995271Z",
+  "last_updated": "2025-11-27T21:48:13.085953Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 57,
+    "progress_percentage": 58,
     "status": "active",
     "current_phase": "phase-4"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 51,
+      "completed_tasks": 52,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1364,7 +1364,7 @@
         ]
       },
       "total_tasks": 20,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {
         "purpose": "Analysis, bulk operations, and specialized mutations",
         "risk_level": "medium"
@@ -1382,7 +1382,7 @@
         "task-4-4"
       ],
       "total_tasks": 17,
-      "completed_tasks": 8,
+      "completed_tasks": 9,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1508,7 +1508,7 @@
         "task-4-2-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/mutations.py",
         "task_category": "implementation",
@@ -1598,13 +1598,19 @@
     "task-4-2-5": {
       "type": "subtask",
       "title": "Implement task-update-estimate - update effort/time estimates",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd update-estimate, modify estimated_hours metadata"
+        "details": "Wrap sdd update-estimate, modify estimated_hours metadata",
+        "started_at": "2025-11-27T21:47:22.198174Z",
+        "status_note": "Starting implementation of task-update-estimate tool",
+        "completed_at": "2025-11-27T21:48:13.078328Z",
+        "needs_journaling": false,
+        "actual_hours": 0.014,
+        "journaled_at": "2025-11-27T21:48:13.083681Z"
       }
     },
     "task-4-2-6": {
@@ -3034,6 +3040,15 @@
       "content": "Implemented verification-format-summary MCP tool in mutations.py. The tool wraps `sdd format-verification-summary` CLI command and supports json_file or json_input parameters (mutually exclusive). Returns formatted summary, stats (total/passed/failed/partial), and optional raw results. Follows established patterns with circuit breaker, metrics, audit logging. Import tests passing.",
       "metadata": {},
       "task_id": "task-4-2-4"
+    },
+    {
+      "timestamp": "2025-11-27T21:48:13.083675Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement task-update-estimate - update effort/time estimates",
+      "author": "claude-code",
+      "content": "Implemented task-update-estimate MCP tool in mutations.py. The tool wraps `sdd update-estimate` CLI command and supports hours (float) and complexity (low/medium/high) parameters. Validates that at least one update field is provided. Returns updated values plus previous_hours and previous_complexity when available. Follows established patterns with circuit breaker, metrics, audit logging. Import tests passing.",
+      "metadata": {},
+      "task_id": "task-4-2-5"
     }
   ]
 }

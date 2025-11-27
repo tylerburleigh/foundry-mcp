@@ -869,3 +869,203 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="task-update-estimate",
+    )
+    def task_update_estimate(
+        spec_id: str,
+        task_id: str,
+        hours: Optional[float] = None,
+        complexity: Optional[str] = None,
+        dry_run: bool = False,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Update effort/time estimates for a task.
+
+        Wraps the SDD CLI update-estimate command to modify estimated_hours
+        and complexity metadata for a task.
+
+        WHEN TO USE:
+        - Adjusting task estimates based on new information
+        - Recording actual vs estimated time
+        - Updating complexity assessments mid-implementation
+        - Re-estimating work after scope changes
+
+        Args:
+            spec_id: Specification ID containing the task
+            task_id: Task ID to update
+            hours: Estimated hours (float)
+            complexity: Complexity level (low, medium, high)
+            dry_run: Preview changes without saving
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with update results:
+            - spec_id: The specification ID
+            - task_id: The task ID
+            - hours: Updated hours estimate (if provided)
+            - complexity: Updated complexity (if provided)
+            - previous_hours: Previous hours estimate
+            - previous_complexity: Previous complexity
+            - dry_run: Whether this was a dry run
+        """
+        tool_name = "task_update_estimate"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            if not task_id:
+                return asdict(error_response(
+                    "task_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a task_id parameter",
+                ))
+
+            # Validate at least one update field is provided
+            if hours is None and complexity is None:
+                return asdict(error_response(
+                    "At least one of hours or complexity must be provided",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide hours and/or complexity to update",
+                ))
+
+            # Validate complexity if provided
+            if complexity and complexity not in ("low", "medium", "high"):
+                return asdict(error_response(
+                    f"Invalid complexity '{complexity}'. Must be one of: low, medium, high",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Use one of: low, medium, high",
+                ))
+
+            # Build command
+            cmd = ["sdd", "update-estimate", spec_id, task_id, "--json"]
+
+            if hours is not None:
+                cmd.extend(["--hours", str(hours)])
+
+            if complexity:
+                cmd.extend(["--complexity", complexity])
+
+            if dry_run:
+                cmd.append("--dry-run")
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="task-update-estimate",
+                action="update_estimate",
+                spec_id=spec_id,
+                task_id=task_id,
+                hours=hours,
+                complexity=complexity,
+                dry_run=dry_run,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "task_id": task_id,
+                    "dry_run": dry_run,
+                }
+
+                if hours is not None:
+                    data["hours"] = hours
+                if complexity:
+                    data["complexity"] = complexity
+
+                # Include previous values if available
+                if "previous_hours" in output_data:
+                    data["previous_hours"] = output_data["previous_hours"]
+                if "previous_complexity" in output_data:
+                    data["previous_complexity"] = output_data["previous_complexity"]
+
+                # Track metrics
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
+
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+
+                # Check for common errors
+                if "not found" in error_msg.lower():
+                    if "spec" in error_msg.lower():
+                        return asdict(error_response(
+                            f"Specification '{spec_id}' not found",
+                            error_code="SPEC_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the spec ID exists using spec-list",
+                        ))
+                    elif "task" in error_msg.lower() or task_id in error_msg:
+                        return asdict(error_response(
+                            f"Task '{task_id}' not found in spec",
+                            error_code="TASK_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the task ID exists in the specification",
+                        ))
+
+                return asdict(error_response(
+                    f"Failed to update estimate: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the spec and task ID exist",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in task-update-estimate")
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
