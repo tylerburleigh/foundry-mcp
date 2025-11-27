@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T15:13:35.183151Z",
+  "last_updated": "2025-11-27T15:14:35.636894Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 91,
+    "progress_percentage": 92,
     "current_phase": "phase-8"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 93,
+      "completed_tasks": 94,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -2581,7 +2581,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Improve test coverage and add property-based testing",
         "risk_level": "low",
@@ -3555,7 +3555,7 @@
     "phase-8-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-8",
       "children": [
         "phase-8-docs-1",
@@ -3571,11 +3571,14 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T15:14:35.620940Z",
+        "journaled_at": "2025-11-27T15:14:35.636855Z"
       }
     },
     "phase-8-docs-1": {
@@ -3619,7 +3622,7 @@
     "phase-8-docs-2": {
       "type": "task",
       "title": "CHANGELOG.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-8-docs",
       "children": [
         "phase-8-docs-2-1"
@@ -3630,7 +3633,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "CHANGELOG.md",
         "task_category": "implementation",
@@ -3640,12 +3643,19 @@
     "phase-8-docs-2-1": {
       "type": "subtask",
       "title": "Summarize expanded testing surface, property suites, and contract checks.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-8-docs-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T15:13:57.949058Z",
+        "status_note": "Updating CHANGELOG with Phase 8 testing enhancements",
+        "completed_at": "2025-11-27T15:14:35.620702Z",
+        "needs_journaling": false,
+        "actual_hours": 0.01,
+        "journaled_at": "2025-11-27T15:14:35.629246Z"
+      }
     },
     "task-2-3": {
       "type": "task",
@@ -4897,6 +4907,24 @@
       "content": "Updated docs/mcp_best_practices/10-testing-fixtures.md with comprehensive property testing and schema validation guidance. Added: (1) Enhanced Section 4 with Hypothesis intro and TestSchemaCompliance class showing property-based schema validation; (2) New Section 5 \"Schema Validation Testing\" with Draft7Validator pattern, TestSchemaStructure, TestResponseValidation, TestInvalidResponses, and TestToolResponseValidation classes; (3) New Section 6 \"Combined Property + Schema Testing\" with custom Hypothesis strategies (valid_user_data, valid_pagination) and TestCombinedValidation class. Total +310 lines added. Committed as d3a26c3.",
       "metadata": {},
       "task_id": "phase-8-docs-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T15:14:35.629240Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Summarize expanded testing surface, property suites, and contract checks.",
+      "author": "claude-code",
+      "content": "Updated CHANGELOG.md with Phase 8 testing enhancements entry. Added 14 lines documenting: Property-based testing with Hypothesis for edge case discovery, TestSchemaCompliance class, custom Hypothesis strategies (valid_user_data, valid_pagination), schema validation patterns (Draft7Validator, validate_response helper, TestSchemaStructure, TestResponseValidation, TestInvalidResponses, TestToolResponseValidation), and combined property + schema testing approach. Committed as 54536ef.",
+      "metadata": {},
+      "task_id": "phase-8-docs-2-1"
+    },
+    {
+      "timestamp": "2025-11-27T15:14:35.636849Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Documentation & Change Log",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-8-docs have been completed.",
+      "metadata": {},
+      "task_id": "phase-8-docs"
     }
   ]
 }
