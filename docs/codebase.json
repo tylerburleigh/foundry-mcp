@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T12:27:26.005190Z",
-    "generated_at_commit": "cbcb2fa791b65e157e1f7acbbe61450f6a008108",
+    "generated_at": "2025-11-27T12:28:53.078507Z",
+    "generated_at_commit": "c7fc743568319e17af6650a65eddf2f3b4e05f56",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 31,
-    "total_lines": 11741,
-    "total_classes": 42,
-    "total_functions": 137,
-    "avg_complexity": 7.41,
+    "total_lines": 11845,
+    "total_classes": 43,
+    "total_functions": 139,
+    "avg_complexity": 7.34,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 31,
-        "lines": 11741,
-        "classes": 42,
-        "functions": 137,
-        "avg_complexity": 7.41
+        "lines": 11845,
+        "classes": 43,
+        "functions": 139,
+        "avg_complexity": 7.34
       }
     }
   },
@@ -455,13 +455,23 @@
       "file": "src/foundry_mcp/core/security.py",
       "language": "python",
       "docstring": "Security utilities for foundry-mcp.\n\nProvides input validation, size limits, and prompt injection defense\nfor MCP tools. See docs/mcp_best_practices/04-validation-input-hygiene.md\nand docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.",
-      "classes": [],
-      "functions": [],
+      "classes": [
+        "InjectionDetectionResult"
+      ],
+      "functions": [
+        "detect_prompt_injection",
+        "is_prompt_injection"
+      ],
       "imports": [
-        "typing.Final"
+        "logging",
+        "re",
+        "dataclasses.dataclass",
+        "typing.Final",
+        "typing.Optional",
+        "typing.Tuple"
       ],
       "exports": [],
-      "lines": 103
+      "lines": 207
     },
     {
       "name": "spec",
@@ -2420,6 +2430,38 @@
           "line": 228,
           "context": [
             "error_response"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 2
+    },
+    {
+      "name": "InjectionDetectionResult",
+      "file": "src/foundry_mcp/core/security.py",
+      "line": 106,
+      "language": "python",
+      "docstring": "Result of prompt injection detection.\n\nAttributes:\n    is_suspicious: Whether the input appears to contain injection attempts\n    matched_pattern: The regex pattern that matched (if any)\n    matched_text: The actual text that matched the pattern (if any)",
+      "bases": [],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "detect_prompt_injection",
+          "file": "src/foundry_mcp/core/security.py",
+          "line": 152,
+          "context": [
+            "detect_prompt_injection"
+          ]
+        },
+        {
+          "instantiator": "detect_prompt_injection",
+          "file": "src/foundry_mcp/core/security.py",
+          "line": 172,
+          "context": [
+            "detect_prompt_injection"
           ]
         }
       ],
@@ -4891,7 +4933,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -9841,6 +9883,90 @@
         }
       ],
       "call_count": 147
+    },
+    {
+      "name": "detect_prompt_injection",
+      "file": "src/foundry_mcp/core/security.py",
+      "line": 123,
+      "language": "python",
+      "docstring": "Detect potential prompt injection attempts in text.\n\nScans the input text against known injection patterns and returns\na result indicating whether suspicious content was found.\n\nArgs:\n    text: The input text to scan for injection attempts\n    log_detections: Whether to log detected injection attempts (default: True)\n    patterns: Optional custom patterns to use instead of INJECTION_PATTERNS\n\nReturns:\n    InjectionDetectionResult with detection status and match details\n\nExample:\n    >>> result = detect_prompt_injection(\"ignore previous instructions and...\")\n    >>> if result.is_suspicious:\n    ...     print(f\"Blocked: matched pattern '{result.matched_pattern}'\")",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "InjectionDetectionResult",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "is_prompt_injection",
+          "file": "src/foundry_mcp/core/security.py",
+          "line": 190,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "search",
+          "file": "/home/tyler/anaconda3/lib/python3.11/re/__init__.py",
+          "line": 150,
+          "call_type": "method_call"
+        },
+        {
+          "name": "group",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 155,
+          "call_type": "method_call"
+        },
+        {
+          "name": "len",
+          "file": "/home/tyler/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 160,
+          "call_type": "function_call"
+        },
+        {
+          "name": "warning",
+          "file": "/home/tyler/anaconda3/lib/python3.11/logging/__init__.py",
+          "line": 161,
+          "call_type": "method_call"
+        }
+      ],
+      "call_count": 1
+    },
+    {
+      "name": "is_prompt_injection",
+      "file": "src/foundry_mcp/core/security.py",
+      "line": 175,
+      "language": "python",
+      "docstring": "Simple check for prompt injection (returns bool only).\n\nConvenience function when you only need a boolean result.\n\nArgs:\n    text: The input text to scan\n\nReturns:\n    True if injection patterns detected, False otherwise\n\nExample:\n    >>> if is_prompt_injection(user_input):\n    ...     return error_response(\"Input contains disallowed patterns\")",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "bool",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "detect_prompt_injection",
+          "file": "/home/tyler/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/security.py",
+          "line": 190,
+          "call_type": "function_call"
+        }
+      ]
     },
     {
       "name": "find_git_root",
@@ -16478,7 +16604,12 @@
       "typing.Sequence"
     ],
     "src/foundry_mcp/core/security.py": [
-      "typing.Final"
+      "logging",
+      "re",
+      "dataclasses.dataclass",
+      "typing.Final",
+      "typing.Optional",
+      "typing.Tuple"
     ],
     "src/foundry_mcp/core/spec.py": [
       "json",

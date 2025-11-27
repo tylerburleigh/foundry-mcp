@@ -190,6 +190,233 @@ def is_prompt_injection(text: str) -> bool:
     return detect_prompt_injection(text, log_detections=False).is_suspicious
 
 
+# =============================================================================
+# Size Validation Functions
+# =============================================================================
+
+@dataclass
+class SizeValidationResult:
+    """Result of input size validation.
+
+    Attributes:
+        is_valid: Whether all size checks passed
+        violations: List of (field_name, violation_message) tuples
+    """
+    is_valid: bool
+    violations: list[Tuple[str, str]]
+
+
+def validate_size(
+    value: any,
+    field_name: str = "input",
+    *,
+    max_size: Optional[int] = None,
+    max_length: Optional[int] = None,
+    max_string_length: Optional[int] = None,
+) -> SizeValidationResult:
+    """Validate size constraints on a value.
+
+    Args:
+        value: The value to validate
+        field_name: Name of the field (for error messages)
+        max_size: Maximum byte size for serialized value (default: MAX_INPUT_SIZE)
+        max_length: Maximum length for arrays/lists (default: MAX_ARRAY_LENGTH)
+        max_string_length: Maximum length for strings (default: MAX_STRING_LENGTH)
+
+    Returns:
+        SizeValidationResult with validation status and any violations
+    """
+    import json
+
+    violations = []
+
+    # Check serialized size
+    effective_max_size = max_size if max_size is not None else MAX_INPUT_SIZE
+    try:
+        serialized = json.dumps(value) if not isinstance(value, str) else value
+        if len(serialized.encode('utf-8')) > effective_max_size:
+            violations.append((
+                field_name,
+                f"Exceeds maximum size ({effective_max_size} bytes)"
+            ))
+    except (TypeError, ValueError):
+        pass  # Can't serialize, skip size check
+
+    # Check array length
+    effective_max_length = max_length if max_length is not None else MAX_ARRAY_LENGTH
+    if isinstance(value, (list, tuple)):
+        if len(value) > effective_max_length:
+            violations.append((
+                field_name,
+                f"Array exceeds maximum length ({effective_max_length} items)"
+            ))
+
+    # Check string length
+    effective_max_string = max_string_length if max_string_length is not None else MAX_STRING_LENGTH
+    if isinstance(value, str):
+        if len(value) > effective_max_string:
+            violations.append((
+                field_name,
+                f"String exceeds maximum length ({effective_max_string} characters)"
+            ))
+
+    return SizeValidationResult(
+        is_valid=len(violations) == 0,
+        violations=violations,
+    )
+
+
+# =============================================================================
+# Validation Decorators
+# =============================================================================
+
+def validate_input_size(
+    *,
+    max_size: Optional[int] = None,
+    max_array_length: Optional[int] = None,
+    max_string_length: Optional[int] = None,
+    check_injection: bool = False,
+):
+    """Decorator to validate input size limits on tool parameters.
+
+    Validates all string and collection parameters against size limits
+    before the function executes. Returns an error response if validation fails.
+
+    Args:
+        max_size: Maximum total input size in bytes (default: MAX_INPUT_SIZE)
+        max_array_length: Maximum array/list length (default: MAX_ARRAY_LENGTH)
+        max_string_length: Maximum string length (default: MAX_STRING_LENGTH)
+        check_injection: Also check for prompt injection patterns (default: False)
+
+    Returns:
+        Decorator function
+
+    Example:
+        @mcp.tool()
+        @validate_input_size(max_string_length=5000, check_injection=True)
+        def process_text(text: str, items: list) -> dict:
+            # Parameters are validated before this runs
+            return {"result": process(text)}
+
+    Note:
+        This decorator should be applied AFTER @mcp.tool() to ensure
+        validation runs before the tool handler.
+    """
+    import functools
+    from dataclasses import asdict
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            all_violations = []
+
+            # Validate keyword arguments
+            for name, value in kwargs.items():
+                result = validate_size(
+                    value,
+                    field_name=name,
+                    max_size=max_size,
+                    max_length=max_array_length,
+                    max_string_length=max_string_length,
+                )
+                all_violations.extend(result.violations)
+
+                # Check for injection if enabled and value is string
+                if check_injection and isinstance(value, str):
+                    injection_result = detect_prompt_injection(value)
+                    if injection_result.is_suspicious:
+                        all_violations.append((
+                            name,
+                            f"Contains disallowed patterns: {injection_result.matched_text}"
+                        ))
+
+            if all_violations:
+                # Import here to avoid circular dependency
+                try:
+                    from foundry_mcp.core.responses import error_response
+                    return asdict(error_response(
+                        "Input validation failed",
+                        error_code="VALIDATION_ERROR",
+                        details={
+                            "validation_errors": [
+                                {"field": field, "message": msg}
+                                for field, msg in all_violations
+                            ]
+                        }
+                    ))
+                except ImportError:
+                    # Fallback if responses module not available
+                    return {
+                        "success": False,
+                        "error": "Input validation failed",
+                        "data": {
+                            "validation_errors": [
+                                {"field": field, "message": msg}
+                                for field, msg in all_violations
+                            ]
+                        }
+                    }
+
+            return func(*args, **kwargs)
+
+        # Handle async functions
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            all_violations = []
+
+            for name, value in kwargs.items():
+                result = validate_size(
+                    value,
+                    field_name=name,
+                    max_size=max_size,
+                    max_length=max_array_length,
+                    max_string_length=max_string_length,
+                )
+                all_violations.extend(result.violations)
+
+                if check_injection and isinstance(value, str):
+                    injection_result = detect_prompt_injection(value)
+                    if injection_result.is_suspicious:
+                        all_violations.append((
+                            name,
+                            f"Contains disallowed patterns: {injection_result.matched_text}"
+                        ))
+
+            if all_violations:
+                try:
+                    from foundry_mcp.core.responses import error_response
+                    return asdict(error_response(
+                        "Input validation failed",
+                        error_code="VALIDATION_ERROR",
+                        details={
+                            "validation_errors": [
+                                {"field": field, "message": msg}
+                                for field, msg in all_violations
+                            ]
+                        }
+                    ))
+                except ImportError:
+                    return {
+                        "success": False,
+                        "error": "Input validation failed",
+                        "data": {
+                            "validation_errors": [
+                                {"field": field, "message": msg}
+                                for field, msg in all_violations
+                            ]
+                        }
+                    }
+
+            return await func(*args, **kwargs)
+
+        import asyncio
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        return wrapper
+
+    return decorator
+
+
 # Export all constants and functions
 __all__ = [
     # Constants
@@ -201,7 +428,11 @@ __all__ = [
     "INJECTION_PATTERNS",
     # Types
     "InjectionDetectionResult",
+    "SizeValidationResult",
     # Functions
     "detect_prompt_injection",
     "is_prompt_injection",
+    "validate_size",
+    # Decorators
+    "validate_input_size",
 ]

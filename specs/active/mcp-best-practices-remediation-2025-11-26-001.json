@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:28:34.651982Z",
+  "last_updated": "2025-11-27T12:30:57.356281Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 4,
+    "progress_percentage": 5,
     "current_phase": "phase-1"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -89,7 +89,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
         "risk_level": "high",
@@ -118,7 +118,7 @@
         "task-1-4"
       ],
       "total_tasks": 11,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -132,7 +132,7 @@
     "task-1-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/security.py (NEW)",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-1-files",
       "children": [
         "task-1-1-1",
@@ -150,7 +150,7 @@
         "depends": []
       },
       "total_tasks": 4,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "file_path": "src/foundry_mcp/core/security.py",
         "task_category": "implementation",
@@ -214,13 +214,19 @@
     "task-1-1-4": {
       "type": "subtask",
       "title": "Create validate_input_size() decorator",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Decorator to validate input size limits on tool parameters"
+        "details": "Decorator to validate input size limits on tool parameters",
+        "started_at": "2025-11-27T12:28:55.485676Z",
+        "status_note": "Implementing validate_input_size() decorator",
+        "completed_at": "2025-11-27T12:30:57.340914Z",
+        "needs_journaling": false,
+        "actual_hours": 0.034,
+        "journaled_at": "2025-11-27T12:30:57.351646Z"
       }
     },
     "task-1-2": {
@@ -3227,6 +3233,15 @@
       "content": "Implemented detect_prompt_injection() and supporting code in security.py:\n\n1. InjectionDetectionResult dataclass - structured result with:\n   - is_suspicious: bool flag\n   - matched_pattern: the regex that matched\n   - matched_text: the actual text that triggered detection\n\n2. detect_prompt_injection(text, *, log_detections=True, patterns=None) -> InjectionDetectionResult\n   - Scans input against INJECTION_PATTERNS (or custom patterns)\n   - Uses re.IGNORECASE | re.MULTILINE for comprehensive matching\n   - Optionally logs detections with warning level (includes text preview limited to 100 chars)\n   - Returns structured result with match details\n\n3. is_prompt_injection(text) -> bool\n   - Simple convenience function for boolean-only checks\n   - Calls detect_prompt_injection with log_detections=False\n\nVerification: Tested with Python imports and functional tests:\n- Positive detection: \"ignore previous instructions\" correctly detected\n- Negative detection: clean input \"Hello, please help me\" correctly passes\n- Convenience function works as expected",
       "metadata": {},
       "task_id": "task-1-1-3"
+    },
+    {
+      "timestamp": "2025-11-27T12:30:57.351631Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create validate_input_size() decorator",
+      "author": "claude-code",
+      "content": "Implemented validate_input_size() decorator and supporting infrastructure in security.py:\n\n1. SizeValidationResult dataclass - structured validation result with:\n   - is_valid: bool flag\n   - violations: list of (field_name, message) tuples\n\n2. validate_size(value, field_name, *, max_size, max_length, max_string_length) -> SizeValidationResult\n   - Validates serialized byte size, array length, and string length\n   - Uses MAX_* constants as defaults when not specified\n   - Returns structured result with all violations\n\n3. validate_input_size() decorator with parameters:\n   - max_size: Maximum total input size (default: MAX_INPUT_SIZE)\n   - max_array_length: Maximum array length (default: MAX_ARRAY_LENGTH)\n   - max_string_length: Maximum string length (default: MAX_STRING_LENGTH)\n   - check_injection: Also check for prompt injection (default: False)\n   - Supports both sync and async functions\n   - Returns standardized error_response on validation failure\n   - Includes fallback response format if responses module unavailable\n\nVerification tests passed:\n- Decorator correctly blocks oversized strings\n- Decorator allows valid inputs\n- Decorator blocks injection attempts when check_injection=True\n- Response format matches standard ToolResponse schema\n\nThis completes the security.py module with all 4 subtasks.",
+      "metadata": {},
+      "task_id": "task-1-1-4"
     }
   ]
 }
