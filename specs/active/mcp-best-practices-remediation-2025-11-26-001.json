@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T15:11:54.784704Z",
+  "last_updated": "2025-11-27T15:13:35.183151Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,8 +31,8 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 90,
-    "current_phase": "phase-7"
+    "progress_percentage": 91,
+    "current_phase": "phase-8"
   },
   "hierarchy": {
     "spec-root": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 92,
+      "completed_tasks": 93,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -2565,7 +2565,7 @@
     "phase-8": {
       "type": "phase",
       "title": "Testing & Observability Enhancements",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-8-files",
@@ -2581,7 +2581,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Improve test coverage and add property-based testing",
         "risk_level": "low",
@@ -3555,7 +3555,7 @@
     "phase-8-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-8",
       "children": [
         "phase-8-docs-1",
@@ -3571,7 +3571,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
@@ -3581,7 +3581,7 @@
     "phase-8-docs-1": {
       "type": "task",
       "title": "docs/mcp_best_practices/10-testing-fixtures.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-8-docs",
       "children": [
         "phase-8-docs-1-1"
@@ -3592,7 +3592,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "docs/mcp_best_practices/10-testing-fixtures.md",
         "task_category": "implementation",
@@ -3602,12 +3602,19 @@
     "phase-8-docs-1-1": {
       "type": "subtask",
       "title": "Update fixture guidance with property testing and schema validation coverage.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-8-docs-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T15:12:19.529468Z",
+        "status_note": "Updating testing-fixtures.md with property testing and schema validation guidance",
+        "completed_at": "2025-11-27T15:13:35.171212Z",
+        "needs_journaling": false,
+        "actual_hours": 0.021,
+        "journaled_at": "2025-11-27T15:13:35.179634Z"
+      }
     },
     "phase-8-docs-2": {
       "type": "task",
@@ -4881,6 +4888,15 @@
       "content": "All child tasks in phase phase-7 have been completed.",
       "metadata": {},
       "task_id": "phase-7"
+    },
+    {
+      "timestamp": "2025-11-27T15:13:35.179626Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Update fixture guidance with property testing and schema validation coverage.",
+      "author": "claude-code",
+      "content": "Updated docs/mcp_best_practices/10-testing-fixtures.md with comprehensive property testing and schema validation guidance. Added: (1) Enhanced Section 4 with Hypothesis intro and TestSchemaCompliance class showing property-based schema validation; (2) New Section 5 \"Schema Validation Testing\" with Draft7Validator pattern, TestSchemaStructure, TestResponseValidation, TestInvalidResponses, and TestToolResponseValidation classes; (3) New Section 6 \"Combined Property + Schema Testing\" with custom Hypothesis strategies (valid_user_data, valid_pagination) and TestCombinedValidation class. Total +310 lines added. Committed as d3a26c3.",
+      "metadata": {},
+      "task_id": "phase-8-docs-1-1"
     }
   ]
 }
