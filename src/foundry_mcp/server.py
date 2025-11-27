@@ -48,6 +48,7 @@ from foundry_mcp.tools.authoring import register_authoring_tools
 from foundry_mcp.tools.analysis import register_analysis_tools
 from foundry_mcp.tools.mutations import register_mutation_tools
 from foundry_mcp.tools.reporting import register_reporting_tools
+from foundry_mcp.tools.utilities import register_utility_tools
 from foundry_mcp.resources.specs import register_spec_resources
 from foundry_mcp.prompts.workflows import register_workflow_prompts
 
@@ -92,6 +93,7 @@ def create_server(config: Optional[ServerConfig] = None) -> FastMCP:
     register_analysis_tools(mcp, config)
     register_mutation_tools(mcp, config)
     register_reporting_tools(mcp, config)
+    register_utility_tools(mcp, config)
 
     # Register resources
     _register_resources(mcp, config)

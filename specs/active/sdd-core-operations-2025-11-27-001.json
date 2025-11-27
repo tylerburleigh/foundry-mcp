@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T23:43:34.456903Z",
+  "last_updated": "2025-11-27T23:46:53.377185Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,9 +22,9 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 93,
+    "progress_percentage": 94,
     "status": "active",
-    "current_phase": "phase-6"
+    "current_phase": "phase-7"
   },
   "hierarchy": {
     "spec-root": {
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 83,
+      "completed_tasks": 84,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -2542,7 +2542,7 @@
     "phase-7": {
       "type": "phase",
       "title": "Miscellaneous Tooling",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-7-files",
@@ -2556,7 +2556,7 @@
         "blocks": []
       },
       "total_tasks": 6,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Cache management and schema export utilities",
         "risk_level": "low"
@@ -2565,14 +2565,14 @@
     "phase-7-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-7",
       "children": [
         "task-7-1",
         "task-7-2"
       ],
       "total_tasks": 4,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2585,7 +2585,7 @@
     "task-7-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/utilities.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-7-files",
       "children": [
         "task-7-1-1",
@@ -2593,7 +2593,7 @@
         "task-7-1-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/utilities.py",
         "task_category": "implementation",
@@ -2611,13 +2611,18 @@
     "task-7-1-1": {
       "type": "subtask",
       "title": "Implement sdd-cache-manage - manage SDD CLI cache entries",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-7-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd cache, list/clear/inspect cache entries, and document cache controls plus backlog removal in docs/ + half_baked_plans"
+        "details": "Wrap sdd cache, list/clear/inspect cache entries, and document cache controls plus backlog removal in docs/ + half_baked_plans",
+        "started_at": "2025-11-27T23:44:11.674592Z",
+        "completed_at": "2025-11-27T23:46:53.368328Z",
+        "needs_journaling": false,
+        "actual_hours": 0.045,
+        "journaled_at": "2025-11-27T23:46:53.374553Z"
       }
     },
     "task-7-1-2": {
@@ -3644,6 +3649,15 @@
       "content": "All child tasks in phase phase-6 have been completed.",
       "metadata": {},
       "task_id": "phase-6"
+    },
+    {
+      "timestamp": "2025-11-27T23:46:53.374547Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement sdd-cache-manage - manage SDD CLI cache entries",
+      "author": "claude-code",
+      "content": "Implemented sdd-cache-manage MCP tool in src/foundry_mcp/tools/utilities.py. The tool wraps the sdd CLI cache commands (info/clear) with proper MCP response contract. Features: (1) 'info' action returns cache statistics (total entries, active entries), (2) 'clear' action removes cache entries with optional spec_id and review_type filters, (3) Circuit breaker protection for resilience, (4) Metrics instrumentation for observability, (5) Proper error handling for timeout/CLI not found/command failure cases. Added register_utility_tools to server.py. Added utility_tools feature flag and tools section to capabilities_manifest.json. Created tests/unit/test_utilities.py with 8 passing tests covering cache operations, filters, error handling, and registration.",
+      "metadata": {},
+      "task_id": "task-7-1-1"
     }
   ]
 }

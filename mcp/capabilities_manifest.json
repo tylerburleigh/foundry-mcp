@@ -612,6 +612,20 @@
         ]
       }
     ],
+    "utility_tools": [
+      {
+        "name": "sdd-cache-manage",
+        "description": "Manage SDD CLI cache entries - inspect statistics and clear entries with optional filters",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "utility_tools",
+        "parameters": [
+          {"name": "action", "type": "string", "required": true, "enum": ["info", "clear"], "description": "Cache operation to perform"},
+          {"name": "spec_id", "type": "string", "required": false, "description": "Filter clear operation by spec ID"},
+          {"name": "review_type", "type": "string", "required": false, "enum": ["fidelity", "plan"], "description": "Filter clear operation by review type"}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -851,6 +865,16 @@
         "dependencies": [],
         "created_at": "2025-11-27T00:00:00Z",
         "expires_at": null
+      },
+      "utility_tools": {
+        "description": "Utility tools for cache management and schema exports (sdd-cache-manage, spec-schema-export)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-11-27T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -932,6 +956,11 @@
         "supported": true,
         "description": "Reporting tools for generating human-readable validation reports, progress summaries, and health checks",
         "tools": ["spec-report", "spec-report-summary"]
+      },
+      "utility_tools": {
+        "supported": true,
+        "description": "Utility tools for cache management and schema exports",
+        "tools": ["sdd-cache-manage", "spec-schema-export"]
       }
     },
     "api_version": "2024-11-01"

@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T23:30:35.087936Z",
-    "generated_at_commit": "c8ad21c1c0e3754a5199b66634986fdb41ec3a08",
+    "generated_at": "2025-11-27T23:44:02.873004Z",
+    "generated_at_commit": "7508a0d8f28ac2e68570875fc6fe506c79e0813f",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 47,
-    "total_lines": 24400,
+    "total_lines": 24405,
     "total_classes": 72,
     "total_functions": 221,
     "avg_complexity": 8.87,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 47,
-        "lines": 24400,
+        "lines": 24405,
         "classes": 72,
         "functions": 221,
         "avg_complexity": 8.87
@@ -1057,11 +1057,12 @@
         "foundry_mcp.tools.authoring.register_authoring_tools",
         "foundry_mcp.tools.analysis.register_analysis_tools",
         "foundry_mcp.tools.mutations.register_mutation_tools",
+        "foundry_mcp.tools.reporting.register_reporting_tools",
         "foundry_mcp.resources.specs.register_spec_resources",
         "foundry_mcp.prompts.workflows.register_workflow_prompts"
       ],
       "exports": [],
-      "lines": 346
+      "lines": 348
     },
     {
       "name": "__init__",
@@ -1490,7 +1491,6 @@
         "logging",
         "time",
         "dataclasses.asdict",
-        "pathlib.Path",
         "typing.Any",
         "typing.Dict",
         "typing.List",
@@ -1505,8 +1505,6 @@
         "foundry_mcp.core.responses.success_response",
         "foundry_mcp.core.responses.error_response",
         "foundry_mcp.core.naming.canonical_tool",
-        "foundry_mcp.core.resilience.MEDIUM_TIMEOUT",
-        "foundry_mcp.core.resilience.with_timeout",
         "foundry_mcp.core.resilience.CircuitBreaker",
         "foundry_mcp.core.resilience.CircuitBreakerError",
         "foundry_mcp.core.observability.get_metrics",
@@ -1514,7 +1512,7 @@
         "foundry_mcp.core.observability.mcp_tool"
       ],
       "exports": [],
-      "lines": 562
+      "lines": 565
     },
     {
       "name": "spec_helpers",
@@ -3875,7 +3873,7 @@
         {
           "instantiator": "<module>",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 43,
+          "line": 40,
           "context": []
         },
         {
@@ -4826,13 +4824,13 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 67,
+          "line": 68,
           "call_type": "function_call"
         },
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 327,
+          "line": 329,
           "call_type": "function_call"
         }
       ],
@@ -5579,7 +5577,7 @@
       "calls": [
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 771,
           "call_type": "method_call"
         },
@@ -5597,13 +5595,13 @@
         },
         {
           "name": "done",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 785,
           "call_type": "method_call"
         },
         {
           "name": "result",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 787,
           "call_type": "method_call"
         },
@@ -5680,7 +5678,7 @@
         {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 135,
+          "line": 137,
           "call_type": "function_call"
         },
         {
@@ -5722,7 +5720,7 @@
         {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 132,
+          "line": 134,
           "call_type": "function_call"
         },
         {
@@ -5940,7 +5938,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 88,
+          "line": 89,
           "call_type": "function_call"
         }
       ],
@@ -7751,7 +7749,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -9290,31 +9288,31 @@
         {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 109,
+          "line": 111,
           "call_type": "function_call"
         },
         {
           "name": "spec_list_basic",
           "file": "src/foundry_mcp/server.py",
-          "line": 162,
+          "line": 164,
           "call_type": "function_call"
         },
         {
           "name": "spec_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 185,
+          "line": 187,
           "call_type": "function_call"
         },
         {
           "name": "spec_get_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 226,
+          "line": 228,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 253,
+          "line": 255,
           "call_type": "function_call"
         },
         {
@@ -9686,13 +9684,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 258,
+          "line": 255,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 476,
+          "line": 479,
           "call_type": "function_call"
         },
         {
@@ -10010,7 +10008,7 @@
         {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 128,
+          "line": 130,
           "call_type": "function_call"
         },
         {
@@ -10052,7 +10050,7 @@
         {
           "name": "register_reporting_tools",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 255,
+          "line": 252,
           "call_type": "function_call"
         },
         {
@@ -10082,7 +10080,7 @@
         {
           "name": "register_reporting_tools",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 256,
+          "line": 253,
           "call_type": "function_call"
         }
       ],
@@ -10124,13 +10122,13 @@
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 331,
+          "line": 333,
           "call_type": "function_call"
         },
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 341,
+          "line": 343,
           "call_type": "function_call"
         },
         {
@@ -10381,13 +10379,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 262,
+          "line": 259,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 480,
+          "line": 483,
           "call_type": "function_call"
         }
       ],
@@ -13495,31 +13493,31 @@
         {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
-          "line": 148,
+          "line": 150,
           "call_type": "function_call"
         },
         {
           "name": "spec_list_basic",
           "file": "src/foundry_mcp/server.py",
-          "line": 183,
+          "line": 185,
           "call_type": "function_call"
         },
         {
           "name": "spec_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 213,
+          "line": 215,
           "call_type": "function_call"
         },
         {
           "name": "spec_get_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 247,
+          "line": 249,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 281,
+          "line": 283,
           "call_type": "function_call"
         },
         {
@@ -13927,19 +13925,19 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 404,
+          "line": 407,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 454,
+          "line": 457,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 534,
+          "line": 537,
           "call_type": "function_call"
         },
         {
@@ -14222,31 +14220,31 @@
         {
           "name": "spec_list_basic",
           "file": "src/foundry_mcp/server.py",
-          "line": 178,
+          "line": 180,
           "call_type": "function_call"
         },
         {
           "name": "spec_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 203,
+          "line": 205,
           "call_type": "function_call"
         },
         {
           "name": "spec_get_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 244,
+          "line": 246,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 272,
+          "line": 274,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 278,
+          "line": 280,
           "call_type": "function_call"
         },
         {
@@ -16232,49 +16230,49 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 300,
+          "line": 297,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 317,
+          "line": 314,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 322,
+          "line": 319,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 466,
+          "line": 469,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 474,
+          "line": 477,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 508,
+          "line": 511,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 513,
+          "line": 516,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 560,
+          "line": 563,
           "call_type": "function_call"
         },
         {
@@ -17355,37 +17353,37 @@
         {
           "name": "spec_list_basic",
           "file": "src/foundry_mcp/server.py",
-          "line": 176,
+          "line": 178,
           "call_type": "function_call"
         },
         {
           "name": "spec_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 199,
+          "line": 201,
           "call_type": "function_call"
         },
         {
           "name": "spec_get_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 240,
+          "line": 242,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 268,
+          "line": 270,
           "call_type": "function_call"
         },
         {
           "name": "resource_specs_list",
           "file": "src/foundry_mcp/server.py",
-          "line": 301,
+          "line": 303,
           "call_type": "function_call"
         },
         {
           "name": "resource_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 313,
+          "line": 315,
           "call_type": "function_call"
         },
         {
@@ -17607,25 +17605,25 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 311,
+          "line": 308,
           "call_type": "function_call"
         },
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 313,
+          "line": 310,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 503,
+          "line": 506,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 505,
+          "line": 508,
           "call_type": "function_call"
         },
         {
@@ -17931,13 +17929,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 324,
+          "line": 321,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 515,
+          "line": 518,
           "call_type": "function_call"
         },
         {
@@ -18129,25 +18127,25 @@
         {
           "name": "spec_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 200,
+          "line": 202,
           "call_type": "function_call"
         },
         {
           "name": "spec_get_hierarchy",
           "file": "src/foundry_mcp/server.py",
-          "line": 241,
+          "line": 243,
           "call_type": "function_call"
         },
         {
           "name": "task_get",
           "file": "src/foundry_mcp/server.py",
-          "line": 269,
+          "line": 271,
           "call_type": "function_call"
         },
         {
           "name": "resource_spec",
           "file": "src/foundry_mcp/server.py",
-          "line": 314,
+          "line": 316,
           "call_type": "function_call"
         },
         {
@@ -18213,13 +18211,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 320,
+          "line": 317,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 511,
+          "line": 514,
           "call_type": "function_call"
         },
         {
@@ -18631,13 +18629,13 @@
         {
           "name": "spec_list_basic",
           "file": "src/foundry_mcp/server.py",
-          "line": 181,
+          "line": 183,
           "call_type": "function_call"
         },
         {
           "name": "resource_specs_list",
           "file": "src/foundry_mcp/server.py",
-          "line": 305,
+          "line": 307,
           "call_type": "function_call"
         },
         {
@@ -20843,13 +20841,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 341,
+          "line": 338,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 518,
+          "line": 521,
           "call_type": "function_call"
         },
         {
@@ -22793,13 +22791,13 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 362,
+          "line": 359,
           "call_type": "function_call"
         },
         {
           "name": "spec_report_summary",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 521,
+          "line": 524,
           "call_type": "function_call"
         },
         {
@@ -23315,7 +23313,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 99,
+          "line": 101,
           "call_type": "function_call"
         }
       ],
@@ -23357,7 +23355,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 96,
+          "line": 98,
           "call_type": "function_call"
         }
       ],
@@ -23446,7 +23444,7 @@
     {
       "name": "create_server",
       "file": "src/foundry_mcp/server.py",
-      "line": 56,
+      "line": 57,
       "language": "python",
       "docstring": "Create and configure the FastMCP server instance.\n\nArgs:\n    config: Optional server configuration. If not provided, loads from environment.\n\nReturns:\n    Configured FastMCP server instance",
       "parameters": [
@@ -23466,7 +23464,7 @@
         {
           "name": "main",
           "file": "src/foundry_mcp/server.py",
-          "line": 328,
+          "line": 330,
           "call_type": "function_call"
         }
       ],
@@ -23474,127 +23472,133 @@
         {
           "name": "get_config",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 67,
+          "line": 68,
           "call_type": "function_call"
         },
         {
           "name": "setup_logging",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/config.py",
-          "line": 70,
+          "line": 71,
           "call_type": "method_call"
         },
         {
           "name": "_register_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 78,
+          "line": 79,
           "call_type": "function_call"
         },
         {
           "name": "register_query_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 79,
+          "line": 80,
           "call_type": "function_call"
         },
         {
           "name": "register_task_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 80,
+          "line": 81,
           "call_type": "function_call"
         },
         {
           "name": "register_validation_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 81,
+          "line": 82,
           "call_type": "function_call"
         },
         {
           "name": "register_journal_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 82,
+          "line": 83,
           "call_type": "function_call"
         },
         {
           "name": "register_rendering_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 83,
+          "line": 84,
           "call_type": "function_call"
         },
         {
           "name": "register_lifecycle_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 84,
+          "line": 85,
           "call_type": "function_call"
         },
         {
           "name": "register_docs_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 85,
+          "line": 86,
           "call_type": "function_call"
         },
         {
           "name": "register_testing_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 86,
+          "line": 87,
           "call_type": "function_call"
         },
         {
           "name": "register_discovery_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 87,
+          "line": 88,
           "call_type": "function_call"
         },
         {
           "name": "register_environment_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 88,
+          "line": 89,
           "call_type": "function_call"
         },
         {
           "name": "register_spec_helper_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 89,
+          "line": 90,
           "call_type": "function_call"
         },
         {
           "name": "register_authoring_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 90,
+          "line": 91,
           "call_type": "function_call"
         },
         {
           "name": "register_analysis_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 91,
+          "line": 92,
           "call_type": "function_call"
         },
         {
           "name": "register_mutation_tools",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 92,
+          "line": 93,
+          "call_type": "function_call"
+        },
+        {
+          "name": "register_reporting_tools",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
+          "line": 94,
           "call_type": "function_call"
         },
         {
           "name": "_register_resources",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 95,
+          "line": 97,
           "call_type": "function_call"
         },
         {
           "name": "register_spec_resources",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 96,
+          "line": 98,
           "call_type": "function_call"
         },
         {
           "name": "register_workflow_prompts",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 99,
+          "line": 101,
           "call_type": "function_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 101,
+          "line": 103,
           "call_type": "method_call"
         }
       ],
@@ -23603,7 +23607,7 @@
     {
       "name": "_register_tools",
       "file": "src/foundry_mcp/server.py",
-      "line": 106,
+      "line": 108,
       "language": "python",
       "docstring": "Register all MCP tools with the server.",
       "parameters": [
@@ -23628,7 +23632,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 78,
+          "line": 79,
           "call_type": "function_call"
         }
       ],
@@ -23636,7 +23640,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 288,
+          "line": 290,
           "call_type": "method_call"
         }
       ],
@@ -23645,7 +23649,7 @@
     {
       "name": "_register_resources",
       "file": "src/foundry_mcp/server.py",
-      "line": 293,
+      "line": 295,
       "language": "python",
       "docstring": "Register all MCP resources with the server.",
       "parameters": [
@@ -23670,7 +23674,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 95,
+          "line": 97,
           "call_type": "function_call"
         }
       ],
@@ -23678,7 +23682,7 @@
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 321,
+          "line": 323,
           "call_type": "method_call"
         }
       ],
@@ -23687,7 +23691,7 @@
     {
       "name": "main",
       "file": "src/foundry_mcp/server.py",
-      "line": 324,
+      "line": 326,
       "language": "python",
       "docstring": "Main entry point for the foundry-mcp server.",
       "parameters": [],
@@ -23701,7 +23705,7 @@
         {
           "name": "<module>",
           "file": "src/foundry_mcp/server.py",
-          "line": 346,
+          "line": 348,
           "call_type": "function_call"
         }
       ],
@@ -23709,67 +23713,67 @@
         {
           "name": "get_config",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 327,
+          "line": 329,
           "call_type": "function_call"
         },
         {
           "name": "create_server",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 328,
+          "line": 330,
           "call_type": "function_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 330,
+          "line": 332,
           "call_type": "method_call"
         },
         {
           "name": "audit_log",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 331,
+          "line": 333,
           "call_type": "function_call"
         },
         {
           "name": "run",
           "file": "unknown",
-          "line": 334,
+          "line": 336,
           "call_type": "method_call"
         },
         {
           "name": "info",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 337,
+          "line": 339,
           "call_type": "method_call"
         },
         {
           "name": "exit",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/sys.pyi",
-          "line": 338,
+          "line": 340,
           "call_type": "method_call"
         },
         {
           "name": "error",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 340,
+          "line": 342,
           "call_type": "method_call"
         },
         {
           "name": "audit_log",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/server.py",
-          "line": 341,
+          "line": 343,
           "call_type": "function_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 341,
+          "line": 343,
           "call_type": "function_call"
         },
         {
           "name": "exit",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/sys.pyi",
-          "line": 342,
+          "line": 344,
           "call_type": "method_call"
         }
       ],
@@ -24096,7 +24100,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 91,
+          "line": 92,
           "call_type": "function_call"
         }
       ],
@@ -24424,7 +24428,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 90,
+          "line": 91,
           "call_type": "function_call"
         }
       ],
@@ -24459,7 +24463,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 87,
+          "line": 88,
           "call_type": "function_call"
         }
       ],
@@ -24494,7 +24498,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 85,
+          "line": 86,
           "call_type": "function_call"
         }
       ],
@@ -24536,7 +24540,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 88,
+          "line": 89,
           "call_type": "function_call"
         }
       ],
@@ -24891,7 +24895,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 82,
+          "line": 83,
           "call_type": "function_call"
         }
       ],
@@ -24933,7 +24937,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 84,
+          "line": 85,
           "call_type": "function_call"
         }
       ],
@@ -25268,7 +25272,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 92,
+          "line": 93,
           "call_type": "function_call"
         }
       ],
@@ -25623,7 +25627,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 79,
+          "line": 80,
           "call_type": "function_call"
         }
       ],
@@ -25665,7 +25669,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 83,
+          "line": 84,
           "call_type": "function_call"
         }
       ],
@@ -25682,7 +25686,7 @@
     {
       "name": "_format_severity_indicator",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 50,
+      "line": 47,
       "language": "python",
       "docstring": "Format severity level for display.",
       "parameters": [
@@ -25702,7 +25706,7 @@
         {
           "name": "_format_diagnostic",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 62,
+          "line": 59,
           "call_type": "function_call"
         }
       ],
@@ -25710,19 +25714,19 @@
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 57,
+          "line": 54,
           "call_type": "method_call"
         },
         {
           "name": "lower",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 57,
+          "line": 54,
           "call_type": "method_call"
         },
         {
           "name": "upper",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 57,
+          "line": 54,
           "call_type": "method_call"
         }
       ],
@@ -25731,7 +25735,7 @@
     {
       "name": "_format_diagnostic",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 60,
+      "line": 57,
       "language": "python",
       "docstring": "Format a single diagnostic for human-readable output.",
       "parameters": [
@@ -25751,7 +25755,7 @@
         {
           "name": "_generate_validation_section",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 111,
+          "line": 108,
           "call_type": "function_call"
         }
       ],
@@ -25759,37 +25763,37 @@
         {
           "name": "_format_severity_indicator",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/tools/reporting.py",
-          "line": 62,
+          "line": 59,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 59,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 60,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 61,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 62,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 63,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 64,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 65,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 71,
+          "line": 68,
           "call_type": "method_call"
         }
       ],
@@ -25798,7 +25802,7 @@
     {
       "name": "_generate_validation_section",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 78,
+      "line": 75,
       "language": "python",
       "docstring": "Generate the validation section of the report.",
       "parameters": [
@@ -25818,7 +25822,7 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 420,
+          "line": 423,
           "call_type": "function_call"
         }
       ],
@@ -25826,13 +25830,31 @@
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 83,
+          "line": 80,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 81,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 83,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 84,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 85,
           "call_type": "method_call"
         },
         {
@@ -25842,21 +25864,21 @@
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 87,
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 91,
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 88,
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 92,
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 89,
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 93,
           "call_type": "method_call"
         },
         {
@@ -25872,75 +25894,57 @@
           "call_type": "method_call"
         },
         {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 96,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 97,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 98,
+          "line": 99,
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 100,
           "call_type": "method_call"
         },
         {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 102,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "name": "get",
+          "file": "built-in",
           "line": 103,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "built-in",
-          "line": 106,
+          "line": 104,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "built-in",
-          "line": 107,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
-          "line": 108,
+          "line": 105,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 111,
+          "line": 108,
           "call_type": "method_call"
         },
         {
           "name": "_format_diagnostic",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/tools/reporting.py",
-          "line": 111,
+          "line": 108,
           "call_type": "function_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 113,
+          "line": 110,
           "call_type": "method_call"
         }
       ],
@@ -25949,7 +25953,7 @@
     {
       "name": "_generate_stats_section",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 118,
+      "line": 115,
       "language": "python",
       "docstring": "Generate the statistics section of the report.",
       "parameters": [
@@ -25969,7 +25973,7 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 423,
+          "line": 426,
           "call_type": "function_call"
         }
       ],
@@ -25977,7 +25981,13 @@
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 121,
+          "line": 118,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 119,
           "call_type": "method_call"
         },
         {
@@ -25987,6 +25997,36 @@
           "call_type": "method_call"
         },
         {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 122,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 123,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 123,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 124,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 124,
+          "call_type": "method_call"
+        },
+        {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 125,
@@ -25995,97 +26035,85 @@
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 125,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 126,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 126,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 127,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 127,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 128,
           "call_type": "method_call"
         },
         {
           "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "file": "built-in",
+          "line": 129,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
+          "line": 130,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
           "line": 131,
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "built-in",
-          "line": 132,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 133,
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "built-in",
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 134,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 136,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 137,
           "call_type": "method_call"
         },
         {
           "name": "int",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 141,
+          "line": 138,
           "call_type": "function_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 143,
+          "line": 140,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 144,
+          "line": 141,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 144,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 146,
+          "call_type": "method_call"
+        },
+        {
+          "name": "sorted",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 147,
+          "call_type": "function_call"
+        },
+        {
+          "name": "items",
+          "file": "built-in",
+          "line": 147,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 148,
           "call_type": "method_call"
         },
         {
@@ -26095,38 +26123,50 @@
           "call_type": "method_call"
         },
         {
-          "name": "sorted",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 150,
-          "call_type": "function_call"
-        },
-        {
-          "name": "items",
-          "file": "built-in",
-          "line": 150,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 151,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 152,
           "call_type": "method_call"
         },
         {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 154,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 155,
+          "call_type": "method_call"
+        },
+        {
           "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "file": "built-in",
           "line": 155,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 156,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
+          "line": 156,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 157,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
           "line": 157,
           "call_type": "method_call"
         },
@@ -26138,38 +26178,20 @@
         },
         {
           "name": "get",
-          "file": "built-in",
-          "line": 158,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 159,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
-          "line": 159,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 160,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "built-in",
-          "line": 160,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 161,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 162,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 163,
           "call_type": "method_call"
         },
         {
@@ -26179,63 +26201,45 @@
           "call_type": "method_call"
         },
         {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 165,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 166,
-          "call_type": "method_call"
-        },
-        {
-          "name": "get",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 167,
-          "call_type": "method_call"
-        },
-        {
           "name": "any",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 169,
+          "line": 166,
           "call_type": "function_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 170,
+          "line": 167,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 172,
+          "line": 169,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 174,
+          "line": 171,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 173,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 175,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 176,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 178,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 179,
           "call_type": "method_call"
         }
       ],
@@ -26244,7 +26248,7 @@
     {
       "name": "_generate_health_section",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 184,
+      "line": 181,
       "language": "python",
       "docstring": "Generate the health assessment section of the report.",
       "parameters": [
@@ -26269,7 +26273,7 @@
         {
           "name": "spec_report",
           "file": "src/foundry_mcp/tools/reporting.py",
-          "line": 426,
+          "line": 429,
           "call_type": "function_call"
         }
       ],
@@ -26277,103 +26281,115 @@
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 190,
+          "line": 187,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 191,
+          "line": 188,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 197,
+          "line": 194,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 198,
+          "line": 195,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 199,
+          "line": 196,
           "call_type": "method_call"
         },
         {
           "name": "min",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 200,
+          "line": 197,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 203,
+          "line": 200,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "built-in",
-          "line": 204,
+          "line": 201,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 206,
+          "line": 203,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 209,
+          "line": 206,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 211,
+          "line": 208,
           "call_type": "method_call"
         },
         {
           "name": "min",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 212,
+          "line": 209,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
-          "line": 215,
+          "line": 212,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 217,
+          "line": 214,
           "call_type": "method_call"
         },
         {
           "name": "max",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 220,
+          "line": 217,
           "call_type": "function_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 232,
+          "line": 229,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 230,
           "call_type": "method_call"
         },
         {
           "name": "append",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 233,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 235,
           "call_type": "method_call"
         },
         {
@@ -26393,18 +26409,6 @@
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
           "line": 239,
           "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 241,
-          "call_type": "method_call"
-        },
-        {
-          "name": "append",
-          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 242,
-          "call_type": "method_call"
         }
       ],
       "call_count": 1
@@ -26412,7 +26416,7 @@
     {
       "name": "register_reporting_tools",
       "file": "src/foundry_mcp/tools/reporting.py",
-      "line": 247,
+      "line": 244,
       "language": "python",
       "docstring": "Register reporting tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -26433,27 +26437,35 @@
       "is_async": false,
       "is_exported": false,
       "is_public": true,
-      "callers": [],
+      "callers": [
+        {
+          "name": "create_server",
+          "file": "src/foundry_mcp/server.py",
+          "line": 94,
+          "call_type": "function_call"
+        }
+      ],
       "calls": [
         {
           "name": "get_metrics",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/tools/reporting.py",
-          "line": 255,
+          "line": 252,
           "call_type": "function_call"
         },
         {
           "name": "get_audit_logger",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/tools/reporting.py",
-          "line": 256,
+          "line": 253,
           "call_type": "function_call"
         },
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 562,
+          "line": 565,
           "call_type": "method_call"
         }
-      ]
+      ],
+      "call_count": 1
     },
     {
       "name": "_run_sdd_command",
@@ -26776,7 +26788,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 89,
+          "line": 90,
           "call_type": "function_call"
         }
       ],
@@ -26811,7 +26823,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 80,
+          "line": 81,
           "call_type": "function_call"
         }
       ],
@@ -26853,7 +26865,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 86,
+          "line": 87,
           "call_type": "function_call"
         }
       ],
@@ -26895,7 +26907,7 @@
         {
           "name": "create_server",
           "file": "src/foundry_mcp/server.py",
-          "line": 81,
+          "line": 82,
           "call_type": "function_call"
         }
       ],
@@ -27339,6 +27351,7 @@
       "foundry_mcp.tools.authoring.register_authoring_tools",
       "foundry_mcp.tools.analysis.register_analysis_tools",
       "foundry_mcp.tools.mutations.register_mutation_tools",
+      "foundry_mcp.tools.reporting.register_reporting_tools",
       "foundry_mcp.resources.specs.register_spec_resources",
       "foundry_mcp.prompts.workflows.register_workflow_prompts"
     ],
@@ -27596,7 +27609,6 @@
       "logging",
       "time",
       "dataclasses.asdict",
-      "pathlib.Path",
       "typing.Any",
       "typing.Dict",
       "typing.List",
@@ -27611,8 +27623,6 @@
       "foundry_mcp.core.responses.success_response",
       "foundry_mcp.core.responses.error_response",
       "foundry_mcp.core.naming.canonical_tool",
-      "foundry_mcp.core.resilience.MEDIUM_TIMEOUT",
-      "foundry_mcp.core.resilience.with_timeout",
       "foundry_mcp.core.resilience.CircuitBreaker",
       "foundry_mcp.core.resilience.CircuitBreakerError",
       "foundry_mcp.core.observability.get_metrics",
