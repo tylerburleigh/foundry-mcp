@@ -111,6 +111,79 @@ VALID_VERIFICATION_TYPES = {"auto", "manual", "fidelity"}
 
 # Validation functions
 
+def validate_spec_input(
+    raw_input: str | bytes,
+    *,
+    max_size: Optional[int] = None,
+) -> tuple[Optional[Dict[str, Any]], Optional[ValidationResult]]:
+    """
+    Validate and parse raw spec input with size checks.
+
+    Performs size validation before JSON parsing to prevent resource
+    exhaustion attacks from oversized payloads.
+
+    Args:
+        raw_input: Raw JSON string or bytes to validate
+        max_size: Maximum allowed size in bytes (default: MAX_INPUT_SIZE)
+
+    Returns:
+        Tuple of (parsed_data, error_result):
+        - On success: (dict, None)
+        - On failure: (None, ValidationResult with error)
+
+    Example:
+        >>> spec_data, error = validate_spec_input(json_string)
+        >>> if error:
+        ...     return error_response(error.diagnostics[0].message)
+        >>> result = validate_spec(spec_data)
+    """
+    effective_max_size = max_size if max_size is not None else MAX_INPUT_SIZE
+
+    # Convert to bytes if string for consistent size checking
+    if isinstance(raw_input, str):
+        input_bytes = raw_input.encode('utf-8')
+    else:
+        input_bytes = raw_input
+
+    # Check input size
+    if len(input_bytes) > effective_max_size:
+        error_result = ValidationResult(
+            spec_id="unknown",
+            is_valid=False,
+            error_count=1,
+        )
+        error_result.diagnostics.append(Diagnostic(
+            code="INPUT_TOO_LARGE",
+            message=f"Input size ({len(input_bytes):,} bytes) exceeds maximum allowed ({effective_max_size:,} bytes)",
+            severity="error",
+            category="security",
+            suggested_fix=f"Reduce input size to under {effective_max_size:,} bytes",
+        ))
+        return None, error_result
+
+    # Try to parse JSON
+    try:
+        if isinstance(raw_input, bytes):
+            spec_data = json.loads(raw_input.decode('utf-8'))
+        else:
+            spec_data = json.loads(raw_input)
+    except json.JSONDecodeError as e:
+        error_result = ValidationResult(
+            spec_id="unknown",
+            is_valid=False,
+            error_count=1,
+        )
+        error_result.diagnostics.append(Diagnostic(
+            code="INVALID_JSON",
+            message=f"Failed to parse JSON: {e}",
+            severity="error",
+            category="structure",
+        ))
+        return None, error_result
+
+    return spec_data, None
+
+
 def validate_spec(spec_data: Dict[str, Any]) -> ValidationResult:
     """
     Validate a spec file and return structured diagnostics.
@@ -120,9 +193,16 @@ def validate_spec(spec_data: Dict[str, Any]) -> ValidationResult:
 
     Returns:
         ValidationResult with all diagnostics
+
+    Note:
+        For raw JSON input, use validate_spec_input() first to perform
+        size validation before parsing.
     """
     spec_id = spec_data.get("spec_id", "unknown")
     result = ValidationResult(spec_id=spec_id, is_valid=True)
+
+    # Check overall structure size (defense in depth)
+    _validate_size_limits(spec_data, result)
 
     # Run all validation checks
     _validate_structure(spec_data, result)
@@ -146,6 +226,71 @@ def validate_spec(spec_data: Dict[str, Any]) -> ValidationResult:
 
     result.is_valid = result.error_count == 0
     return result
+
+
+def _validate_size_limits(spec_data: Dict[str, Any], result: ValidationResult) -> None:
+    """Validate size limits on spec data structures (defense in depth)."""
+
+    def count_items(obj: Any, depth: int = 0) -> tuple[int, int]:
+        """Count total items and max depth in nested structure."""
+        if depth > MAX_NESTED_DEPTH:
+            return 0, depth
+
+        if isinstance(obj, dict):
+            total = len(obj)
+            max_d = depth
+            for v in obj.values():
+                sub_count, sub_depth = count_items(v, depth + 1)
+                total += sub_count
+                max_d = max(max_d, sub_depth)
+            return total, max_d
+        elif isinstance(obj, list):
+            total = len(obj)
+            max_d = depth
+            for item in obj:
+                sub_count, sub_depth = count_items(item, depth + 1)
+                total += sub_count
+                max_d = max(max_d, sub_depth)
+            return total, max_d
+        else:
+            return 1, depth
+
+    # Check hierarchy nesting depth
+    hierarchy = spec_data.get("hierarchy", {})
+    if hierarchy:
+        _, max_depth = count_items(hierarchy)
+        if max_depth > MAX_NESTED_DEPTH:
+            result.diagnostics.append(Diagnostic(
+                code="EXCESSIVE_NESTING",
+                message=f"Hierarchy nesting depth ({max_depth}) exceeds maximum ({MAX_NESTED_DEPTH})",
+                severity="warning",
+                category="security",
+                suggested_fix="Flatten hierarchy structure to reduce nesting depth",
+            ))
+
+    # Check array lengths in common locations
+    children = hierarchy.get("children", [])
+    if len(children) > MAX_ARRAY_LENGTH:
+        result.diagnostics.append(Diagnostic(
+            code="EXCESSIVE_ARRAY_LENGTH",
+            message=f"Root children array ({len(children)} items) exceeds maximum ({MAX_ARRAY_LENGTH})",
+            severity="warning",
+            category="security",
+            location="hierarchy.children",
+            suggested_fix="Split large phase/task lists into smaller groups",
+        ))
+
+    # Check journal array length
+    journal = spec_data.get("journal", [])
+    if len(journal) > MAX_ARRAY_LENGTH:
+        result.diagnostics.append(Diagnostic(
+            code="EXCESSIVE_JOURNAL_LENGTH",
+            message=f"Journal array ({len(journal)} entries) exceeds maximum ({MAX_ARRAY_LENGTH})",
+            severity="warning",
+            category="security",
+            location="journal",
+            suggested_fix="Archive old journal entries or split into separate files",
+        ))
 
 
 def _validate_structure(spec_data: Dict[str, Any], result: ValidationResult) -> None:
