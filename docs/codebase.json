@@ -2,17 +2,17 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T14:12:40.746855Z",
-    "generated_at_commit": "1647cfe2f7d2928b6f3b138bdf1d1f6b92669a0c",
+    "generated_at": "2025-11-27T14:26:52.114346Z",
+    "generated_at_commit": "e8c7ad3c85218d5194fd2f9b7903aad578cbd971",
     "languages": [
       "python"
     ],
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 34,
-    "total_lines": 14469,
-    "total_classes": 55,
+    "total_files": 35,
+    "total_lines": 14650,
+    "total_classes": 58,
     "total_functions": 168,
     "avg_complexity": 7.07,
     "max_complexity": 65,
@@ -25,9 +25,9 @@
     ],
     "by_language": {
       "python": {
-        "files": 34,
-        "lines": 14469,
-        "classes": 55,
+        "files": 35,
+        "lines": 14650,
+        "classes": 58,
         "functions": 168,
         "avg_complexity": 7.07
       }
@@ -179,6 +179,32 @@
       ],
       "exports": [],
       "lines": 446
+    },
+    {
+      "name": "discovery",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "language": "python",
+      "docstring": "Tool metadata and discovery module for foundry-mcp.\n\nProvides dataclasses and utilities for tool registration, discovery,\ncapability negotiation, and deprecation handling per MCP best practices\n(docs/mcp_best_practices/13-tool-discovery.md).",
+      "classes": [
+        "ParameterType",
+        "ParameterMetadata",
+        "ToolMetadata"
+      ],
+      "functions": [],
+      "imports": [
+        "dataclasses.dataclass",
+        "dataclasses.field",
+        "enum.Enum",
+        "functools.wraps",
+        "typing.Any",
+        "typing.Callable",
+        "typing.Dict",
+        "typing.List",
+        "typing.Optional",
+        "typing.TypeVar"
+      ],
+      "exports": [],
+      "lines": 181
     },
     {
       "name": "docs",
@@ -1389,6 +1415,55 @@
       ],
       "imported_by": [],
       "instantiation_count": 1
+    },
+    {
+      "name": "ParameterType",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 18,
+      "language": "python",
+      "docstring": "Types for tool parameters in JSON Schema.",
+      "bases": [
+        "str",
+        "Enum"
+      ],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
+    },
+    {
+      "name": "ParameterMetadata",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 30,
+      "language": "python",
+      "docstring": "Metadata for a tool parameter.\n\nAttributes:\n    name: Parameter name\n    type: Parameter type (string, integer, boolean, etc.)\n    description: Human-readable description\n    required: Whether parameter is required\n    default: Default value if not provided\n    constraints: JSON Schema constraints (pattern, min, max, enum, etc.)\n    examples: Example values for documentation",
+      "bases": [],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
+    },
+    {
+      "name": "ToolMetadata",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 54,
+      "language": "python",
+      "docstring": "Comprehensive metadata for an MCP tool.\n\nUsed for tool registration, discovery, and documentation generation.\nSupports categorization, versioning, deprecation, and rate limiting.\n\nAttributes:\n    name: Unique tool identifier\n    description: Human-readable description (supports markdown)\n    parameters: List of parameter metadata\n    category: Tool category for grouping (e.g., \"files\", \"users\", \"code\")\n    version: Semantic version of the tool interface\n    deprecated: Whether tool is deprecated\n    deprecation_message: Message explaining deprecation and migration path\n    rate_limit: Rate limit description (e.g., \"100/minute\")\n    examples: List of usage examples with input/output\n    related_tools: Names of related tools\n    tags: Semantic tags for filtering",
+      "bases": [],
+      "methods": [
+        "to_json_schema",
+        "to_summary",
+        "to_detailed"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
     },
     {
       "name": "QueryResult",
@@ -5568,7 +5643,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5580,7 +5655,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -18835,6 +18910,18 @@
       "typing.Dict",
       "typing.List",
       "typing.Optional"
+    ],
+    "src/foundry_mcp/core/discovery.py": [
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "enum.Enum",
+      "functools.wraps",
+      "typing.Any",
+      "typing.Callable",
+      "typing.Dict",
+      "typing.List",
+      "typing.Optional",
+      "typing.TypeVar"
     ],
     "src/foundry_mcp/core/docs.py": [
       "json",
