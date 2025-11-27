@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:49:18.386518Z",
+  "last_updated": "2025-11-27T12:50:11.230088Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 12,
+    "progress_percentage": 13,
     "current_phase": "phase-1"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -89,7 +89,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "metadata": {
         "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
         "risk_level": "high",
@@ -435,7 +435,7 @@
     "phase-1-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-1",
       "children": [
         "verify-1-1",
@@ -450,21 +450,27 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-1-1": {
       "type": "verify",
       "title": "Security tests pass",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-1-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "pytest tests/unit/test_core/test_security.py -v",
-        "expected": ""
+        "expected": "",
+        "started_at": "2025-11-27T12:49:51.252987Z",
+        "status_note": "Running security test verification",
+        "completed_at": "2025-11-27T12:50:11.214026Z",
+        "needs_journaling": false,
+        "actual_hours": 0.006,
+        "journaled_at": "2025-11-27T12:50:11.225290Z"
       },
       "dependencies": {
         "blocks": [],
@@ -3363,6 +3369,15 @@
       "content": "All child tasks in group phase-1-files have been completed.",
       "metadata": {},
       "task_id": "phase-1-files"
+    },
+    {
+      "timestamp": "2025-11-27T12:50:11.225277Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Security tests pass",
+      "author": "claude-code",
+      "content": "Security tests verification passed. All 125 tests in tests/unit/test_core/test_security.py pass: 47 prompt injection detection tests (TestPromptInjectionDetection), 48 sensitive data redaction tests (TestSensitiveDataRedaction), and 30 input size validation tests (TestInputSizeValidation). Test execution time: 0.90s.",
+      "metadata": {},
+      "task_id": "verify-1-1"
     }
   ]
 }
