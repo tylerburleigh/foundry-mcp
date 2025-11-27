@@ -2,17 +2,17 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T12:53:02.045310Z",
-    "generated_at_commit": "af9ada9f0cb1433c92c36f9fecd5ef4c748d29c1",
+    "generated_at": "2025-11-27T12:56:11.257281Z",
+    "generated_at_commit": "ddca04f10f732fb773b31dfa2754d3cd46791dd8",
     "languages": [
       "python"
     ],
     "schema_version": "2.0"
   },
   "statistics": {
-    "total_files": 31,
-    "total_lines": 12424,
-    "total_classes": 44,
+    "total_files": 32,
+    "total_lines": 12488,
+    "total_classes": 45,
     "total_functions": 146,
     "avg_complexity": 7.33,
     "max_complexity": 59,
@@ -25,9 +25,9 @@
     ],
     "by_language": {
       "python": {
-        "files": 31,
-        "lines": 12424,
-        "classes": 44,
+        "files": 32,
+        "lines": 12488,
+        "classes": 45,
         "functions": 146,
         "avg_complexity": 7.33
       }
@@ -214,6 +214,22 @@
       ],
       "exports": [],
       "lines": 859
+    },
+    {
+      "name": "feature_flags",
+      "file": "src/foundry_mcp/core/feature_flags.py",
+      "language": "python",
+      "docstring": "Feature flags infrastructure for foundry-mcp.\n\nProvides feature flag management with lifecycle states, percentage rollouts,\nclient-specific overrides, and testing utilities.\n\nSee docs/mcp_best_practices/14-feature-flags.md for guidance.\n\nExample:\n    from foundry_mcp.core.feature_flags import (\n        FlagState, FeatureFlag, FeatureFlagRegistry, feature_flag, flag_override\n    )\n\n    # Define flags\n    registry = FeatureFlagRegistry()\n    registry.register(FeatureFlag(\n        name=\"new_algorithm\",\n        description=\"Use improved processing algorithm\",\n        state=FlagState.BETA,\n        default_enabled=False,\n    ))\n\n    # Gate feature with decorator\n    @feature_flag(\"new_algorithm\")\n    def process_data(data: dict) -> dict:\n        return improved_process(data)\n\n    # Test with override\n    with flag_override(\"new_algorithm\", True):\n        result = process_data({\"input\": \"test\"})",
+      "classes": [
+        "FlagState"
+      ],
+      "functions": [],
+      "imports": [
+        "logging",
+        "enum.Enum"
+      ],
+      "exports": [],
+      "lines": 64
     },
     {
       "name": "journal",
@@ -1759,6 +1775,23 @@
       ],
       "imported_by": [],
       "instantiation_count": 6
+    },
+    {
+      "name": "FlagState",
+      "file": "src/foundry_mcp/core/feature_flags.py",
+      "line": 39,
+      "language": "python",
+      "docstring": "Lifecycle state for feature flags.\n\nFeature flags progress through states as they mature:\n\nEXPERIMENTAL: Early development, opt-in only, may change without notice, no SLA\nBETA: Feature-complete but not fully validated, default off, opt-in available, some SLA\nSTABLE: Production-ready, default on, full SLA guarantees\nDEPRECATED: Being phased out, warns on use, will be removed after expiration\n\nExample:\n    >>> flag = FeatureFlag(name=\"my_feature\", state=FlagState.EXPERIMENTAL)\n    >>> if flag.state == FlagState.DEPRECATED:\n    ...     logger.warning(\"Feature is deprecated\")",
+      "bases": [
+        "str",
+        "Enum"
+      ],
+      "methods": [],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [],
+      "imported_by": []
     },
     {
       "name": "JournalEntry",
@@ -5038,7 +5071,7 @@
         },
         {
           "name": "read",
-          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
@@ -5050,7 +5083,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/home/tyler/anaconda3/lib/python3.11/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -17239,6 +17272,10 @@
       "typing.List",
       "typing.Optional",
       "typing.Set"
+    ],
+    "src/foundry_mcp/core/feature_flags.py": [
+      "logging",
+      "enum.Enum"
     ],
     "src/foundry_mcp/core/journal.py": [
       "dataclasses.dataclass",

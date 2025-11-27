@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T12:55:39.404579Z",
+  "last_updated": "2025-11-27T12:56:58.165517Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 17,
+    "progress_percentage": 18,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 18,
+      "completed_tasks": 19,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -552,7 +552,7 @@
         "task-2-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -584,7 +584,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/core/feature_flags.py",
         "task_category": "implementation",
@@ -611,13 +611,19 @@
     "task-2-1-2": {
       "type": "subtask",
       "title": "Create FeatureFlag dataclass",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Fields: name, description, state, default_enabled, created_at, expires_at, owner, percentage_rollout"
+        "details": "Fields: name, description, state, default_enabled, created_at, expires_at, owner, percentage_rollout",
+        "started_at": "2025-11-27T12:56:10.270889Z",
+        "status_note": "Creating FeatureFlag dataclass",
+        "completed_at": "2025-11-27T12:56:58.149043Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-27T12:56:58.160349Z"
       }
     },
     "task-2-1-3": {
@@ -3478,6 +3484,15 @@
       "content": "Created src/foundry_mcp/core/feature_flags.py module with FlagState enum. Enum inherits from str and Enum for JSON serialization compatibility. Four states defined: EXPERIMENTAL (opt-in, no SLA), BETA (opt-in, some SLA), STABLE (default on, full SLA), DEPRECATED (warns on use, to be removed). Module docstring includes usage examples and references docs/mcp_best_practices/14-feature-flags.md. Import verified working.",
       "metadata": {},
       "task_id": "task-2-1-1"
+    },
+    {
+      "timestamp": "2025-11-27T12:56:58.160336Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create FeatureFlag dataclass",
+      "author": "claude-code",
+      "content": "Created FeatureFlag dataclass in feature_flags.py with all required fields: name (str), description (str), state (FlagState), default_enabled (bool), created_at (datetime, defaults to now), expires_at (Optional[datetime]), owner (str), percentage_rollout (float, 0-100), plus additional fields from docs: allowed_clients (Set[str]), blocked_clients (Set[str]), dependencies (Set[str]), metadata (Dict[str, Any]). Added helper methods: is_expired() to check expiration and to_dict() for JSON serialization. All fields have appropriate defaults. Import and functionality verified.",
+      "metadata": {},
+      "task_id": "task-2-1-2"
     }
   ]
 }
