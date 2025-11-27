@@ -14,6 +14,8 @@ from mcp.server.fastmcp import FastMCP
 from foundry_mcp.config import get_config, ServerConfig
 from foundry_mcp.core.observability import mcp_tool, audit_log, get_metrics
 from foundry_mcp.core.responses import success_response, error_response
+from foundry_mcp.core.discovery import get_capabilities, get_tool_registry
+from foundry_mcp.core.feature_flags import get_flag_service
 
 # Response contract version flag
 # v2 uses standardized {success, data, error} format
@@ -97,20 +99,47 @@ def _register_tools(mcp: FastMCP, config: ServerConfig) -> None:
     @mcp_tool(tool_name="foundry_server_capabilities")
     def foundry_server_capabilities() -> dict:
         """
-        Get server capabilities and contract version.
+        Get server capabilities, feature flags, and contract version.
 
-        Returns information about the server's response format and features.
+        Returns comprehensive information about the server's response format,
+        supported features, and active feature flags.
+
+        WHEN TO USE:
+        - Client initialization and feature detection
+        - Checking available server features
+        - Understanding response format and versioning
 
         Returns:
-            JSON object with server capabilities
+            JSON object with server capabilities, feature flags, and tool stats
         """
         metrics = get_metrics()
         metrics.counter("response.v2", labels={"tool": "foundry_server_capabilities"})
 
+        # Get discovery capabilities
+        discovery_caps = get_capabilities()
+
+        # Get tool registry stats
+        registry = get_tool_registry()
+        tool_stats = registry.get_stats()
+
+        # Get active feature flags summary
+        flag_service = get_flag_service()
+        flags_summary = {
+            "enabled_count": len([f for f in flag_service.list_flags() if flag_service.is_enabled(f)]),
+            "total_count": len(flag_service.list_flags()),
+        }
+
         return asdict(success_response(
             server_name=config.server_name,
             server_version=config.server_version,
-            capabilities=SERVER_CAPABILITIES,
+            capabilities={
+                **SERVER_CAPABILITIES,
+                **discovery_caps.get("capabilities", {}),
+            },
+            feature_flags=flags_summary,
+            tools=tool_stats,
+            schema_version=discovery_caps.get("schema_version", "1.0.0"),
+            api_version=discovery_caps.get("api_version", "2024-11-01"),
         ))
 
     @mcp.tool()
