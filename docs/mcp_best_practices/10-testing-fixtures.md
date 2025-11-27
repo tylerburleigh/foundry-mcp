@@ -192,10 +192,20 @@ class TestMCPIntegration:
 
 ### 4. Property-Based Tests
 
+Property-based testing with [Hypothesis](https://hypothesis.readthedocs.io/) generates diverse inputs automatically, uncovering edge cases that manual test cases miss.
+
 ```python
 # tests/test_properties.py
-from hypothesis import given, strategies as st
+from hypothesis import given, strategies as st, settings, Phase
 import pytest
+import jsonschema
+from pathlib import Path
+import json
+
+# Load response schema for validation
+RESPONSE_SCHEMA = json.loads(
+    Path("schemas/response-v2.schema.json").read_text()
+)
 
 class TestInputValidation:
     """Property-based tests for input validation."""
@@ -229,6 +239,305 @@ class TestInputValidation:
         assert "success" in result
         if result["success"]:
             assert "processed" in result["data"]
+
+
+class TestSchemaCompliance:
+    """Property tests ensuring all responses conform to schema."""
+
+    @given(st.text(min_size=1, max_size=100))
+    @settings(max_examples=50)
+    def test_success_response_schema_compliance(self, user_id):
+        """Success responses always match schema regardless of input."""
+        result = get_user(user_id=user_id)
+
+        # Must always produce valid schema
+        jsonschema.validate(result, RESPONSE_SCHEMA)
+
+    @given(st.text())
+    @settings(max_examples=50)
+    def test_error_response_schema_compliance(self, invalid_input):
+        """Error responses always match schema."""
+        result = validate_input(data=invalid_input)
+
+        # Even errors must conform
+        jsonschema.validate(result, RESPONSE_SCHEMA)
+        if not result["success"]:
+            assert result["error"] is not None
+
+    @given(st.dictionaries(
+        keys=st.text(min_size=1, max_size=50),
+        values=st.one_of(st.text(), st.integers(), st.booleans(), st.none()),
+        max_size=20
+    ))
+    @settings(max_examples=30)
+    def test_arbitrary_data_schema_compliance(self, data):
+        """Responses with arbitrary data payloads match schema."""
+        from foundry_mcp.core.responses import success_response
+        from dataclasses import asdict
+
+        result = asdict(success_response(data=data))
+
+        jsonschema.validate(result, RESPONSE_SCHEMA)
+```
+
+### 5. Schema Validation Testing
+
+Dedicated schema validation tests ensure response contracts remain valid across all code paths.
+
+```python
+# tests/test_schema_validation.py
+import pytest
+import jsonschema
+from jsonschema import Draft7Validator, ValidationError
+from pathlib import Path
+import json
+from typing import Any
+from foundry_mcp.core.responses import (
+    success_response, error_response, MCPResponse
+)
+from dataclasses import asdict
+
+# Load and compile schema once
+SCHEMA_PATH = Path("schemas/response-v2.schema.json")
+RESPONSE_SCHEMA = json.loads(SCHEMA_PATH.read_text())
+VALIDATOR = Draft7Validator(RESPONSE_SCHEMA)
+
+
+def validate_response(response: dict) -> list[str]:
+    """Validate response and return list of errors."""
+    errors = []
+    for error in VALIDATOR.iter_errors(response):
+        errors.append(f"{error.json_path}: {error.message}")
+    return errors
+
+
+class TestSchemaStructure:
+    """Test schema itself is valid and complete."""
+
+    def test_schema_is_valid_json_schema(self):
+        """Schema conforms to JSON Schema Draft 7."""
+        Draft7Validator.check_schema(RESPONSE_SCHEMA)
+
+    def test_schema_has_required_fields(self):
+        """Schema defines all required top-level fields."""
+        required = RESPONSE_SCHEMA.get("required", [])
+        assert "success" in required
+        assert "data" in required
+        assert "meta" in required
+
+    def test_schema_version_matches_code(self):
+        """Schema version matches code constant."""
+        from foundry_mcp.core.responses import SCHEMA_VERSION
+        schema_version = RESPONSE_SCHEMA.get("properties", {}).get(
+            "meta", {}
+        ).get("properties", {}).get("version", {}).get("const")
+
+        # If schema pins version, it should match code
+        if schema_version:
+            assert schema_version == f"response-v{SCHEMA_VERSION}"
+
+
+class TestResponseValidation:
+    """Test response helpers produce schema-valid output."""
+
+    def test_minimal_success_validates(self):
+        """Minimal success response passes validation."""
+        response = asdict(success_response())
+        errors = validate_response(response)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_full_success_validates(self):
+        """Success with all optional fields passes validation."""
+        response = asdict(success_response(
+            data={"users": [{"id": "usr_1"}]},
+            warnings=["Rate limit approaching"],
+            pagination={"cursor": "abc", "has_more": True}
+        ))
+        errors = validate_response(response)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_error_response_validates(self):
+        """Error response passes validation."""
+        response = asdict(error_response(
+            error="Something went wrong",
+            data={"error_code": "INTERNAL_ERROR"}
+        ))
+        errors = validate_response(response)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_nested_data_validates(self):
+        """Deeply nested data structures validate."""
+        response = asdict(success_response(
+            data={
+                "level1": {
+                    "level2": {
+                        "level3": {"value": [1, 2, 3]}
+                    }
+                }
+            }
+        ))
+        errors = validate_response(response)
+        assert errors == [], f"Validation errors: {errors}"
+
+
+class TestInvalidResponses:
+    """Test schema catches invalid responses."""
+
+    def test_missing_success_field(self):
+        """Schema rejects response without success field."""
+        invalid = {"data": {}, "meta": {"version": "response-v2"}}
+
+        with pytest.raises(ValidationError) as exc:
+            jsonschema.validate(invalid, RESPONSE_SCHEMA)
+        assert "success" in str(exc.value)
+
+    def test_wrong_success_type(self):
+        """Schema rejects non-boolean success."""
+        invalid = {
+            "success": "yes",  # Should be boolean
+            "data": {},
+            "meta": {"version": "response-v2"}
+        }
+
+        with pytest.raises(ValidationError):
+            jsonschema.validate(invalid, RESPONSE_SCHEMA)
+
+    def test_missing_meta_version(self):
+        """Schema rejects response without version in meta."""
+        invalid = {
+            "success": True,
+            "data": {},
+            "meta": {}  # Missing version
+        }
+
+        errors = validate_response(invalid)
+        assert len(errors) > 0
+
+
+class TestToolResponseValidation:
+    """Validate actual tool responses against schema."""
+
+    @pytest.mark.parametrize("tool_name,args", [
+        ("get_user", {"user_id": "usr_123"}),
+        ("list_users", {"limit": 10}),
+        ("create_user", {"name": "Test", "email": "test@example.com"}),
+    ])
+    def test_tool_success_responses_validate(self, tool_name, args, server):
+        """Tool success responses conform to schema."""
+        result = server.invoke_tool(tool_name, args)
+
+        errors = validate_response(result)
+        assert errors == [], f"{tool_name} validation errors: {errors}"
+
+    @pytest.mark.parametrize("tool_name,args,expected_error", [
+        ("get_user", {"user_id": ""}, "user_id required"),
+        ("list_users", {"limit": -1}, "limit must be positive"),
+    ])
+    def test_tool_error_responses_validate(
+        self, tool_name, args, expected_error, server
+    ):
+        """Tool error responses also conform to schema."""
+        result = server.invoke_tool(tool_name, args)
+
+        errors = validate_response(result)
+        assert errors == [], f"{tool_name} error validation: {errors}"
+        assert result["success"] is False
+```
+
+### 6. Combined Property + Schema Testing
+
+The most robust approach combines property-based generation with schema validation:
+
+```python
+# tests/test_combined_validation.py
+from hypothesis import given, strategies as st, settings, assume
+import pytest
+import jsonschema
+from foundry_mcp.core.responses import success_response, error_response
+from dataclasses import asdict
+import json
+from pathlib import Path
+
+RESPONSE_SCHEMA = json.loads(
+    Path("schemas/response-v2.schema.json").read_text()
+)
+
+
+# Custom strategies for valid MCP data
+@st.composite
+def valid_user_data(draw):
+    """Generate valid user data structures."""
+    return {
+        "id": draw(st.text(
+            alphabet="abcdefghijklmnopqrstuvwxyz0123456789_",
+            min_size=1, max_size=50
+        ).map(lambda s: f"usr_{s}")),
+        "name": draw(st.text(min_size=1, max_size=100)),
+        "email": draw(st.emails()),
+        "active": draw(st.booleans()),
+    }
+
+
+@st.composite
+def valid_pagination(draw):
+    """Generate valid pagination metadata."""
+    has_more = draw(st.booleans())
+    return {
+        "cursor": draw(st.text(min_size=1, max_size=100)) if has_more else None,
+        "has_more": has_more,
+        "total_count": draw(st.integers(min_value=0, max_value=10000)),
+    }
+
+
+class TestCombinedValidation:
+    """Property tests with schema validation."""
+
+    @given(valid_user_data())
+    @settings(max_examples=50)
+    def test_user_responses_always_valid(self, user_data):
+        """User data responses always conform to schema."""
+        response = asdict(success_response(data={"user": user_data}))
+
+        jsonschema.validate(response, RESPONSE_SCHEMA)
+        assert response["success"] is True
+        assert response["data"]["user"]["id"].startswith("usr_")
+
+    @given(
+        st.lists(valid_user_data(), min_size=0, max_size=20),
+        valid_pagination()
+    )
+    @settings(max_examples=30)
+    def test_paginated_list_always_valid(self, users, pagination):
+        """Paginated responses always conform to schema."""
+        response = asdict(success_response(
+            data={"users": users},
+            pagination=pagination
+        ))
+
+        jsonschema.validate(response, RESPONSE_SCHEMA)
+        assert len(response["data"]["users"]) == len(users)
+
+    @given(st.text(min_size=1, max_size=500))
+    @settings(max_examples=50)
+    def test_error_messages_always_valid(self, error_message):
+        """Error responses with any message conform to schema."""
+        response = asdict(error_response(error=error_message))
+
+        jsonschema.validate(response, RESPONSE_SCHEMA)
+        assert response["success"] is False
+        assert response["error"] == error_message
+
+    @given(st.lists(st.text(min_size=1, max_size=100), max_size=10))
+    @settings(max_examples=30)
+    def test_warnings_always_valid(self, warnings):
+        """Responses with warnings always conform to schema."""
+        response = asdict(success_response(
+            data={},
+            warnings=warnings
+        ))
+
+        jsonschema.validate(response, RESPONSE_SCHEMA)
+        assert response["meta"].get("warnings", []) == warnings
 ```
 
 ## Fixture Management
