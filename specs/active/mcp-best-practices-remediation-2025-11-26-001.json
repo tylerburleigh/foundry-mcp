@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:46:40.357612Z",
+  "last_updated": "2025-11-27T13:47:34.484946Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 47,
+    "progress_percentage": 48,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 48,
+      "completed_tasks": 49,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -1372,7 +1372,7 @@
     "phase-4-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4",
       "children": [
         "verify-4-1",
@@ -1387,21 +1387,27 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-4-1": {
       "type": "verify",
       "title": "Resilience tests pass",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "pytest tests/unit/test_core/test_resilience.py -v",
-        "expected": ""
+        "expected": "",
+        "started_at": "2025-11-27T13:47:12.541174Z",
+        "status_note": "Running verification tests",
+        "completed_at": "2025-11-27T13:47:34.475103Z",
+        "needs_journaling": false,
+        "actual_hours": 0.006,
+        "journaled_at": "2025-11-27T13:47:34.481892Z"
       },
       "dependencies": {
         "blocks": [],
@@ -4047,6 +4053,15 @@
       "content": "All child tasks in group phase-4-files have been completed.",
       "metadata": {},
       "task_id": "phase-4-files"
+    },
+    {
+      "timestamp": "2025-11-27T13:47:34.481887Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Resilience tests pass",
+      "author": "claude-code",
+      "content": "Verification passed. Ran pytest tests/unit/test_core/test_resilience.py -v. Results: 51 tests passed in 1.82s. Coverage includes: TimeoutConstants (5 tests), WithTimeout (6 tests), TimeoutException (2 tests), RetryWithBackoff (7 tests), RetryableDecorator (3 tests), CircuitState (1 test), CircuitBreaker (12 tests), CircuitBreakerError (1 test), WithCircuitBreakerDecorator (4 tests), HealthStatus (2 tests), HealthCheck (5 tests), CheckDependencies (4 tests).",
+      "metadata": {},
+      "task_id": "verify-4-1"
     }
   ]
 }
