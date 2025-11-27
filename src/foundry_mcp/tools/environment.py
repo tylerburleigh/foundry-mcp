@@ -224,3 +224,122 @@ def register_environment_tools(mcp: FastMCP, config: ServerConfig) -> None:
         except Exception as e:
             logger.exception("Error initializing workspace")
             return asdict(error_response(f"Failed to initialize workspace: {e}"))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="sdd-detect-topology",
+    )
+    def sdd_detect_topology(
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Auto-detect repository layout for specs and documentation.
+
+        Analyzes the project structure to identify project type, specs directory,
+        docs paths, and other relevant topology information.
+
+        WHEN TO USE:
+        - Before initializing SDD in an existing project
+        - Understanding project structure for tool configuration
+        - Diagnosing configuration issues
+        - Auto-configuring MCP server settings
+
+        Args:
+            path: Directory to analyze (default: current directory)
+
+        Returns:
+            JSON object with detected topology:
+            - project_type: Detected project type (python, node, rust, etc.)
+            - specs_dir: Path to specs directory if found
+            - docs_dir: Path to documentation directory if found
+            - has_git: Whether the directory is a git repository
+            - detected_files: Key configuration files found
+        """
+        from pathlib import Path
+        import os
+
+        try:
+            base_path = Path(path) if path else Path.cwd()
+
+            # Detect project type based on marker files
+            project_type = "unknown"
+            detected_files: List[str] = []
+
+            # Python markers
+            python_markers = ["pyproject.toml", "setup.py", "requirements.txt", "Pipfile"]
+            for marker in python_markers:
+                if (base_path / marker).exists():
+                    project_type = "python"
+                    detected_files.append(marker)
+                    break
+
+            # Node markers (only if not already Python)
+            if project_type == "unknown":
+                node_markers = ["package.json", "yarn.lock", "pnpm-lock.yaml"]
+                for marker in node_markers:
+                    if (base_path / marker).exists():
+                        project_type = "node"
+                        detected_files.append(marker)
+                        break
+
+            # Rust markers
+            if project_type == "unknown":
+                if (base_path / "Cargo.toml").exists():
+                    project_type = "rust"
+                    detected_files.append("Cargo.toml")
+
+            # Go markers
+            if project_type == "unknown":
+                if (base_path / "go.mod").exists():
+                    project_type = "go"
+                    detected_files.append("go.mod")
+
+            # Check for specs directory
+            specs_dir = None
+            specs_candidates = ["specs", ".specs", "specifications"]
+            for candidate in specs_candidates:
+                candidate_path = base_path / candidate
+                if candidate_path.is_dir():
+                    specs_dir = str(candidate_path)
+                    break
+
+            # Check for docs directory
+            docs_dir = None
+            docs_candidates = ["docs", "documentation", "doc"]
+            for candidate in docs_candidates:
+                candidate_path = base_path / candidate
+                if candidate_path.is_dir():
+                    docs_dir = str(candidate_path)
+                    break
+
+            # Check for git
+            has_git = (base_path / ".git").is_dir()
+
+            data: Dict[str, Any] = {
+                "project_type": project_type,
+                "has_git": has_git,
+            }
+
+            if specs_dir:
+                data["specs_dir"] = specs_dir
+            if docs_dir:
+                data["docs_dir"] = docs_dir
+            if detected_files:
+                data["detected_files"] = detected_files
+
+            warnings: List[str] = []
+            if project_type == "unknown":
+                warnings.append("Could not detect project type from standard marker files")
+            if not specs_dir:
+                warnings.append("No specs directory found - run sdd-init-workspace to create one")
+
+            return asdict(
+                success_response(
+                    data=data,
+                    warnings=warnings if warnings else None,
+                )
+            )
+
+        except Exception as e:
+            logger.exception("Error detecting topology")
+            return asdict(error_response(f"Failed to detect topology: {e}"))

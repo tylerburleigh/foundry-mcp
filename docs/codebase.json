@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T19:39:20.615436Z",
-    "generated_at_commit": "43b50cb30426bbde2fd897b2d1b5397fd60e24a7",
+    "generated_at": "2025-11-27T19:40:39.486929Z",
+    "generated_at_commit": "d0f9fcd47cc974a67c51b425c9baa926d391a524",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 40,
-    "total_lines": 17240,
+    "total_lines": 17337,
     "total_classes": 71,
     "total_functions": 199,
-    "avg_complexity": 6.57,
+    "avg_complexity": 6.61,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 40,
-        "lines": 17240,
+        "lines": 17337,
         "classes": 71,
         "functions": 199,
-        "avg_complexity": 6.57
+        "avg_complexity": 6.61
       }
     }
   },
@@ -1154,7 +1154,7 @@
         "foundry_mcp.core.naming.canonical_tool"
       ],
       "exports": [],
-      "lines": 129
+      "lines": 226
     },
     {
       "name": "journal",
@@ -5120,7 +5120,7 @@
         },
         {
           "name": "cancel",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
+          "file": "src/foundry_mcp/core/concurrency.py",
           "line": 772,
           "call_type": "method_call"
         },
@@ -7127,7 +7127,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -7139,7 +7139,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -8784,6 +8784,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "sdd_init_workspace",
+          "file": "src/foundry_mcp/tools/environment.py",
+          "line": 131,
+          "call_type": "function_call"
+        },
+        {
           "name": "journal_add",
           "file": "src/foundry_mcp/tools/journal.py",
           "line": 50,
@@ -8995,7 +9001,7 @@
         }
       ],
       "calls": [],
-      "call_count": 53
+      "call_count": 54
     },
     {
       "name": "redact_sensitive_data",
@@ -12507,6 +12513,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "sdd_init_workspace",
+          "file": "src/foundry_mcp/tools/environment.py",
+          "line": 208,
+          "call_type": "function_call"
+        },
+        {
           "name": "journal_add",
           "file": "src/foundry_mcp/tools/journal.py",
           "line": 114,
@@ -12761,7 +12773,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 58
+      "call_count": 59
     },
     {
       "name": "error_response",
@@ -13099,6 +13111,18 @@
           "name": "sdd_verify_toolchain",
           "file": "src/foundry_mcp/tools/environment.py",
           "line": 129,
+          "call_type": "function_call"
+        },
+        {
+          "name": "sdd_init_workspace",
+          "file": "src/foundry_mcp/tools/environment.py",
+          "line": 217,
+          "call_type": "function_call"
+        },
+        {
+          "name": "sdd_init_workspace",
+          "file": "src/foundry_mcp/tools/environment.py",
+          "line": 226,
           "call_type": "function_call"
         },
         {
@@ -13860,7 +13884,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 175
+      "call_count": 177
     },
     {
       "name": "validation_error",
@@ -20863,7 +20887,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 11,
+      "complexity": 20,
       "decorators": [],
       "is_async": false,
       "is_exported": false,

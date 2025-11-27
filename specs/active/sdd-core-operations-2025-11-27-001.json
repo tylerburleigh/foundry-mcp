@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T19:40:16.026766Z",
+  "last_updated": "2025-11-27T19:41:38.347965Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 2,
+    "progress_percentage": 3,
     "status": "active",
     "current_phase": "phase-1"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -60,7 +60,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 13,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "Bootstrap tooling for workspace initialization and validation",
         "risk_level": "low"
@@ -86,7 +86,7 @@
         "task-1-5"
       ],
       "total_tasks": 10,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -109,7 +109,7 @@
         "task-1-1-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/environment.py",
         "task_category": "implementation",
@@ -165,13 +165,19 @@
     "task-1-1-3": {
       "type": "subtask",
       "title": "Implement spec-detect-topology - auto-detect repository layout for specs/docs",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd detect-project CLI command, identify project structure"
+        "details": "Wrap sdd detect-project CLI command, identify project structure",
+        "started_at": "2025-11-27T19:40:49.787771Z",
+        "status_note": "Starting implementation - using sdd-detect-topology name per naming conventions (environment helper)",
+        "completed_at": "2025-11-27T19:41:38.340308Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-27T19:41:38.345619Z"
       }
     },
     "task-1-1-4": {
@@ -2192,6 +2198,15 @@
       "content": "Implemented sdd-init-workspace MCP tool adapter in src/foundry_mcp/tools/environment.py. The tool bootstraps the SDD directory structure by creating specs/ and standard subdirectories (active, pending, completed, archived). Features include: optional path parameter for custom root, create_subdirs toggle, tracking of created vs existing directories, proper permission error handling. Returns structured JSON with specs_dir, active_dir, created_dirs, and existing_dirs. Tool registered and verified working.",
       "metadata": {},
       "task_id": "task-1-1-2"
+    },
+    {
+      "timestamp": "2025-11-27T19:41:38.345612Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement spec-detect-topology - auto-detect repository layout for specs/docs",
+      "author": "claude-code",
+      "content": "Implemented sdd-detect-topology MCP tool adapter (note: used sdd- prefix per naming conventions since this is an environment-wide helper, not spec-scoped). The tool auto-detects repository layout including: project type detection (Python, Node, Rust, Go), specs directory location, docs directory location, git repository presence, and key configuration files. Returns structured JSON with project_type, has_git, specs_dir, docs_dir, and detected_files. Includes warnings for unknown project types and missing specs directories. Tool registered and verified working.",
+      "metadata": {},
+      "task_id": "task-1-1-3"
     }
   ]
 }
