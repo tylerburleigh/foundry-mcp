@@ -701,3 +701,171 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="verification-format-summary",
+    )
+    def verification_format_summary(
+        json_file: Optional[str] = None,
+        json_input: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Format verification results into a human-readable summary.
+
+        Wraps the SDD CLI format-verification-summary command to produce
+        formatted summaries of verification results from JSON data.
+
+        WHEN TO USE:
+        - Generating human-readable test reports
+        - Formatting verification results for display
+        - Creating summary reports from raw verification data
+        - Preparing verification output for documentation
+
+        Args:
+            json_file: Path to JSON file with verification results
+            json_input: JSON string with verification results (alternative to file)
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with formatted summary:
+            - summary: Human-readable summary text
+            - total_verifications: Total number of verifications
+            - passed: Number of passed verifications
+            - failed: Number of failed verifications
+            - partial: Number of partial verifications
+        """
+        tool_name = "verification_format_summary"
+        try:
+            # Validate that exactly one input source is provided
+            if not json_file and not json_input:
+                return asdict(error_response(
+                    "Either json_file or json_input is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide either json_file (path) or json_input (JSON string)",
+                ))
+
+            if json_file and json_input:
+                return asdict(error_response(
+                    "Only one of json_file or json_input should be provided",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Provide either json_file or json_input, not both",
+                ))
+
+            # Build command
+            cmd = ["sdd", "format-verification-summary", "--json"]
+
+            if json_file:
+                cmd.extend(["--json-file", json_file])
+            elif json_input:
+                cmd.extend(["--json-input", json_input])
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="verification-format-summary",
+                action="format_summary",
+                has_file=bool(json_file),
+                has_input=bool(json_input),
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                data: Dict[str, Any] = {
+                    "summary": output_data.get("summary", output_data.get("formatted", "")),
+                }
+
+                # Include stats if available
+                if "total_verifications" in output_data:
+                    data["total_verifications"] = output_data["total_verifications"]
+                if "passed" in output_data:
+                    data["passed"] = output_data["passed"]
+                if "failed" in output_data:
+                    data["failed"] = output_data["failed"]
+                if "partial" in output_data:
+                    data["partial"] = output_data["partial"]
+
+                # Include raw results if available
+                if "results" in output_data:
+                    data["results"] = output_data["results"]
+
+                # Track metrics
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
+
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+
+                # Check for common errors
+                if "not found" in error_msg.lower() and json_file:
+                    return asdict(error_response(
+                        f"JSON file not found: {json_file}",
+                        error_code="FILE_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the JSON file path exists",
+                    ))
+
+                if "invalid" in error_msg.lower() and "json" in error_msg.lower():
+                    return asdict(error_response(
+                        "Invalid JSON format in input",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Ensure the input contains valid JSON",
+                    ))
+
+                return asdict(error_response(
+                    f"Failed to format verification summary: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the input JSON is valid",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in verification-format-summary")
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))
