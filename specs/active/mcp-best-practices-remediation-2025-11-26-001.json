@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T15:14:35.636894Z",
+  "last_updated": "2025-11-27T15:18:19.001014Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 92,
+    "progress_percentage": 93,
     "current_phase": "phase-8"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 94,
+      "completed_tasks": 95,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -2581,7 +2581,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "Improve test coverage and add property-based testing",
         "risk_level": "low",
@@ -2593,7 +2593,7 @@
     "phase-8-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-8",
       "children": [
         "task-8-1",
@@ -2601,7 +2601,7 @@
         "task-8-3"
       ],
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -2615,7 +2615,7 @@
     "task-8-1": {
       "type": "task",
       "title": "tests/property/test_input_validation.py (NEW)",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-8-files",
       "children": [
         "task-8-1-1",
@@ -2627,7 +2627,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/property/test_input_validation.py",
         "task_category": "implementation",
@@ -2637,13 +2637,19 @@
     "task-8-1-1": {
       "type": "subtask",
       "title": "Add Hypothesis property tests for input validation",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-8-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Test that arbitrary inputs don't crash validation, proper error handling"
+        "details": "Test that arbitrary inputs don't crash validation, proper error handling",
+        "started_at": "2025-11-27T15:15:01.701216Z",
+        "status_note": "Creating property tests for input validation",
+        "completed_at": "2025-11-27T15:18:18.987900Z",
+        "needs_journaling": false,
+        "actual_hours": 0.055,
+        "journaled_at": "2025-11-27T15:18:18.997338Z"
       }
     },
     "task-8-1-2": {
@@ -4925,6 +4931,15 @@
       "content": "All child tasks in group phase-8-docs have been completed.",
       "metadata": {},
       "task_id": "phase-8-docs"
+    },
+    {
+      "timestamp": "2025-11-27T15:18:18.997326Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add Hypothesis property tests for input validation",
+      "author": "claude-code",
+      "content": "Created tests/property/test_input_validation.py with 15 Hypothesis property tests covering: (1) TestInputValidationRobustness - UTF-8 text, arbitrary text, arbitrary dict structures; (2) TestSizeLimitEnforcement - oversized input rejection, boundary testing; (3) TestMalformedJsonHandling - invalid JSON detection, common JSON errors; (4) TestValidSpecProperties - minimal specs, specs with children hierarchies; (5) TestStatusValidation - valid/invalid status values; (6) TestNodeTypeValidation - valid/invalid node types; (7) TestDiagnosticStructure - well-formed diagnostics, error detection. Implemented custom Hypothesis strategies for valid_node_id, valid_status, valid_node_type, minimal_valid_node, valid_spec_id, minimal_valid_spec. All 15 tests pass. Committed as 6eb445a.",
+      "metadata": {},
+      "task_id": "task-8-1-1"
     }
   ]
 }
