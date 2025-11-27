@@ -41,17 +41,22 @@ Use these references when evaluating what actually remains to be wrapped.
 
 **Feature flags:** `environment_tools` (beta, 100% rollout) and `env_auto_fix` (experimental, 0% rollout) control these capabilities. See `mcp/capabilities_manifest.json` for details.
 
+## Recently Covered via SDD Core Operations (Phase 2)
+
+`specs/active/sdd-core-operations-2025-11-27-001.json` (Phase 2) delivered spec discovery and validation helper tools. These operations now have MCP manifest entries and feature flags:
+
+- **Spec file discovery** (`spec_find_related_files`) – locate files referenced by a spec node including source files, tests, and documentation.
+- **Pattern search** (`spec_find_patterns`) – search specs for structural or code patterns across tasks and metadata.
+- **Cycle detection** (`spec_detect_cycles`) – detect cyclic task dependencies within a specification.
+- **Path validation** (`spec_validate_paths`) – ensure file references in a spec exist on disk.
+
+**Feature flag:** `spec_helpers` (beta, 100% rollout) controls these capabilities. See `mcp/capabilities_manifest.json` for the full tool definitions and parameter schemas.
+
 ---
 
 ## In-Scope Operations
 
 **Naming note:** All entries below list the canonical MCP tool name first, per [docs/codebase_standards/naming-conventions.md](../docs/codebase_standards/naming-conventions.md). Legacy CLI aliases remain in parentheses solely for migration tracking and should be removed once downstream clients finish the rename rollout.
-
-### Spec Discovery & Validation Helpers
-- `spec-find-related-files` (was `find-related-files`) – locate files referenced by a spec node.
-- `spec-find-patterns` (was `find-pattern`) – search specs for structural/code patterns.
-- `spec-detect-cycles` (was `find-circular-deps`) – detect cyclic task dependencies.
-- `spec-validate-paths` (was `validate-paths`) – ensure file references exist on disk.
 
 ### Authoring, Editing & Metadata
 - `spec-create` (was `create`) – scaffold a brand-new spec from scratch.

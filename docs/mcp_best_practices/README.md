@@ -107,10 +107,24 @@ The following environment tools support SDD workflow initialization and verifica
 
 These tools are gated by the `environment_tools` feature flag (beta, 100% rollout). The `env_auto_fix` flag (experimental) enables automatic fix capabilities for environment issues.
 
+## Spec Discovery & Validation Helpers
+
+The following spec helper tools provide advanced analysis and validation capabilities:
+
+| Tool | Description | Feature Flag |
+|------|-------------|--------------|
+| `spec_find_related_files` | Locate files referenced by a spec node (source, tests, docs) | `spec_helpers` |
+| `spec_find_patterns` | Search specs for structural or code patterns | `spec_helpers` |
+| `spec_detect_cycles` | Detect cyclic task dependencies within a specification | `spec_helpers` |
+| `spec_validate_paths` | Ensure file references in a spec exist on disk | `spec_helpers` |
+
+These tools are gated by the `spec_helpers` feature flag (beta, 100% rollout). They support both immediate diagnostics and integration into CI/validation pipelines. See [§4 Validation & Input Hygiene](./04-validation-input-hygiene.md) for input handling patterns and [§13 Tool Discovery](./13-tool-discovery.md) for discovery integration.
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.3.0 | 2025-11-27 | Added spec discovery & validation helpers section (spec_helpers feature flag) |
 | 2.2.0 | 2025-11-27 | Added environment tools section, capabilities manifest reference |
 | 2.1.0 | 2025-11-26 | Added feature flags, concurrency patterns, multi-tenancy |
 | 2.0.0 | 2025-11-26 | Sharded structure; added AI/LLM patterns, resilience, tool discovery |
