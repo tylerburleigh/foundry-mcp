@@ -391,6 +391,115 @@
         ]
       }
     ],
+    "authoring_tools": [
+      {
+        "name": "spec-create",
+        "description": "Scaffold a brand-new SDD specification from scratch with template selection",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "name", "type": "string", "required": true, "description": "Specification name"},
+          {"name": "template", "type": "string", "required": false, "enum": ["simple", "medium", "complex", "security"]},
+          {"name": "category", "type": "string", "required": false, "enum": ["investigation", "implementation", "refactoring", "decision", "research"]},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "spec-template",
+        "description": "Emit opinionated templates/snippets for spec sections (list, show, apply)",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "action", "type": "string", "required": true, "enum": ["list", "show", "apply"]},
+          {"name": "template_name", "type": "string", "required": false, "description": "Template name (required for show/apply)"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "task-add",
+        "description": "Add a new task to an SDD specification hierarchy",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "parent", "type": "string", "required": true, "description": "Parent node ID (phase-1, task-2-1)"},
+          {"name": "title", "type": "string", "required": true, "description": "Task title"},
+          {"name": "description", "type": "string", "required": false},
+          {"name": "task_type", "type": "string", "required": false, "enum": ["task", "subtask", "verify"]},
+          {"name": "hours", "type": "number", "required": false, "description": "Estimated hours"},
+          {"name": "position", "type": "integer", "required": false, "description": "Position in parent's children"},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": false}
+        ]
+      },
+      {
+        "name": "task-remove",
+        "description": "Remove a task from an SDD specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "task_id", "type": "string", "required": true, "description": "Task ID to remove"},
+          {"name": "cascade", "type": "boolean", "required": false, "default": false, "description": "Remove child tasks"},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": false}
+        ]
+      },
+      {
+        "name": "assumption-add",
+        "description": "Add an assumption to an SDD specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "text", "type": "string", "required": true, "description": "Assumption text"},
+          {"name": "assumption_type", "type": "string", "required": false, "enum": ["constraint", "requirement"]},
+          {"name": "author", "type": "string", "required": false},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": false}
+        ]
+      },
+      {
+        "name": "assumption-list",
+        "description": "List assumptions in an SDD specification with optional filtering",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "assumption_type", "type": "string", "required": false, "enum": ["constraint", "requirement"]}
+        ]
+      },
+      {
+        "name": "revision-add",
+        "description": "Append a revision history entry to an SDD specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "version", "type": "string", "required": true, "description": "Revision version (e.g., 1.1, 2.0)"},
+          {"name": "changes", "type": "string", "required": true, "description": "Summary of changes"},
+          {"name": "author", "type": "string", "required": false},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": false}
+        ]
+      },
+      {
+        "name": "spec-update-frontmatter",
+        "description": "Mutate top-level metadata blocks in an SDD specification",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "authoring_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "key", "type": "string", "required": true, "description": "Frontmatter key (title, status, version)"},
+          {"name": "value", "type": "string", "required": true, "description": "New value for the key"},
+          {"name": "dry_run", "type": "boolean", "required": false, "default": false}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -600,6 +709,16 @@
         "dependencies": [],
         "created_at": "2025-11-27T00:00:00Z",
         "expires_at": null
+      },
+      "authoring_tools": {
+        "description": "Spec authoring tools for creating specs, adding tasks, managing assumptions, and updating metadata (spec-create, task-add, task-remove, assumption-add, assumption-list, revision-add, spec-update-frontmatter)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-11-27T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -666,6 +785,11 @@
         "supported": true,
         "description": "Spec helper tools for discovery, validation, and analysis",
         "tools": ["spec_find_related_files", "spec_find_patterns", "spec_detect_cycles", "spec_validate_paths"]
+      },
+      "authoring_tools": {
+        "supported": true,
+        "description": "Spec authoring tools for creating specs, managing tasks, and updating metadata",
+        "tools": ["spec-create", "spec-template", "task-add", "task-remove", "assumption-add", "assumption-list", "revision-add", "spec-update-frontmatter"]
       }
     },
     "api_version": "2024-11-01"
