@@ -32,12 +32,13 @@ Example:
 
 import hashlib
 import logging
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Optional, Set, TypeVar, Union
 
 from foundry_mcp.core.responses import ToolResponse, error_response
 
@@ -451,6 +452,74 @@ def feature_flag(
     return decorator
 
 
+@contextmanager
+def flag_override(
+    flag_name: str,
+    enabled: bool,
+    *,
+    client_id: Optional[str] = None,
+    registry: Optional[FeatureFlagRegistry] = None,
+) -> Generator[None, None, None]:
+    """Context manager for temporarily overriding a feature flag value.
+
+    Useful for testing code paths that depend on feature flags without
+    modifying the actual flag configuration. The override is automatically
+    cleaned up when the context exits, even if an exception occurs.
+
+    Args:
+        flag_name: Name of the feature flag to override
+        enabled: The override value (True to enable, False to disable)
+        client_id: Optional client ID for the override (defaults to current_client_id)
+        registry: Optional registry to use (defaults to global registry)
+
+    Yields:
+        None
+
+    Example:
+        >>> registry = FeatureFlagRegistry()
+        >>> registry.register(FeatureFlag(
+        ...     name="new_feature",
+        ...     description="Test",
+        ...     state=FlagState.BETA,
+        ...     default_enabled=False,
+        ... ))
+        >>> # Flag is disabled by default
+        >>> registry.is_enabled("new_feature")
+        False
+        >>> # Override to enable temporarily
+        >>> with flag_override("new_feature", True, registry=registry):
+        ...     registry.is_enabled("new_feature")
+        True
+        >>> # Back to original state after context
+        >>> registry.is_enabled("new_feature")
+        False
+
+        >>> # Use in tests to force flag states
+        >>> with flag_override("new_feature", True):
+        ...     result = my_flagged_function()  # Runs with flag enabled
+    """
+    reg = registry or get_registry()
+    cid = client_id or current_client_id.get()
+
+    # Check if there's an existing override we need to restore
+    had_previous_override = False
+    previous_override_value: Optional[bool] = None
+
+    if cid in reg._overrides and flag_name in reg._overrides[cid]:
+        had_previous_override = True
+        previous_override_value = reg._overrides[cid][flag_name]
+
+    try:
+        reg.set_override(cid, flag_name, enabled)
+        yield
+    finally:
+        # Restore previous state
+        if had_previous_override:
+            reg.set_override(cid, flag_name, previous_override_value)  # type: ignore[arg-type]
+        else:
+            reg.clear_override(cid, flag_name)
+
+
 # Export all public symbols
 __all__ = [
     "FlagState",
@@ -459,4 +528,5 @@ __all__ = [
     "current_client_id",
     "get_registry",
     "feature_flag",
+    "flag_override",
 ]
