@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T21:48:35.689865Z",
-    "generated_at_commit": "f9875057619c93c8a16f0336aeb638ffb1f28b2e",
+    "generated_at": "2025-11-27T21:53:10.895804Z",
+    "generated_at_commit": "e19117fd17ee0df22ca00eee9bffabcaf38b1b9d",
     "languages": [
       "python"
     ],
@@ -11,14 +11,14 @@
   },
   "statistics": {
     "total_files": 44,
-    "total_lines": 21646,
+    "total_lines": 21884,
     "total_classes": 72,
     "total_functions": 211,
-    "avg_complexity": 8.04,
-    "max_complexity": 135,
+    "avg_complexity": 8.17,
+    "max_complexity": 141,
     "high_complexity_functions": [
+      "register_mutation_tools (141)",
       "register_authoring_tools (135)",
-      "register_mutation_tools (113)",
       "register_journal_tools (65)",
       "register_task_tools (59)",
       "register_environment_tools (54)"
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 44,
-        "lines": 21646,
+        "lines": 21884,
         "classes": 72,
         "functions": 211,
-        "avg_complexity": 8.04
+        "avg_complexity": 8.17
       }
     }
   },
@@ -1338,7 +1338,7 @@
         "foundry_mcp.core.resilience.MEDIUM_TIMEOUT"
       ],
       "exports": [],
-      "lines": 1071
+      "lines": 1309
     },
     {
       "name": "queries",
@@ -5440,7 +5440,7 @@
         },
         {
           "name": "cancel",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
+          "file": "src/foundry_mcp/core/concurrency.py",
           "line": 772,
           "call_type": "method_call"
         },
@@ -5458,7 +5458,7 @@
         },
         {
           "name": "result",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 787,
           "call_type": "method_call"
         },
@@ -5494,7 +5494,7 @@
         },
         {
           "name": "cancel",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "src/foundry_mcp/core/concurrency.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -9437,6 +9437,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1073,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 110,
@@ -9600,7 +9606,7 @@
         }
       ],
       "calls": [],
-      "call_count": 76
+      "call_count": 77
     },
     {
       "name": "redact_sensitive_data",
@@ -9987,6 +9993,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1202,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 163,
@@ -10019,7 +10031,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 25
+      "call_count": 26
     },
     {
       "name": "mcp_tool",
@@ -13460,6 +13472,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1240,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 149,
@@ -13666,7 +13684,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 82
+      "call_count": 83
     },
     {
       "name": "error_response",
@@ -15177,6 +15195,78 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1129,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1137,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1150,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1159,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1249,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1256,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1264,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1271,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1279,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1287,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1295,
+          "call_type": "function_call"
+        },
+        {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1304,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find",
           "file": "src/foundry_mcp/tools/queries.py",
           "line": 139,
@@ -15773,7 +15863,7 @@
           "call_type": "function_call"
         }
       ],
-      "call_count": 343
+      "call_count": 355
     },
     {
       "name": "validation_error",
@@ -22831,6 +22921,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1213,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -22929,7 +23025,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 20
+      "call_count": 21
     },
     {
       "name": "register_analysis_tools",
@@ -23093,6 +23189,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1213,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -23191,7 +23293,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 20
+      "call_count": 21
     },
     {
       "name": "register_authoring_tools",
@@ -23551,6 +23653,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1213,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -23649,7 +23757,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 20
+      "call_count": 21
     },
     {
       "name": "register_mutation_tools",
@@ -23670,7 +23778,7 @@
         }
       ],
       "return_type": "None",
-      "complexity": 113,
+      "complexity": 141,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -23897,6 +24005,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "task_update_metadata",
+          "file": "src/foundry_mcp/tools/mutations.py",
+          "line": 1213,
+          "call_type": "function_call"
+        },
+        {
           "name": "spec_find_related_files",
           "file": "src/foundry_mcp/tools/spec_helpers.py",
           "line": 172,
@@ -23995,7 +24109,7 @@
           "call_type": "method_call"
         }
       ],
-      "call_count": 20
+      "call_count": 21
     },
     {
       "name": "register_spec_helper_tools",

@@ -1307,3 +1307,181 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    @canonical_tool(
+        mcp,
+        canonical_name="spec-sync-metadata",
+    )
+    def spec_sync_metadata(
+        spec_id: str,
+        dry_run: bool = False,
+        path: Optional[str] = None,
+    ) -> dict:
+        """
+        Synchronize spec metadata across stores.
+
+        Wraps the SDD CLI sync-metadata command to push/pull spec metadata
+        between locations, ensuring consistency across different storage
+        backends or documentation caches.
+
+        WHEN TO USE:
+        - Syncing spec metadata after bulk edits
+        - Refreshing documentation cache with latest spec data
+        - Ensuring consistency between spec file and derived artifacts
+        - Propagating metadata changes to downstream consumers
+
+        Args:
+            spec_id: Specification ID to sync
+            dry_run: Preview changes without applying them
+            path: Project root path (default: current directory)
+
+        Returns:
+            JSON object with sync results:
+            - spec_id: The specification ID
+            - synced: Whether sync was successful
+            - changes: List of metadata changes synced
+            - dry_run: Whether this was a dry run
+        """
+        tool_name = "spec_sync_metadata"
+        try:
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
+
+            # Build command
+            cmd = ["sdd", "sync-metadata", spec_id, "--json"]
+
+            if dry_run:
+                cmd.append("--dry-run")
+
+            if path:
+                cmd.extend(["--path", path])
+
+            # Log the operation
+            audit_log(
+                "tool_invocation",
+                tool="spec-sync-metadata",
+                action="sync_metadata",
+                spec_id=spec_id,
+                dry_run=dry_run,
+            )
+
+            # Execute the command with resilience
+            result = _run_sdd_command(cmd, tool_name)
+
+            # Parse the JSON output
+            if result.returncode == 0:
+                try:
+                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
+                except json.JSONDecodeError:
+                    output_data = {}
+
+                # Build response data
+                data: Dict[str, Any] = {
+                    "spec_id": spec_id,
+                    "synced": True,
+                    "dry_run": dry_run,
+                }
+
+                # Include changes if available
+                if "changes" in output_data:
+                    data["changes"] = output_data["changes"]
+                elif "synced_fields" in output_data:
+                    data["changes"] = output_data["synced_fields"]
+
+                # Include source/target info if available
+                if "source" in output_data:
+                    data["source"] = output_data["source"]
+                if "target" in output_data:
+                    data["target"] = output_data["target"]
+
+                # Include warnings if any
+                warnings = []
+                if output_data.get("warnings"):
+                    warnings = output_data["warnings"]
+
+                # Track metrics
+                _metrics.counter(f"mutations.{tool_name}", labels={
+                    "status": "success",
+                    "dry_run": str(dry_run),
+                })
+
+                if warnings:
+                    return asdict(success_response(data, warnings=warnings))
+                return asdict(success_response(data))
+            else:
+                # Command failed
+                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+
+                # Check for common errors
+                if "not found" in error_msg.lower():
+                    return asdict(error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list",
+                    ))
+
+                if "no changes" in error_msg.lower():
+                    # No changes to sync is not an error
+                    return asdict(success_response({
+                        "spec_id": spec_id,
+                        "synced": True,
+                        "changes": [],
+                        "dry_run": dry_run,
+                        "message": "No metadata changes to sync",
+                    }))
+
+                if "permission" in error_msg.lower() or "access" in error_msg.lower():
+                    return asdict(error_response(
+                        f"Permission denied while syncing metadata: {error_msg}",
+                        error_code="PERMISSION_DENIED",
+                        error_type="validation",
+                        remediation="Check file permissions and access rights",
+                    ))
+
+                return asdict(error_response(
+                    f"Failed to sync metadata: {error_msg}",
+                    error_code="COMMAND_FAILED",
+                    error_type="internal",
+                    remediation="Check that the spec exists and is accessible",
+                ))
+
+        except CircuitBreakerError as e:
+            return asdict(error_response(
+                str(e),
+                error_code="CIRCUIT_OPEN",
+                error_type="unavailable",
+                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            ))
+        except subprocess.TimeoutExpired:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
+            return asdict(error_response(
+                f"Command timed out after {CLI_TIMEOUT} seconds",
+                error_code="TIMEOUT",
+                error_type="unavailable",
+                remediation="Try again or check system resources",
+            ))
+        except FileNotFoundError:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
+            return asdict(error_response(
+                "SDD CLI not found in PATH",
+                error_code="CLI_NOT_FOUND",
+                error_type="internal",
+                remediation="Ensure SDD CLI is installed and available in PATH",
+            ))
+        except Exception as e:
+            logger.exception("Unexpected error in spec-sync-metadata")
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+            return asdict(error_response(
+                f"Unexpected error: {str(e)}",
+                error_code="INTERNAL_ERROR",
+                error_type="internal",
+                remediation="Check logs for details",
+            ))

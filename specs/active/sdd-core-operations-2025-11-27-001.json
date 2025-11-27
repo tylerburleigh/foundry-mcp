@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T21:49:38.280261Z",
+  "last_updated": "2025-11-27T21:54:15.336791Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 59,
+    "progress_percentage": 60,
     "status": "active",
     "current_phase": "phase-4"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 53,
+      "completed_tasks": 54,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -1364,7 +1364,7 @@
         ]
       },
       "total_tasks": 20,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Analysis, bulk operations, and specialized mutations",
         "risk_level": "medium"
@@ -1382,7 +1382,7 @@
         "task-4-4"
       ],
       "total_tasks": 17,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1508,7 +1508,7 @@
         "task-4-2-9"
       ],
       "total_tasks": 9,
-      "completed_tasks": 6,
+      "completed_tasks": 7,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/mutations.py",
         "task_category": "implementation",
@@ -1634,13 +1634,19 @@
     "task-4-2-7": {
       "type": "subtask",
       "title": "Implement spec-sync-metadata - push/pull spec metadata across stores",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd sync-metadata, synchronize metadata between locations"
+        "details": "Wrap sdd sync-metadata, synchronize metadata between locations",
+        "started_at": "2025-11-27T21:53:26.860969Z",
+        "status_note": "Starting implementation of spec-sync-metadata tool",
+        "completed_at": "2025-11-27T21:54:15.328699Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-27T21:54:15.334449Z"
       }
     },
     "task-4-2-8": {
@@ -3064,6 +3070,15 @@
       "content": "Implemented task-update-metadata MCP tool in mutations.py. The tool wraps 'sdd update-task-metadata' CLI command and supports file_path, description, task_category, actual_hours, status_note, verification_type (auto/manual/none), command, and metadata_json parameters. Tracks fields_updated list in response. Follows established patterns with circuit breaker, metrics, audit logging. Import tests passing.",
       "metadata": {},
       "task_id": "task-4-2-6"
+    },
+    {
+      "timestamp": "2025-11-27T21:54:15.334445Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement spec-sync-metadata - push/pull spec metadata across stores",
+      "author": "claude-code",
+      "content": "Implemented spec-sync-metadata MCP tool in mutations.py. The tool wraps 'sdd sync-metadata' CLI command and takes spec_id, dry_run, and path parameters. Returns synced status with changes list and handles warnings. Follows established patterns with circuit breaker, metrics, audit logging. Import test passing.",
+      "metadata": {},
+      "task_id": "task-4-2-7"
     }
   ]
 }
