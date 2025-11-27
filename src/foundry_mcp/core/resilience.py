@@ -138,3 +138,108 @@ def with_timeout(
         return wrapper
 
     return decorator
+
+
+# ---------------------------------------------------------------------------
+# Retry with Backoff
+# ---------------------------------------------------------------------------
+
+
+def retry_with_backoff(
+    func: Callable[..., T],
+    *,
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    max_delay: float = 60.0,
+    exponential_base: float = 2.0,
+    jitter: bool = True,
+    retryable_exceptions: Optional[List[Type[Exception]]] = None,
+) -> T:
+    """Retry a function with exponential backoff.
+
+    Retries the function on failure with increasing delays between attempts.
+    Supports jitter to prevent thundering herd problems.
+
+    Args:
+        func: Function to retry (should take no arguments; use lambda for args).
+        max_retries: Maximum number of retry attempts (default 3).
+        base_delay: Initial delay in seconds (default 1.0).
+        max_delay: Maximum delay cap in seconds (default 60.0).
+        exponential_base: Multiplier for each retry (default 2.0).
+        jitter: Add randomness to delay (default True).
+        retryable_exceptions: List of exceptions to retry on (default: all).
+
+    Returns:
+        Result from the function on success.
+
+    Raises:
+        Exception: The last exception if all retries exhausted.
+
+    Example:
+        >>> result = retry_with_backoff(
+        ...     lambda: http_client.get(url),
+        ...     max_retries=3,
+        ...     retryable_exceptions=[ConnectionError, TimeoutException],
+        ... )
+    """
+    retryable = tuple(retryable_exceptions or [Exception])
+    last_exception: Optional[Exception] = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except retryable as e:
+            last_exception = e
+
+            if attempt == max_retries:
+                break
+
+            # Calculate delay with exponential backoff
+            delay = min(base_delay * (exponential_base**attempt), max_delay)
+
+            # Add jitter to prevent thundering herd
+            if jitter:
+                delay = delay * (0.5 + random.random())
+
+            time.sleep(delay)
+
+    # All retries exhausted
+    if last_exception:
+        raise last_exception
+    raise RuntimeError("retry_with_backoff: unexpected state")
+
+
+def retryable(
+    max_retries: int = 3,
+    delay: float = 1.0,
+    exceptions: Tuple[Type[Exception], ...] = (Exception,),
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """Decorator for automatic retries with exponential backoff.
+
+    Args:
+        max_retries: Maximum retry attempts (default 3).
+        delay: Base delay in seconds (default 1.0).
+        exceptions: Tuple of exceptions to retry on.
+
+    Returns:
+        Decorated function with retry logic.
+
+    Example:
+        >>> @retryable(max_retries=3, exceptions=(ConnectionError,))
+        ... def call_api(endpoint: str):
+        ...     return http_client.get(endpoint)
+    """
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            return retry_with_backoff(
+                lambda: func(*args, **kwargs),
+                max_retries=max_retries,
+                base_delay=delay,
+                retryable_exceptions=list(exceptions),
+            )
+
+        return wrapper
+
+    return decorator

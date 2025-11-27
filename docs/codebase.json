@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T13:35:05.063189Z",
-    "generated_at_commit": "86c39515281d9c5e08c48883e323a8426b4ba15e",
+    "generated_at": "2025-11-27T13:36:08.655027Z",
+    "generated_at_commit": "808a7dccb7c8df1ac87608248db12099de4d0070",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 33,
-    "total_lines": 13339,
-    "total_classes": 49,
-    "total_functions": 157,
-    "avg_complexity": 7.01,
+    "total_lines": 13417,
+    "total_classes": 50,
+    "total_functions": 158,
+    "avg_complexity": 6.98,
     "max_complexity": 59,
     "high_complexity_functions": [
       "register_task_tools (59)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 33,
-        "lines": 13339,
-        "classes": 49,
-        "functions": 157,
-        "avg_complexity": 7.01
+        "lines": 13417,
+        "classes": 50,
+        "functions": 158,
+        "avg_complexity": 6.98
       }
     }
   },
@@ -477,8 +477,12 @@
       "file": "src/foundry_mcp/core/resilience.py",
       "language": "python",
       "docstring": "Resilience primitives for MCP tool operations.\n\nProvides timeout budgets, retry patterns, circuit breakers, and health checks\nfor building robust MCP tools that handle failures gracefully.\n\nTimeout Budget Categories\n=========================\n\nUse the appropriate timeout category based on operation type:\n\n    FAST_TIMEOUT (5s)       - Cache lookups, simple queries\n    MEDIUM_TIMEOUT (30s)    - Database operations, API calls\n    SLOW_TIMEOUT (120s)     - File processing, complex operations\n    BACKGROUND_TIMEOUT (600s) - Batch jobs, large transfers\n\nExample usage:\n\n    from foundry_mcp.core.resilience import (\n        MEDIUM_TIMEOUT,\n        with_timeout,\n        retry_with_backoff,\n        CircuitBreaker,\n    )\n\n    @mcp.tool()\n    @with_timeout(MEDIUM_TIMEOUT, \"Database query timed out\")\n    async def query_database(query: str) -> dict:\n        result = await db.execute(query)\n        return asdict(success_response(data={\"result\": result}))",
-      "classes": [],
-      "functions": [],
+      "classes": [
+        "TimeoutException"
+      ],
+      "functions": [
+        "with_timeout"
+      ],
       "imports": [
         "dataclasses.dataclass",
         "dataclasses.field",
@@ -499,7 +503,7 @@
         "time"
       ],
       "exports": [],
-      "lines": 62
+      "lines": 140
     },
     {
       "name": "responses",
@@ -2564,6 +2568,36 @@
           "line": 100,
           "context": [
             "render_spec_to_markdown"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 1
+    },
+    {
+      "name": "TimeoutException",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 73,
+      "language": "python",
+      "docstring": "Operation timed out.\n\nAttributes:\n    timeout_seconds: The timeout duration that was exceeded.\n    operation: Name of the operation that timed out.",
+      "bases": [
+        "Exception"
+      ],
+      "methods": [
+        "__init__"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "wrapper",
+          "file": "src/foundry_mcp/core/resilience.py",
+          "line": 132,
+          "context": [
+            "with_timeout",
+            "decorator",
+            "wrapper"
           ]
         }
       ],
@@ -5345,7 +5379,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -9092,6 +9126,33 @@
         }
       ],
       "call_count": 1
+    },
+    {
+      "name": "with_timeout",
+      "file": "src/foundry_mcp/core/resilience.py",
+      "line": 97,
+      "language": "python",
+      "docstring": "Decorator to add timeout to async functions.\n\nUses asyncio.wait_for to enforce timeout on async operations.\nOn timeout, raises TimeoutException with details.\n\nArgs:\n    seconds: Timeout duration in seconds.\n    error_message: Custom error message (defaults to function name).\n\nReturns:\n    Decorated async function with timeout enforcement.\n\nExample:\n    >>> @with_timeout(30, \"Database query timed out\")\n    ... async def query_database(query: str):\n    ...     return await db.execute(query)\n\nRaises:\n    TimeoutException: If the operation exceeds the timeout.",
+      "parameters": [
+        {
+          "name": "seconds",
+          "type": "float",
+          "default": null
+        },
+        {
+          "name": "error_message",
+          "type": "Optional[str]",
+          "default": null
+        }
+      ],
+      "return_type": "Callable[[Callable[..., T]], Callable[..., T]]",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
     },
     {
       "name": "_build_meta",

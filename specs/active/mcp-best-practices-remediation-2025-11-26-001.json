@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:35:46.804685Z",
+  "last_updated": "2025-11-27T13:36:50.772623Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 41,
+    "progress_percentage": 42,
     "current_phase": "phase-4"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 42,
+      "completed_tasks": 43,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -1170,7 +1170,7 @@
         "task-4-2"
       ],
       "total_tasks": 8,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1201,7 +1201,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/core/resilience.py",
         "task_category": "implementation",
@@ -1247,13 +1247,19 @@
     "task-4-1-3": {
       "type": "subtask",
       "title": "Implement retry_with_backoff() function",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Exponential backoff with jitter, configurable max_retries, retryable_exceptions"
+        "details": "Exponential backoff with jitter, configurable max_retries, retryable_exceptions",
+        "started_at": "2025-11-27T13:36:15.183031Z",
+        "status_note": "Implementing retry_with_backoff",
+        "completed_at": "2025-11-27T13:36:50.762586Z",
+        "needs_journaling": false,
+        "actual_hours": 0.01,
+        "journaled_at": "2025-11-27T13:36:50.769480Z"
       }
     },
     "task-4-1-4": {
@@ -3950,6 +3956,15 @@
       "content": "Added @with_timeout decorator and TimeoutException class to resilience.py. Decorator uses asyncio.wait_for for async timeout enforcement, accepts seconds and optional error_message params. TimeoutException includes timeout_seconds and operation attributes. Both import successfully.",
       "metadata": {},
       "task_id": "task-4-1-2"
+    },
+    {
+      "timestamp": "2025-11-27T13:36:50.769475Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement retry_with_backoff() function",
+      "author": "claude-code",
+      "content": "Added retry_with_backoff() function and @retryable decorator to resilience.py. Function supports configurable max_retries, base_delay, max_delay, exponential_base, jitter (prevents thundering herd), and retryable_exceptions. Decorator wraps functions with automatic retry logic. Both import successfully.",
+      "metadata": {},
+      "task_id": "task-4-1-3"
     }
   ]
 }
