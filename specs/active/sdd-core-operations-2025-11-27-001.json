@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T23:49:33.591498Z",
+  "last_updated": "2025-11-27T23:53:22.523428Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 96,
+    "progress_percentage": 97,
     "status": "active",
     "current_phase": "phase-7"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 86,
+      "completed_tasks": 87,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -2556,7 +2556,7 @@
         "blocks": []
       },
       "total_tasks": 6,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "purpose": "Cache management and schema export utilities",
         "risk_level": "low"
@@ -2565,15 +2565,19 @@
     "phase-7-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-7",
       "children": [
         "task-7-1",
         "task-7-2"
       ],
       "total_tasks": 4,
-      "completed_tasks": 3,
-      "metadata": {},
+      "completed_tasks": 4,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T23:53:22.508965Z",
+        "journaled_at": "2025-11-27T23:53:22.523388Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-7-verify"
@@ -2662,7 +2666,7 @@
     "task-7-2": {
       "type": "task",
       "title": "tests/unit/test_utilities.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-7-files",
       "children": [],
       "dependencies": {
@@ -2673,12 +2677,18 @@
         "blocks": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_utilities.py",
         "task_category": "implementation",
         "estimated_hours": 2,
-        "changes": "Create unit tests for utility tools"
+        "changes": "Create unit tests for utility tools",
+        "started_at": "2025-11-27T23:51:21.630361Z",
+        "status_note": "Creating unit tests for utility tools",
+        "completed_at": "2025-11-27T23:53:22.508764Z",
+        "needs_journaling": false,
+        "actual_hours": 0.034,
+        "journaled_at": "2025-11-27T23:53:22.516569Z"
       }
     },
     "phase-7-verify": {
@@ -3686,6 +3696,24 @@
       "content": "Verified resilience and telemetry are properly integrated in src/foundry_mcp/tools/utilities.py. Resilience features: (1) Circuit breaker protection via shared _utility_breaker with 5 failure threshold and 30s recovery timeout, (2) 30-second subprocess timeout prevents hanging operations, (3) Comprehensive error handling for timeout/not-found/command-failure cases with structured error responses. Telemetry features: (1) metrics.counter for circuit breaker events, (2) metrics.timer for operation duration tracking with action/schema_type labels, (3) @mcp_tool decorator provides audit logging, (4) Structured logging via logger for errors/warnings/debug. All 10 unit tests pass covering error handling and circuit breaker behavior. No additional code changes needed - resilience/telemetry were implemented as part of the tool implementations in task-7-1-1 and task-7-1-2.",
       "metadata": {},
       "task_id": "task-7-1-3"
+    },
+    {
+      "timestamp": "2025-11-27T23:53:22.516562Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: tests/unit/test_utilities.py",
+      "author": "claude-code",
+      "content": "Added 8 new comprehensive unit tests to tests/unit/test_utilities.py covering: (1) TestSddCacheManageTool - 4 tests for invalid action, invalid review_type, info action formatted response with telemetry in meta, and clear action with filters; (2) TestSpecSchemaExportTool - 2 tests for invalid schema_type and schema export formatted response; (3) TestCircuitBreakerIntegration - 2 tests for circuit breaker open state handling and command failure recording. All 18 tests pass.",
+      "metadata": {},
+      "task_id": "task-7-2"
+    },
+    {
+      "timestamp": "2025-11-27T23:53:22.523381Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-7-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-7-files"
     }
   ]
 }

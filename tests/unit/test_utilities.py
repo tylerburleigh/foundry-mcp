@@ -207,3 +207,337 @@ class TestCircuitBreaker:
         assert _utility_breaker.name == "utilities"
         assert _utility_breaker.failure_threshold == 5
         assert _utility_breaker.recovery_timeout == 30.0
+
+
+class TestSddCacheManageTool:
+    """Tests for the sdd_cache_manage tool function with full integration."""
+
+    @pytest.fixture
+    def mock_mcp(self):
+        """Create a mock FastMCP instance that captures registered tools."""
+        mock = MagicMock()
+        mock._tools = {}
+
+        def capture_tool(*args, **kwargs):
+            def decorator(func):
+                mock._tools[func.__name__] = func
+                return func
+            return decorator
+
+        mock.tool = capture_tool
+        return mock
+
+    @pytest.fixture
+    def mock_config(self):
+        """Create a mock server config."""
+        config = MagicMock()
+        config.specs_dir = None
+        return config
+
+    def test_invalid_action_returns_error(self, mock_mcp, mock_config):
+        """Test that invalid action returns validation error."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                # Capture the actual function
+                captured_func = None
+
+                def capture_decorator(mcp, canonical_name):
+                    def inner(func):
+                        nonlocal captured_func
+                        if canonical_name == "sdd-cache-manage":
+                            captured_func = func
+                        return func
+                    return inner
+
+                mock_canonical.side_effect = capture_decorator
+                register_utility_tools(mock_mcp, mock_config)
+
+                # Call with invalid action
+                result = captured_func(action="invalid")
+
+                assert result["success"] is False
+                assert "Invalid action" in result["error"]
+
+    def test_invalid_review_type_returns_error(self, mock_mcp, mock_config):
+        """Test that invalid review_type returns validation error."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                captured_func = None
+
+                def capture_decorator(mcp, canonical_name):
+                    def inner(func):
+                        nonlocal captured_func
+                        if canonical_name == "sdd-cache-manage":
+                            captured_func = func
+                        return func
+                    return inner
+
+                mock_canonical.side_effect = capture_decorator
+                register_utility_tools(mock_mcp, mock_config)
+
+                # Call with invalid review_type
+                result = captured_func(action="clear", review_type="invalid")
+
+                assert result["success"] is False
+                assert "Invalid review_type" in result["error"]
+
+    def test_info_action_returns_formatted_response(self, mock_mcp, mock_config):
+        """Test info action returns properly formatted response."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                with patch('foundry_mcp.tools.utilities._run_sdd_command') as mock_cmd:
+                    mock_cmd.return_value = {
+                        "success": True,
+                        "data": {"total_entries": 10, "active_entries": 5}
+                    }
+
+                    captured_func = None
+
+                    def capture_decorator(mcp, canonical_name):
+                        def inner(func):
+                            nonlocal captured_func
+                            if canonical_name == "sdd-cache-manage":
+                                captured_func = func
+                            return func
+                        return inner
+
+                    mock_canonical.side_effect = capture_decorator
+                    register_utility_tools(mock_mcp, mock_config)
+
+                    result = captured_func(action="info")
+
+                    assert result["success"] is True
+                    assert result["data"]["action"] == "info"
+                    assert result["data"]["cache"]["total_entries"] == 10
+                    assert "telemetry" in result["meta"]
+
+    def test_clear_action_returns_formatted_response(self, mock_mcp, mock_config):
+        """Test clear action returns properly formatted response."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                with patch('foundry_mcp.tools.utilities._run_sdd_command') as mock_cmd:
+                    mock_cmd.return_value = {
+                        "success": True,
+                        "data": {"entries_deleted": 3}
+                    }
+
+                    captured_func = None
+
+                    def capture_decorator(mcp, canonical_name):
+                        def inner(func):
+                            nonlocal captured_func
+                            if canonical_name == "sdd-cache-manage":
+                                captured_func = func
+                            return func
+                        return inner
+
+                    mock_canonical.side_effect = capture_decorator
+                    register_utility_tools(mock_mcp, mock_config)
+
+                    result = captured_func(action="clear", spec_id="test-spec", review_type="fidelity")
+
+                    assert result["success"] is True
+                    assert result["data"]["action"] == "clear"
+                    assert result["data"]["entries_deleted"] == 3
+                    assert result["data"]["filters"]["spec_id"] == "test-spec"
+                    assert result["data"]["filters"]["review_type"] == "fidelity"
+
+
+class TestSpecSchemaExportTool:
+    """Tests for the spec_schema_export tool function with full integration."""
+
+    @pytest.fixture
+    def mock_mcp(self):
+        """Create a mock FastMCP instance."""
+        mock = MagicMock()
+        mock._tools = {}
+        return mock
+
+    @pytest.fixture
+    def mock_config(self):
+        """Create a mock server config."""
+        config = MagicMock()
+        config.specs_dir = None
+        return config
+
+    def test_invalid_schema_type_returns_error(self, mock_mcp, mock_config):
+        """Test that invalid schema_type returns validation error."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                captured_func = None
+
+                def capture_decorator(mcp, canonical_name):
+                    def inner(func):
+                        nonlocal captured_func
+                        if canonical_name == "spec-schema-export":
+                            captured_func = func
+                        return func
+                    return inner
+
+                mock_canonical.side_effect = capture_decorator
+                register_utility_tools(mock_mcp, mock_config)
+
+                result = captured_func(schema_type="invalid")
+
+                assert result["success"] is False
+                assert "Invalid schema_type" in result["error"]
+
+    def test_schema_export_returns_formatted_response(self, mock_mcp, mock_config):
+        """Test schema export returns properly formatted response."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                with patch('foundry_mcp.tools.utilities._run_sdd_command') as mock_cmd:
+                    mock_cmd.return_value = {
+                        "success": True,
+                        "data": {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "SDD Spec"
+                        }
+                    }
+
+                    captured_func = None
+
+                    def capture_decorator(mcp, canonical_name):
+                        def inner(func):
+                            nonlocal captured_func
+                            if canonical_name == "spec-schema-export":
+                                captured_func = func
+                            return func
+                        return inner
+
+                    mock_canonical.side_effect = capture_decorator
+                    register_utility_tools(mock_mcp, mock_config)
+
+                    result = captured_func(schema_type="spec")
+
+                    assert result["success"] is True
+                    assert result["data"]["schema_type"] == "spec"
+                    assert "$schema" in result["data"]["schema"]
+                    assert "schema_url" in result["data"]
+                    assert "telemetry" in result["meta"]
+
+
+class TestCircuitBreakerIntegration:
+    """Tests for circuit breaker behavior when open."""
+
+    @pytest.fixture
+    def mock_mcp(self):
+        """Create a mock FastMCP instance."""
+        mock = MagicMock()
+        mock._tools = {}
+        return mock
+
+    @pytest.fixture
+    def mock_config(self):
+        """Create a mock server config."""
+        config = MagicMock()
+        config.specs_dir = None
+        return config
+
+    def test_circuit_breaker_open_returns_error(self, mock_mcp, mock_config):
+        """Test that open circuit breaker returns unavailable error."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+
+        # Force circuit breaker open
+        _utility_breaker._failure_count = 10
+        _utility_breaker._state = "open"
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                with patch.object(_utility_breaker, 'can_execute', return_value=False):
+                    with patch.object(_utility_breaker, 'get_status', return_value={"state": "open", "retry_after_seconds": 30}):
+                        captured_func = None
+
+                        def capture_decorator(mcp, canonical_name):
+                            def inner(func):
+                                nonlocal captured_func
+                                if canonical_name == "sdd-cache-manage":
+                                    captured_func = func
+                                return func
+                            return inner
+
+                        mock_canonical.side_effect = capture_decorator
+                        register_utility_tools(mock_mcp, mock_config)
+
+                        result = captured_func(action="info")
+
+                        assert result["success"] is False
+                        assert "temporarily unavailable" in result["error"]
+                        assert result["data"]["breaker_state"] == "open"
+
+        # Reset circuit breaker
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = "closed"
+
+    def test_command_failure_records_in_breaker(self, mock_mcp, mock_config):
+        """Test that command failures are recorded in circuit breaker."""
+        from foundry_mcp.tools.utilities import register_utility_tools, _utility_breaker
+        from foundry_mcp.core.resilience import CircuitState
+
+        # Reset circuit breaker to a known state
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = CircuitState.CLOSED
+
+        with patch('foundry_mcp.tools.utilities.canonical_tool') as mock_canonical:
+            with patch('foundry_mcp.tools.utilities.mcp_tool', return_value=lambda f: f):
+                with patch('foundry_mcp.tools.utilities._run_sdd_command') as mock_cmd:
+                    mock_cmd.return_value = {"success": False, "error": "Command failed"}
+
+                    captured_func = None
+
+                    def capture_decorator(mcp, canonical_name):
+                        def inner(func):
+                            nonlocal captured_func
+                            if canonical_name == "sdd-cache-manage":
+                                captured_func = func
+                            return func
+                        return inner
+
+                    mock_canonical.side_effect = capture_decorator
+                    register_utility_tools(mock_mcp, mock_config)
+
+                    result = captured_func(action="info")
+
+                    # Verify the result is a failure
+                    assert result["success"] is False
+                    assert "Command failed" in result["error"]
+
+        # Reset circuit breaker after test
+        _utility_breaker._failure_count = 0
+        _utility_breaker._state = CircuitState.CLOSED
