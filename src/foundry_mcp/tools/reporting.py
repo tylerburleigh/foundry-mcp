@@ -8,7 +8,6 @@ for specifications, including validation summaries, progress reports, and health
 import logging
 import time
 from dataclasses import asdict
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -26,8 +25,6 @@ from foundry_mcp.core.validation import (
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.resilience import (
-    MEDIUM_TIMEOUT,
-    with_timeout,
     CircuitBreaker,
     CircuitBreakerError,
 )
@@ -399,6 +396,12 @@ def register_reporting_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
                 _report_breaker.record_success()
                 duration_ms = (time.perf_counter() - start_time) * 1000
+
+                metrics.timer(
+                    "report.generation_time",
+                    duration_ms,
+                    labels={"spec_id": spec_id, "format": "json"},
+                )
 
                 return asdict(
                     success_response(

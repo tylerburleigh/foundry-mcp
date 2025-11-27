@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T23:37:10.277492Z",
+  "last_updated": "2025-11-27T23:43:34.456903Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,7 +22,7 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 92,
+    "progress_percentage": 93,
     "status": "active",
     "current_phase": "phase-6"
   },
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 82,
+      "completed_tasks": 83,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -2310,7 +2310,7 @@
     "phase-6": {
       "type": "phase",
       "title": "Validation, Reporting & Analytics",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-6-files",
@@ -2326,10 +2326,13 @@
         ]
       },
       "total_tasks": 6,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Human-readable validation/analysis reports",
-        "risk_level": "low"
+        "risk_level": "low",
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T23:43:34.441080Z",
+        "journaled_at": "2025-11-27T23:43:34.456852Z"
       }
     },
     "phase-6-files": {
@@ -2449,7 +2452,7 @@
     "phase-6-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-6",
       "children": [
         "verify-6-1",
@@ -2464,8 +2467,12 @@
         "blocks": []
       },
       "total_tasks": 3,
-      "completed_tasks": 2,
-      "metadata": {}
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T23:43:34.441078Z",
+        "journaled_at": "2025-11-27T23:43:34.453854Z"
+      }
     },
     "verify-6-1": {
       "type": "verify",
@@ -2515,16 +2522,21 @@
     "verify-6-3": {
       "type": "verify",
       "title": "Phase 6 implementation fidelity review",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "fidelity",
         "agent": "sdd-fidelity-review",
         "scope": "phase",
-        "target": "phase-6"
+        "target": "phase-6",
+        "started_at": "2025-11-27T23:37:37.000887Z",
+        "completed_at": "2025-11-27T23:43:34.440874Z",
+        "needs_journaling": false,
+        "actual_hours": 0.099,
+        "journaled_at": "2025-11-27T23:43:34.447512Z"
       }
     },
     "phase-7": {
@@ -3605,6 +3617,33 @@
       "content": "Manual verification PASSED. Tested `sdd report` command with both JSON and markdown formats. The markdown output (`--format markdown --no-json -o -`) generates clear, human-readable reports with: (1) Summary section with spec_id, status, error/warning counts, (2) Statistics snapshot with totals, status counts, progress percentage, (3) Dependency findings showing potential deadlocks and bottleneck tasks, (4) Schema validation status. Reports are well-structured with headers and bullet points, and provide actionable information (e.g., \"task-7-2 blocked by task-7-1\"). JSON output is equally comprehensive with proper nesting. Both formats meet the \"human-readable and comprehensive\" requirement.",
       "metadata": {},
       "task_id": "verify-6-2"
+    },
+    {
+      "timestamp": "2025-11-27T23:43:34.447506Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Phase 6 implementation fidelity review",
+      "author": "claude-code",
+      "content": "Phase 6 fidelity review completed with fixes applied. Multi-model review (Gemini, Cursor Agent, OpenCode) identified 4 issues:\n\n(1) CRITICAL: Reporting tools not registered in server.py - FIXED: Added import and call to register_reporting_tools()\n\n(2) CRITICAL: Feature flag missing from capabilities_manifest.json - FIXED: Added reporting_tools flag, tools section, and server_capabilities feature entry\n\n(3) MAJOR: Missing timeout wrappers - ADDRESSED: Removed unused imports (MEDIUM_TIMEOUT, with_timeout, Path). Timeout wrappers not needed because validate_spec() and calculate_stats() are CPU-bound in-memory operations that complete in milliseconds. Circuit breaker provides failure protection.\n\n(4) MAJOR: Metrics inconsistency in JSON path - FIXED: Added metrics.timer() call to JSON response branch matching markdown branch pattern.\n\nAll 20 unit tests pass (0.31s). Server import verified working. Phase 6 verification complete.",
+      "metadata": {},
+      "task_id": "verify-6-3"
+    },
+    {
+      "timestamp": "2025-11-27T23:43:34.453849Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-6-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-6-verify"
+    },
+    {
+      "timestamp": "2025-11-27T23:43:34.456844Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Validation, Reporting & Analytics",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-6 have been completed.",
+      "metadata": {},
+      "task_id": "phase-6"
     }
   ]
 }

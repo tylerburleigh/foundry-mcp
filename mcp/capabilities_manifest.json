@@ -584,6 +584,34 @@
         ]
       }
     ],
+    "reporting_tools": [
+      {
+        "name": "spec-report",
+        "description": "Generate comprehensive validation and analysis reports for a specification including validation results, statistics, health score, and dependency analysis",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "reporting_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "format", "type": "string", "required": false, "default": "markdown", "enum": ["markdown", "json"]},
+          {"name": "include_validation", "type": "boolean", "required": false, "default": true},
+          {"name": "include_stats", "type": "boolean", "required": false, "default": true},
+          {"name": "include_health", "type": "boolean", "required": false, "default": true},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      },
+      {
+        "name": "spec-report-summary",
+        "description": "Generate a concise summary report for a specification with key metrics and health indicators",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "reporting_tools",
+        "parameters": [
+          {"name": "spec_id", "type": "string", "required": true, "description": "Specification ID"},
+          {"name": "path", "type": "string", "required": false, "description": "Project root path"}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -813,6 +841,16 @@
         "dependencies": [],
         "created_at": "2025-11-27T00:00:00Z",
         "expires_at": null
+      },
+      "reporting_tools": {
+        "description": "Reporting tools for generating human-readable validation reports, progress summaries, and health checks (spec-report, spec-report-summary)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-11-27T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -889,6 +927,11 @@
         "supported": true,
         "description": "Planning and execution utilities for task formatting, phase management, time tracking, and spec audits",
         "tools": ["plan-format", "phase-list", "phase-check-complete", "phase-report-time", "spec-reconcile-state", "plan-report-time", "spec-audit"]
+      },
+      "reporting_tools": {
+        "supported": true,
+        "description": "Reporting tools for generating human-readable validation reports, progress summaries, and health checks",
+        "tools": ["spec-report", "spec-report-summary"]
       }
     },
     "api_version": "2024-11-01"
