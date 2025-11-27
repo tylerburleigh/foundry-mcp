@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:09:34.729718Z",
+  "last_updated": "2025-11-27T13:11:00.322885Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,7 +31,7 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 24,
+    "progress_percentage": 25,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 25,
+      "completed_tasks": 26,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -532,7 +532,7 @@
         "depends": []
       },
       "total_tasks": 13,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
@@ -544,7 +544,7 @@
     "phase-2-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [
         "task-2-1",
@@ -552,8 +552,12 @@
         "task-2-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 8,
-      "metadata": {},
+      "completed_tasks": 9,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-27T13:11:00.296569Z",
+        "journaled_at": "2025-11-27T13:11:00.322779Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-2-verify",
@@ -3193,7 +3197,7 @@
     "task-2-3": {
       "type": "task",
       "title": "mcp/capabilities_manifest.json",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-files",
       "children": [
         "task-2-3-1"
@@ -3206,7 +3210,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "mcp/capabilities_manifest.json",
         "task_category": "implementation",
@@ -3216,12 +3220,19 @@
     "task-2-3-1": {
       "type": "subtask",
       "title": "Surface flag metadata and rollout percentages in capabilities manifest.",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:10:04.451476Z",
+        "status_note": "Starting implementation of capabilities manifest with feature flags",
+        "completed_at": "2025-11-27T13:11:00.296478Z",
+        "needs_journaling": false,
+        "actual_hours": 0.016,
+        "journaled_at": "2025-11-27T13:11:00.309594Z"
+      }
     },
     "task-5-3-3": {
       "type": "subtask",
@@ -3587,6 +3598,24 @@
       "content": "Created TestFlagOverrideContextManager with 8 tests (basic enable/disable overrides, nested overrides, exception cleanup, client-specific override, multiple flags override, integration with @feature_flag decorator, preserving existing overrides) and TestFeatureFlagDecorator with 5 tests (allows when enabled, blocks when disabled, fallback function, preserves function metadata, unknown flag handling). Total test file now has 39 tests across 4 test classes, all passing.",
       "metadata": {},
       "task_id": "task-2-2-3"
+    },
+    {
+      "timestamp": "2025-11-27T13:11:00.309575Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Surface flag metadata and rollout percentages in capabilities manifest.",
+      "author": "claude-code",
+      "content": "Added feature_flags section to mcp/capabilities_manifest.json. Includes: documentation reference, schema_version, 4 example flags (streaming_responses, batch_operations, response_v3, enhanced_validation) with full metadata (description, state, default_enabled, percentage_rollout, owner, dependencies, created_at, expires_at), and lifecycle_states reference documenting each state (experimental, beta, stable, deprecated) with SLA and default behavior. JSON validated successfully.",
+      "metadata": {},
+      "task_id": "task-2-3-1"
+    },
+    {
+      "timestamp": "2025-11-27T13:11:00.322762Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: File Modifications",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-2-files have been completed.",
+      "metadata": {},
+      "task_id": "phase-2-files"
     }
   ]
 }

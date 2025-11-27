@@ -385,8 +385,76 @@
       ]
     }
   ],
+  "feature_flags": {
+    "_documentation": "Feature flags control gradual rollouts, A/B testing, and experimental features. See docs/mcp_best_practices/14-feature-flags.md for guidance.",
+    "schema_version": "1.0.0",
+    "flags": {
+      "streaming_responses": {
+        "description": "Enable streaming for large response payloads",
+        "state": "experimental",
+        "default_enabled": false,
+        "percentage_rollout": 0,
+        "owner": "platform-team",
+        "dependencies": [],
+        "created_at": "2025-11-26T00:00:00Z",
+        "expires_at": null
+      },
+      "batch_operations": {
+        "description": "Support for batch tool invocations",
+        "state": "beta",
+        "default_enabled": false,
+        "percentage_rollout": 25,
+        "owner": "api-team",
+        "dependencies": [],
+        "created_at": "2025-11-26T00:00:00Z",
+        "expires_at": "2026-06-01T00:00:00Z"
+      },
+      "response_v3": {
+        "description": "New response envelope format with enhanced metadata",
+        "state": "experimental",
+        "default_enabled": false,
+        "percentage_rollout": 0,
+        "owner": "platform-team",
+        "dependencies": [],
+        "created_at": "2025-11-26T00:00:00Z",
+        "expires_at": null
+      },
+      "enhanced_validation": {
+        "description": "Enhanced spec validation with additional checks",
+        "state": "stable",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "spec-team",
+        "dependencies": [],
+        "created_at": "2025-10-01T00:00:00Z",
+        "expires_at": null
+      }
+    },
+    "lifecycle_states": {
+      "experimental": {
+        "description": "Early development, opt-in only, may change without notice",
+        "sla": "none",
+        "default_behavior": "disabled"
+      },
+      "beta": {
+        "description": "Feature-complete but not fully validated, opt-in available",
+        "sla": "limited",
+        "default_behavior": "disabled"
+      },
+      "stable": {
+        "description": "Production-ready, full SLA guarantees",
+        "sla": "full",
+        "default_behavior": "enabled"
+      },
+      "deprecated": {
+        "description": "Being phased out, warns on use, will be removed",
+        "sla": "maintenance-only",
+        "default_behavior": "enabled-with-warning"
+      }
+    }
+  },
   "metadata": {
-    "generated_at": "2025-11-25T23:48:00Z",
+    "generated_at": "2025-11-27T13:10:00Z",
     "generator": "foundry-mcp",
     "documentation_url": "https://github.com/foundry-mcp/foundry-mcp"
   }
