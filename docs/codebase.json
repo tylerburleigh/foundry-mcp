@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T14:57:41.083609Z",
-    "generated_at_commit": "3271a30549829454370be0ea97a0dd90cfc46d2b",
+    "generated_at": "2025-11-27T14:59:08.733854Z",
+    "generated_at_commit": "7bfc55e400e3788466e1a95d8508c9855901fa89",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 38,
-    "total_lines": 16559,
-    "total_classes": 69,
-    "total_functions": 195,
-    "avg_complexity": 6.59,
+    "total_lines": 16789,
+    "total_classes": 71,
+    "total_functions": 197,
+    "avg_complexity": 6.57,
     "max_complexity": 65,
     "high_complexity_functions": [
       "register_journal_tools (65)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 38,
-        "lines": 16559,
-        "classes": 69,
-        "functions": 195,
-        "avg_complexity": 6.59
+        "lines": 16789,
+        "classes": 71,
+        "functions": 197,
+        "avg_complexity": 6.57
       }
     }
   },
@@ -429,14 +429,18 @@
       "docstring": "LLM-friendly response patterns for foundry-mcp.\n\nProvides helpers for structuring tool responses to optimize LLM consumption,\nincluding progressive disclosure, batch operation formatting, and context-aware\noutput sizing.\n\nSee docs/mcp_best_practices/15-concurrency-patterns.md for guidance.\n\nExample:\n    from foundry_mcp.core.llm_patterns import (\n        progressive_disclosure, DetailLevel, batch_response\n    )\n\n    # Progressive disclosure based on detail level\n    data = {\"id\": \"123\", \"name\": \"Item\", \"details\": {...}, \"metadata\": {...}}\n    result = progressive_disclosure(data, level=DetailLevel.SUMMARY)\n\n    # Batch operation response\n    response = batch_response(results, errors, total=100)",
       "classes": [
         "DetailLevel",
-        "DisclosureConfig"
+        "DisclosureConfig",
+        "BatchItemResult",
+        "BatchResult"
       ],
       "functions": [
         "progressive_disclosure",
         "_disclose_dict",
         "_disclose_list",
         "_process_value",
-        "get_detail_level"
+        "get_detail_level",
+        "batch_response",
+        "paginated_batch_response"
       ],
       "imports": [
         "logging",
@@ -453,7 +457,7 @@
         "typing.Union"
       ],
       "exports": [],
-      "lines": 280
+      "lines": 510
     },
     {
       "name": "observability",
@@ -2685,6 +2689,69 @@
           "file": "src/foundry_mcp/core/llm_patterns.py",
           "line": 94,
           "context": []
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 1
+    },
+    {
+      "name": "BatchItemResult",
+      "file": "src/foundry_mcp/core/llm_patterns.py",
+      "line": 278,
+      "language": "python",
+      "docstring": "Result for a single item in a batch operation.\n\nAttributes:\n    item_id: Identifier for the item (index or key)\n    success: Whether the operation succeeded\n    result: Operation result if successful\n    error: Error message if failed\n    error_code: Machine-readable error code if failed",
+      "bases": [],
+      "methods": [
+        "to_dict"
+      ],
+      "properties": [],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "batch_response",
+          "file": "src/foundry_mcp/core/llm_patterns.py",
+          "line": 415,
+          "context": [
+            "batch_response"
+          ]
+        },
+        {
+          "instantiator": "batch_response",
+          "file": "src/foundry_mcp/core/llm_patterns.py",
+          "line": 423,
+          "context": [
+            "batch_response"
+          ]
+        }
+      ],
+      "imported_by": [],
+      "instantiation_count": 2
+    },
+    {
+      "name": "BatchResult",
+      "file": "src/foundry_mcp/core/llm_patterns.py",
+      "line": 311,
+      "language": "python",
+      "docstring": "Result of a batch operation with separate success/failure tracking.\n\nDesigned for LLM consumption with clear summary and separated results.\n\nAttributes:\n    total: Total items processed\n    succeeded: Count of successful operations\n    failed: Count of failed operations\n    results: List of successful results\n    errors: List of failed item details\n    warnings: Any warnings generated during processing",
+      "bases": [],
+      "methods": [
+        "to_response"
+      ],
+      "properties": [
+        "all_succeeded",
+        "success_rate"
+      ],
+      "is_exported": false,
+      "is_public": true,
+      "instantiated_by": [
+        {
+          "instantiator": "batch_response",
+          "file": "src/foundry_mcp/core/llm_patterns.py",
+          "line": 405,
+          "context": [
+            "batch_response"
+          ]
         }
       ],
       "imported_by": [],
@@ -5058,7 +5125,7 @@
         },
         {
           "name": "cancel",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "src/foundry_mcp/core/concurrency.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -7023,7 +7090,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -8333,6 +8400,209 @@
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
           "line": 268,
           "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "batch_response",
+      "file": "src/foundry_mcp/core/llm_patterns.py",
+      "line": 375,
+      "language": "python",
+      "docstring": "Create a batch operation response from results and errors.\n\nConvenience function for creating LLM-friendly batch responses.\n\nArgs:\n    results: List of successful results\n    errors: List of error dicts with 'item_id', 'error', optional 'error_code'\n    total: Total items (defaults to len(results) + len(errors))\n    warnings: Optional warnings to include\n\nReturns:\n    LLM-friendly response dictionary\n\nExample:\n    >>> results = [{\"id\": \"1\", \"data\": \"...\"}, {\"id\": \"2\", \"data\": \"...\"}]\n    >>> errors = [{\"item_id\": \"3\", \"error\": \"Not found\", \"error_code\": \"NOT_FOUND\"}]\n    >>> response = batch_response(results, errors)\n    >>> print(response[\"summary\"])\n    'Processed 2/3 items successfully'",
+      "parameters": [
+        {
+          "name": "results",
+          "type": "List[Any]",
+          "default": null
+        },
+        {
+          "name": "errors",
+          "type": "Optional[List[Dict[str, Any]]]",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 6,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [
+        {
+          "name": "paginated_batch_response",
+          "file": "src/foundry_mcp/core/llm_patterns.py",
+          "line": 467,
+          "call_type": "function_call"
+        }
+      ],
+      "calls": [
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 403,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 403,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 407,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 408,
+          "call_type": "function_call"
+        },
+        {
+          "name": "enumerate",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 413,
+          "call_type": "function_call"
+        },
+        {
+          "name": "isinstance",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 414,
+          "call_type": "function_call"
+        },
+        {
+          "name": "get",
+          "file": "built-in",
+          "line": 414,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 415,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 423,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 424,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 426,
+          "call_type": "method_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 427,
+          "call_type": "method_call"
+        },
+        {
+          "name": "to_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_patterns.py",
+          "line": 430,
+          "call_type": "method_call"
+        }
+      ],
+      "call_count": 1
+    },
+    {
+      "name": "paginated_batch_response",
+      "file": "src/foundry_mcp/core/llm_patterns.py",
+      "line": 433,
+      "language": "python",
+      "docstring": "Create a paginated batch response for large result sets.\n\nIncludes pagination metadata for LLMs to understand result scope.\n\nArgs:\n    results: Results for current page\n    page_size: Number of items per page\n    offset: Current page offset\n    total: Total items available\n    errors: Errors for current page\n    warnings: Optional warnings\n\nReturns:\n    Response with pagination metadata\n\nExample:\n    >>> response = paginated_batch_response(\n    ...     results=items[:50],\n    ...     page_size=50,\n    ...     offset=0,\n    ...     total=150,\n    ... )\n    >>> response[\"pagination\"][\"has_more\"]\n    True",
+      "parameters": [
+        {
+          "name": "results",
+          "type": "List[Any]",
+          "default": null
+        }
+      ],
+      "return_type": "Dict[str, Any]",
+      "complexity": 3,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "batch_response",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_patterns.py",
+          "line": 467,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 470,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 470,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 474,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 478,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 481,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 485,
+          "call_type": "function_call"
+        },
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 486,
+          "call_type": "method_call"
+        },
+        {
+          "name": "append",
+          "file": "built-in",
+          "line": 487,
+          "call_type": "method_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 488,
+          "call_type": "function_call"
+        },
+        {
+          "name": "len",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 489,
+          "call_type": "function_call"
         }
       ]
     },
