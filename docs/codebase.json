@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-27T14:37:50.286608Z",
-    "generated_at_commit": "83c9784e7773a98141a24d6fc78857e212b3ac1f",
+    "generated_at": "2025-11-27T14:42:46.166116Z",
+    "generated_at_commit": "218acee9f70c56795f6e5eba6b683055eb8294c3",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 36,
-    "total_lines": 15376,
+    "total_lines": 15381,
     "total_classes": 60,
     "total_functions": 176,
     "avg_complexity": 6.94,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 36,
-        "lines": 15376,
+        "lines": 15381,
         "classes": 60,
         "functions": 176,
         "avg_complexity": 6.94
@@ -290,7 +290,7 @@
         "foundry_mcp.core.responses.error_response"
       ],
       "exports": [],
-      "lines": 532
+      "lines": 537
     },
     {
       "name": "journal",
@@ -4941,13 +4941,13 @@
         {
           "name": "wrapper",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 425,
+          "line": 429,
           "call_type": "function_call"
         },
         {
           "name": "flag_override",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 501,
+          "line": 505,
           "call_type": "function_call"
         }
       ],
@@ -4957,7 +4957,7 @@
     {
       "name": "feature_flag",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 381,
+      "line": 385,
       "language": "python",
       "docstring": "Decorator to gate function execution behind a feature flag.\n\nWhen the feature flag is not enabled for the current client, the decorated\nfunction will not execute. Instead, it returns a FEATURE_DISABLED error\nresponse (or invokes the fallback if provided).\n\nArgs:\n    flag_name: Name of the feature flag to check\n    fallback: Optional fallback function to call when flag is disabled.\n        If provided, this function is called with the same arguments.\n        If not provided, returns a FEATURE_DISABLED error response.\n    registry: Optional registry to use. Defaults to the global registry.\n\nReturns:\n    Decorated function that checks the flag before execution\n\nExample:\n    >>> @feature_flag(\"new_algorithm\")\n    ... def process_data(data: dict) -> dict:\n    ...     return {\"processed\": True}\n    ...\n    >>> # When flag is disabled, returns error response\n    >>> result = process_data({\"input\": \"test\"})\n    >>> result[\"success\"]\n    False\n    >>> result[\"data\"][\"error_code\"]\n    'FEATURE_DISABLED'\n\n    >>> # With fallback function\n    >>> @feature_flag(\"new_algorithm\", fallback=legacy_process)\n    ... def process_data(data: dict) -> dict:\n    ...     return {\"processed\": True, \"algorithm\": \"new\"}\n    ...\n    >>> # When flag is disabled, calls legacy_process instead",
       "parameters": [
@@ -4979,7 +4979,7 @@
     {
       "name": "flag_override",
       "file": "src/foundry_mcp/core/feature_flags.py",
-      "line": 456,
+      "line": 460,
       "language": "python",
       "docstring": "Context manager for temporarily overriding a feature flag value.\n\nUseful for testing code paths that depend on feature flags without\nmodifying the actual flag configuration. The override is automatically\ncleaned up when the context exits, even if an exception occurs.\n\nArgs:\n    flag_name: Name of the feature flag to override\n    enabled: The override value (True to enable, False to disable)\n    client_id: Optional client ID for the override (defaults to current_client_id)\n    registry: Optional registry to use (defaults to global registry)\n\nYields:\n    None\n\nExample:\n    >>> registry = FeatureFlagRegistry()\n    >>> registry.register(FeatureFlag(\n    ...     name=\"new_feature\",\n    ...     description=\"Test\",\n    ...     state=FlagState.BETA,\n    ...     default_enabled=False,\n    ... ))\n    >>> # Flag is disabled by default\n    >>> registry.is_enabled(\"new_feature\")\n    False\n    >>> # Override to enable temporarily\n    >>> with flag_override(\"new_feature\", True, registry=registry):\n    ...     registry.is_enabled(\"new_feature\")\n    True\n    >>> # Back to original state after context\n    >>> registry.is_enabled(\"new_feature\")\n    False\n\n    >>> # Use in tests to force flag states\n    >>> with flag_override(\"new_feature\", True):\n    ...     result = my_flagged_function()  # Runs with flag enabled",
       "parameters": [
@@ -5007,31 +5007,31 @@
         {
           "name": "get_registry",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
-          "line": 501,
+          "line": 505,
           "call_type": "function_call"
         },
         {
           "name": "get",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 502,
+          "line": 506,
           "call_type": "method_call"
         },
         {
           "name": "set_override",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
-          "line": 513,
+          "line": 517,
           "call_type": "method_call"
         },
         {
           "name": "set_override",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
-          "line": 518,
+          "line": 522,
           "call_type": "method_call"
         },
         {
           "name": "clear_override",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/feature_flags.py",
-          "line": 520,
+          "line": 524,
           "call_type": "method_call"
         }
       ]
@@ -6021,7 +6021,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -11018,7 +11018,7 @@
         {
           "name": "wrapper",
           "file": "src/foundry_mcp/core/feature_flags.py",
-          "line": 437,
+          "line": 441,
           "call_type": "function_call"
         },
         {
