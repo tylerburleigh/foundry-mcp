@@ -3,7 +3,7 @@
   "title": "MCP Best Practices Gap Remediation",
   "status": "draft",
   "generated": "2025-11-26T23:30:00Z",
-  "last_updated": "2025-11-27T13:31:46.892364Z",
+  "last_updated": "2025-11-27T13:32:52.719210Z",
   "metadata": {
     "description": "Implement missing MCP best practices across foundry-mcp codebase",
     "objectives": [
@@ -31,8 +31,8 @@
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "active",
     "activated_date": "2025-11-27T12:17:19.958266Z",
-    "progress_percentage": 37,
-    "current_phase": "phase-3"
+    "progress_percentage": 38,
+    "current_phase": "phase-4"
   },
   "hierarchy": {
     "spec-root": {
@@ -51,7 +51,7 @@
         "phase-8"
       ],
       "total_tasks": 102,
-      "completed_tasks": 38,
+      "completed_tasks": 39,
       "metadata": {
         "description": "Implement missing MCP best practices across foundry-mcp codebase",
         "objectives": [
@@ -1133,7 +1133,7 @@
     "phase-4": {
       "type": "phase",
       "title": "Resilience Infrastructure",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-4-files",
@@ -1150,7 +1150,7 @@
         "depends": []
       },
       "total_tasks": 12,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
@@ -2852,7 +2852,7 @@
     "phase-4-docs": {
       "type": "group",
       "title": "Documentation & Change Log",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4",
       "children": [
         "phase-4-docs-1",
@@ -2868,7 +2868,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "doc_references": [
           "docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
@@ -2879,7 +2879,7 @@
     "phase-4-docs-1": {
       "type": "task",
       "title": "docs/mcp_best_practices/12-timeout-resilience.md",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-docs",
       "children": [
         "phase-4-docs-1-1"
@@ -2890,7 +2890,7 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "docs/mcp_best_practices/12-timeout-resilience.md",
         "task_category": "implementation",
@@ -2900,12 +2900,19 @@
     "phase-4-docs-1-1": {
       "type": "subtask",
       "title": "Document timeout budgets, retries, and circuit breaker usage for MCP tools.",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-docs-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2025-11-27T13:32:13.763856Z",
+        "status_note": "Documenting timeout and resilience patterns",
+        "completed_at": "2025-11-27T13:32:52.709799Z",
+        "needs_journaling": false,
+        "actual_hours": 0.011,
+        "journaled_at": "2025-11-27T13:32:52.716298Z"
+      }
     },
     "phase-4-docs-2": {
       "type": "task",
@@ -3876,6 +3883,15 @@
       "content": "All child tasks in phase phase-3 have been completed.",
       "metadata": {},
       "task_id": "phase-3"
+    },
+    {
+      "timestamp": "2025-11-27T13:32:52.716294Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Document timeout budgets, retries, and circuit breaker usage for MCP tools.",
+      "author": "claude-code",
+      "content": "Verified existing documentation in docs/mcp_best_practices/12-timeout-resilience.md (553 lines) comprehensively covers all required topics: (1) Timeout Budgets - categories table with Fast/Medium/Slow/Background defaults, async and sync timeout implementations with decorators; (2) Retry Patterns - exponential backoff with jitter, retryable decorator, configurable exceptions; (3) Circuit Breaker - full CircuitState enum, CircuitBreaker dataclass with failure threshold/recovery timeout, with_circuit_breaker decorator, global breakers registry. Also includes partial results handling, resource cleanup patterns, health checks, and anti-patterns guidance. No additional documentation needed.",
+      "metadata": {},
+      "task_id": "phase-4-docs-1-1"
     }
   ]
 }
