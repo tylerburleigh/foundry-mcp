@@ -2,7 +2,7 @@
   "spec_id": "sdd-cli-native-parity-2025-11-27-001",
   "title": "SDD CLI Native Re-Implementation - Foundry MCP",
   "generated": "2025-11-27T20:25:00Z",
-  "last_updated": "2025-11-28T18:18:12.761916Z",
+  "last_updated": "2025-11-28T18:19:48.392855Z",
   "metadata": {
     "description": "Re-implement the Spec-Driven Development CLI inside foundry-mcp (Option A) so that MCP tools and the CLI share the same service layer, contracts, and resilience/observability guardrails.",
     "objectives": [
@@ -20,7 +20,7 @@
     ],
     "status": "active",
     "owner": "foundry-mcp core",
-    "progress_percentage": 10,
+    "progress_percentage": 12,
     "current_phase": "phase-1"
   },
   "progress_percentage": 0,
@@ -40,7 +40,7 @@
         "phase-5"
       ],
       "total_tasks": 50,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Deliver first-party SDD CLI runtime with shared MCP tooling"
       },
@@ -60,7 +60,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 8,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Establish scope, parity matrix, and architecture for Option A CLI",
         "risk_level": "medium",
@@ -85,7 +85,7 @@
         "task-1-3"
       ],
       "total_tasks": 7,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -244,14 +244,14 @@
     "task-1-3": {
       "type": "task",
       "title": "Define release readiness plan",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-1-planning",
       "children": [
         "task-1-3-1",
         "task-1-3-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "task_category": "decision",
         "details": "Outline release sequencing, feature flags, and readiness criteria for enabling the native CLI"
@@ -267,13 +267,19 @@
     "task-1-3-1": {
       "type": "subtask",
       "title": "Draft feature-flag controls",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Specify discovery + capabilities manifest switches for native CLI"
+        "details": "Specify discovery + capabilities manifest switches for native CLI",
+        "started_at": "2025-11-28T18:18:44.219448Z",
+        "status_note": "Drafting feature-flag controls for native CLI release",
+        "completed_at": "2025-11-28T18:19:48.387153Z",
+        "needs_journaling": false,
+        "actual_hours": 0.018,
+        "journaled_at": "2025-11-28T18:19:48.391482Z"
       }
     },
     "task-1-3-2": {
@@ -1469,6 +1475,15 @@
       "content": "Authored comprehensive runtime ADR in docs/architecture/sdd_cli_runtime.md with both subtasks completed: (1) task-1-2-1 defined package boundaries - foundry_mcp.core (transport-agnostic), foundry_mcp.tools (MCP), foundry_mcp.cli (CLI runtime), foundry_mcp.cli.commands (Click groups), with dependency graph and entry point examples; (2) task-1-2-2 described shared helper strategy - core modules (responses, validation, security, observability, resilience, pagination) usage patterns, response adaptation for CLI, security limits, pagination, resilience patterns, CLI-only helpers, and selection criteria. ADR includes context, decision rationale, alternatives considered (flat module, separate package, MCP wrapper - all rejected), and consequences analysis. This provides the architectural foundation for CLI implementation.",
       "metadata": {},
       "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2025-11-28T18:19:48.391478Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Draft feature-flag controls",
+      "author": "claude-code",
+      "content": "Created docs/architecture/cli_release_readiness.md with comprehensive feature-flag controls: (1) CLI Discovery Flag (native_cli) with EXPERIMENTAL\u2192BETA\u2192STABLE lifecycle stages; (2) CLI Command Group Flags for granular rollout (cli_spec_commands, cli_task_commands, cli_journal_commands, cli_lifecycle_commands, cli_doc_commands, cli_test_commands, cli_review_commands) with depends_on relationships; (3) Capabilities Manifest Switches via get_cli_capabilities() function; (4) Configuration Override support via environment variables (FOUNDRY_CLI_ENABLED) and config file (.foundry/config.json); (5) CLI Entry Point Guard checking feature flag before command execution. Also documented rollout strategy with 4 phases (Internal Testing, Alpha, Beta, GA) and metrics/monitoring including success metrics, rollback triggers, and telemetry events.",
+      "metadata": {},
+      "task_id": "task-1-3-1"
     }
   ]
 }
