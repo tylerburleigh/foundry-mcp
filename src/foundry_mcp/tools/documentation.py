@@ -21,9 +21,12 @@ from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.resilience import (
     CircuitBreaker,
     CircuitBreakerError,
+    SLOW_TIMEOUT,
+    BACKGROUND_TIMEOUT,
 )
 from foundry_mcp.core.observability import (
     get_metrics,
+    get_audit_logger,
     mcp_tool,
 )
 
@@ -361,6 +364,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 # Check for specific error patterns
                 error_msg = result["error"]
                 if "not found" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-doc", "error_type": "not_found"},
+                    )
                     return asdict(
                         error_response(
                             f"Specification not found: {spec_id}",
@@ -370,9 +377,27 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         )
                     )
 
+                if "timed out" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-doc", "error_type": "timeout"},
+                    )
+
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-doc", "error_type": "command_failure"},
+                )
                 return asdict(error_response(error_msg))
 
             _doc_breaker.record_success()
+            metrics.counter(
+                "documentation.success",
+                labels={"tool": "spec-doc", "mode": mode, "format": output_format},
+            )
+            logger.info(
+                f"spec-doc completed for {spec_id}",
+                extra={"spec_id": spec_id, "duration_ms": round(duration_ms, 2)},
+            )
 
             # Parse the successful response
             doc_data = result["data"]
@@ -569,6 +594,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 # Check for specific error patterns
                 error_msg = result["error"]
                 if "not found" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-doc-llm", "error_type": "not_found"},
+                    )
                     return asdict(
                         error_response(
                             f"Directory not found: {directory}",
@@ -579,6 +608,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
 
                 if "timed out" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-doc-llm", "error_type": "timeout"},
+                    )
                     return asdict(
                         error_response(
                             error_msg,
@@ -589,9 +622,29 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         )
                     )
 
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-doc-llm", "error_type": "command_failure"},
+                )
                 return asdict(error_response(error_msg))
 
             _doc_breaker.record_success()
+            metrics.counter(
+                "documentation.success",
+                labels={
+                    "tool": "spec-doc-llm",
+                    "batch_size": str(batch_size),
+                    "cached": str(use_cache),
+                },
+            )
+            logger.info(
+                f"spec-doc-llm completed for {directory}",
+                extra={
+                    "directory": directory,
+                    "duration_ms": round(duration_ms, 2),
+                    "batch_size": batch_size,
+                },
+            )
 
             # Parse the successful response
             doc_data = result["data"]
@@ -809,6 +862,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 # Check for specific error patterns
                 error_msg = result["error"]
                 if "not found" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-review-fidelity", "error_type": "not_found"},
+                    )
                     return asdict(
                         error_response(
                             f"Specification not found: {spec_id}",
@@ -819,6 +876,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
 
                 if "timed out" in error_msg.lower():
+                    metrics.counter(
+                        "documentation.errors",
+                        labels={"tool": "spec-review-fidelity", "error_type": "timeout"},
+                    )
                     return asdict(
                         error_response(
                             error_msg,
@@ -828,6 +889,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         )
                     )
 
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-review-fidelity", "error_type": "command_failure"},
+                )
                 return asdict(error_response(error_msg))
 
             _doc_breaker.record_success()
@@ -837,6 +902,24 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Determine scope
             scope = "task" if task_id else ("phase" if phase_id else "spec")
+
+            metrics.counter(
+                "documentation.success",
+                labels={
+                    "tool": "spec-review-fidelity",
+                    "scope": scope,
+                    "ai_enabled": str(use_ai),
+                },
+            )
+            logger.info(
+                f"spec-review-fidelity completed for {spec_id}",
+                extra={
+                    "spec_id": spec_id,
+                    "scope": scope,
+                    "duration_ms": round(duration_ms, 2),
+                    "ai_enabled": use_ai,
+                },
+            )
 
             # Build response with review results
             response_data = {

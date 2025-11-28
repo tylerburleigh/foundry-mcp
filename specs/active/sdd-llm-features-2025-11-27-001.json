@@ -2,7 +2,7 @@
   "spec_id": "sdd-llm-features-2025-11-27-001",
   "title": "SDD LLM-Powered Features - AI Integration",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-28T14:05:31.109075Z",
+  "last_updated": "2025-11-28T14:24:42.417287Z",
   "metadata": {
     "description": "Implement LLM-powered SDD operations including provider abstraction, review workflows, PR creation, and AI-enhanced documentation. Requires configurable LLM provider support with graceful degradation.",
     "objectives": [
@@ -24,7 +24,7 @@
     ],
     "status": "active",
     "activated_date": "2025-11-28T00:02:09.184712Z",
-    "progress_percentage": 66,
+    "progress_percentage": 69,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-4"
       ],
       "total_tasks": 42,
-      "completed_tasks": 28,
+      "completed_tasks": 29,
       "metadata": {}
     },
     "phase-1": {
@@ -832,7 +832,7 @@
         ]
       },
       "total_tasks": 9,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "purpose": "AI-enhanced documentation generation capabilities",
         "risk_level": "high"
@@ -849,7 +849,7 @@
         "task-3-3"
       ],
       "total_tasks": 6,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -862,7 +862,7 @@
     "task-3-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/documentation.py",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-1-1",
@@ -871,7 +871,7 @@
         "task-3-1-4"
       ],
       "total_tasks": 4,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/documentation.py",
         "task_category": "implementation",
@@ -944,13 +944,19 @@
     "task-3-1-4": {
       "type": "subtask",
       "title": "Add resilience/telemetry hooks to documentation tools",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Ensure spec-doc, spec-doc-llm, and spec-review-fidelity wrap LLM calls with core/resilience, core/concurrency, and core/observability helpers"
+        "details": "Ensure spec-doc, spec-doc-llm, and spec-review-fidelity wrap LLM calls with core/resilience, core/concurrency, and core/observability helpers",
+        "started_at": "2025-11-28T14:21:34.419430Z",
+        "status_note": "Starting resilience/telemetry hooks implementation for documentation tools",
+        "completed_at": "2025-11-28T14:24:42.411340Z",
+        "needs_journaling": false,
+        "actual_hours": 0.052,
+        "journaled_at": "2025-11-28T14:24:42.415361Z"
       }
     },
     "task-3-2": {
@@ -1535,6 +1541,15 @@
       "content": "Implemented spec-review-fidelity tool in src/foundry_mcp/tools/documentation.py. The tool wraps sdd fidelity-review CLI to compare code implementation against specification requirements. Features include:\n- Wraps sdd fidelity-review command with proper error handling\n- Supports multiple scopes: task, phase, or full spec review\n- File-specific review capability\n- AI consultation toggle with configurable AI tools and models\n- Consensus threshold configuration (1-5)\n- Incremental mode for changed files only\n- Test results inclusion toggle\n- Base branch configuration for git diff\n- Extended timeout (600s) for AI consultation\n- Circuit breaker resilience (shared with other doc tools)\n- Full response-v2 envelope compliance with proper error codes\n- Telemetry/metrics integration with scope labels\n\nAlso added helper function _run_sdd_fidelity_review_command and constant FIDELITY_REVIEW_TIMEOUT = 600.\n\n9 additional unit tests added to tests/unit/test_documentation.py - all 32 tests passing.\n\nFiles modified:\n- src/foundry_mcp/tools/documentation.py (added ~250 lines for spec-review-fidelity tool and helper)\n- tests/unit/test_documentation.py (added 9 new tests)",
       "metadata": {},
       "task_id": "task-3-1-3"
+    },
+    {
+      "timestamp": "2025-11-28T14:24:42.415355Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add resilience/telemetry hooks to documentation tools",
+      "author": "claude-code",
+      "content": "Added enhanced resilience/telemetry hooks to documentation tools (spec-doc, spec-doc-llm, spec-review-fidelity).\n\nChanges made to src/foundry_mcp/tools/documentation.py:\n\n1. Added imports for additional resilience constants (SLOW_TIMEOUT, BACKGROUND_TIMEOUT) and audit logger (get_audit_logger)\n\n2. Added error-specific counters for all three tools:\n   - documentation.errors with labels {tool, error_type} where error_type is: not_found, timeout, command_failure\n\n3. Added success counters for all three tools:\n   - documentation.success with labels including tool name and relevant operation parameters (mode/format for spec-doc, batch_size/cached for spec-doc-llm, scope/ai_enabled for spec-review-fidelity)\n\n4. Added structured logging with extra fields on successful operations:\n   - spec-doc: logs spec_id and duration_ms\n   - spec-doc-llm: logs directory, duration_ms, and batch_size\n   - spec-review-fidelity: logs spec_id, scope, duration_ms, and ai_enabled\n\nAll 32 existing tests pass. Import verification successful. No changes to test files were required as the existing test coverage validates the new patterns.\n\nFiles modified:\n- src/foundry_mcp/tools/documentation.py (~60 lines for enhanced telemetry)",
+      "metadata": {},
+      "task_id": "task-3-1-4"
     }
   ]
 }
