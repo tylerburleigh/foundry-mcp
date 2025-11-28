@@ -367,7 +367,8 @@
       "metadata": {
         "purpose": "Create native CLI runtime, printers, config loading, and entry points",
         "risk_level": "medium",
-        "estimated_hours": 35
+        "estimated_hours": 35,
+        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase so runtime implementation follows the approved ADR and rollout controls."
       },
       "dependencies": {
         "blocks": [
@@ -415,7 +416,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/runtime/__init__.py",
-        "details": "Create argparse scaffolding, shared options, and CLI context objects"
+        "details": [
+          "Create argparse scaffolding, shared options, and CLI context objects",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [
@@ -476,7 +480,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "pyproject.toml",
-        "details": "Add console script (sdd-native) referencing foundry_mcp.sdd_cli.__main__"
+        "details": [
+          "Add console script (sdd-native) referencing foundry_mcp.sdd_cli.__main__",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -525,7 +532,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/runtime/resilience.py",
-        "details": "Integrate core/resilience, observability, concurrency, and tracing helpers"
+        "details": [
+          "Integrate core/resilience, observability, concurrency, and tracing helpers",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -633,7 +643,8 @@
       "metadata": {
         "purpose": "Port planning, next-task, update/progress, context, and validation commands",
         "risk_level": "high",
-        "estimated_hours": 45
+        "estimated_hours": 45,
+        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase so every migrated command aligns with the runtime ADR and rollout requirements."
       },
       "dependencies": {
         "blocks": [
@@ -682,7 +693,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/plan.py",
-        "details": "Port create/analyze/template commands leveraging existing MCP planning helpers"
+        "details": [
+          "Port create/analyze/template commands leveraging existing MCP planning helpers",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -740,7 +754,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/next.py",
-        "details": "Implement next-task, prepare-task, task-info, dependency checks"
+        "details": [
+          "Implement next-task, prepare-task, task-info, dependency checks",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -786,7 +803,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/update.py",
-        "details": "Implement status updates, journaling, context tracker"
+        "details": [
+          "Implement status updates, journaling, context tracker",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -833,7 +853,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/validate.py",
-        "details": "sdd validate, fix, report, stats, analyze-deps"
+        "details": [
+          "sdd validate, fix, report, stats, analyze-deps",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -939,7 +962,8 @@
       "metadata": {
         "purpose": "Port AI-assisted workflows (render, plan review, PR, spec modifications, doc-query, run-tests)",
         "risk_level": "high",
-        "estimated_hours": 45
+        "estimated_hours": 45,
+        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase to ensure advanced workflows keep parity with the runtime ADR and gating strategy."
       },
       "dependencies": {
         "blocks": [
@@ -987,7 +1011,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/render.py",
-        "details": "Integrate AI rendering with observability + concurrency guards"
+        "details": [
+          "Integrate AI rendering with observability + concurrency guards",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       },
       "dependencies": {
         "blocks": [],
@@ -1033,7 +1060,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/plan_review.py",
-        "details": "sdd plan-review, sdd pr commands with AI prompts"
+        "details": [
+          "sdd plan-review, sdd pr commands with AI prompts",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       }
     },
     "task-4-2-1": {
@@ -1075,7 +1105,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/spec_mod.py",
-        "details": "Port spec modifications, doc-query workflows, and tooling"
+        "details": [
+          "Port spec modifications, doc-query workflows, and tooling",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       }
     },
     "task-4-3-1": {
@@ -1128,7 +1161,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "src/foundry_mcp/sdd_cli/commands/doc_cli.py",
-        "details": "Bring over llm doc gen commands and skills-dev helpers for completeness"
+        "details": [
+          "Bring over llm doc gen commands and skills-dev helpers for completeness",
+          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+        ]
       }
     },
     "task-4-4-1": {
@@ -1219,7 +1255,8 @@
       "metadata": {
         "purpose": "Validate parity vs legacy CLI, update manifest/docs, plan rollout",
         "risk_level": "medium",
-        "estimated_hours": 30
+        "estimated_hours": 30,
+        "details": "Re-read docs/architecture/cli_release_readiness.md and docs/architecture/sdd_cli_runtime.md before executing this phase so validation and rollout steps follow the approved architecture."
       },
       "dependencies": {
         "blocks": [],
@@ -1264,7 +1301,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "tests/integration/test_sdd_cli_parity.py",
-        "details": "Compare native CLI output to claude_skills reference via fixtures"
+        "details": [
+          "Compare native CLI output to claude_skills reference via fixtures",
+          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+        ]
       }
     },
     "task-5-1-1": {
@@ -1305,7 +1345,10 @@
       "metadata": {
         "task_category": "implementation",
         "file_path": "docs/mcp_best_practices/README.md",
-        "details": "Update docs, changelog, half_baked_plans, and capabilities manifest"
+        "details": [
+          "Update docs, changelog, half_baked_plans, and capabilities manifest",
+          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+        ]
       }
     },
     "task-5-2-1": {
@@ -1345,7 +1388,10 @@
       "completed_tasks": 0,
       "metadata": {
         "task_category": "implementation",
-        "details": "Stage rollout plans, feature flags, and launch communications",
+        "details": [
+          "Stage rollout plans, feature flags, and launch communications",
+          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+        ],
         "file_path": "task-5-3.py"
       }
     },
