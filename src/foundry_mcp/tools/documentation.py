@@ -42,6 +42,9 @@ DOC_GENERATION_TIMEOUT = 120
 # LLM doc generation can take much longer due to AI processing
 LLM_DOC_GENERATION_TIMEOUT = 600
 
+# Fidelity review timeout (AI consultation)
+FIDELITY_REVIEW_TIMEOUT = 600
+
 
 def _run_sdd_doc_command(
     args: List[str],
@@ -175,6 +178,54 @@ def _run_sdd_llm_doc_gen_command(
             "success": False,
             "error": f"LLM doc generation timed out after {timeout} seconds. "
             "Consider using --resume to continue from checkpoint.",
+        }
+    except FileNotFoundError:
+        return {
+            "success": False,
+            "error": "sdd CLI not found. Ensure sdd-toolkit is installed.",
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _run_sdd_fidelity_review_command(
+    args: List[str],
+    timeout: int = FIDELITY_REVIEW_TIMEOUT,
+) -> Dict[str, Any]:
+    """Run an SDD fidelity-review CLI command and return parsed JSON output.
+
+    Args:
+        args: Command arguments to pass to sdd fidelity-review CLI
+        timeout: Command timeout in seconds (default 600s for AI consultation)
+
+    Returns:
+        Dict with parsed JSON output or error info
+    """
+    try:
+        result = subprocess.run(
+            ["sdd", "fidelity-review"] + args + ["--json"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+        if result.returncode == 0:
+            import json
+
+            try:
+                return {"success": True, "data": json.loads(result.stdout)}
+            except json.JSONDecodeError:
+                return {"success": True, "data": {"raw_output": result.stdout}}
+        else:
+            return {
+                "success": False,
+                "error": result.stderr or result.stdout or "Command failed",
+            }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "error": f"Fidelity review timed out after {timeout} seconds. "
+            "Consider reviewing a smaller scope (single task or phase).",
         }
     except FileNotFoundError:
         return {
@@ -596,4 +647,256 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 )
             )
 
-    logger.debug("Registered documentation tools: spec-doc, spec-doc-llm")
+    @canonical_tool(
+        mcp,
+        canonical_name="spec-review-fidelity",
+    )
+    @mcp_tool(tool_name="spec-review-fidelity", emit_metrics=True, audit=True)
+    def spec_review_fidelity(
+        spec_id: str,
+        task_id: Optional[str] = None,
+        phase_id: Optional[str] = None,
+        files: Optional[List[str]] = None,
+        use_ai: bool = True,
+        ai_tools: Optional[List[str]] = None,
+        model: Optional[str] = None,
+        consensus_threshold: int = 2,
+        incremental: bool = False,
+        include_tests: bool = True,
+        base_branch: str = "main",
+        workspace: Optional[str] = None,
+    ) -> dict:
+        """
+        Compare implementation against specification and identify deviations.
+
+        Performs a fidelity review to verify that code implementation matches
+        the specification requirements. Uses AI consultation for comprehensive
+        analysis.
+
+        Args:
+            spec_id: Specification ID to review against
+            task_id: Review specific task implementation (mutually exclusive with phase_id)
+            phase_id: Review entire phase implementation (mutually exclusive with task_id)
+            files: Review specific file(s) only
+            use_ai: Enable AI consultation for analysis (default: True)
+            ai_tools: Specific AI tools to consult (default: all available)
+            model: Specific model to use for AI consultation
+            consensus_threshold: Minimum models that must agree (default: 2)
+            incremental: Only review changed files since last run
+            include_tests: Include test results in review (default: True)
+            base_branch: Base branch for git diff (default: main)
+            workspace: Optional workspace path (defaults to config)
+
+        Returns:
+            JSON object with:
+            - spec_id: Specification reviewed
+            - scope: Review scope (task/phase/files)
+            - verdict: Overall fidelity verdict (pass/partial/fail)
+            - deviations: List of identified deviations
+            - recommendations: Suggested fixes
+            - consensus: AI model consensus information
+
+        WHEN TO USE:
+        - Verify implementation matches specification requirements
+        - Check for drift between code and documented behavior
+        - Review completed tasks/phases for compliance
+        - Generate fidelity reports for documentation
+        """
+        start_time = time.perf_counter()
+
+        try:
+            # Circuit breaker check
+            if not _doc_breaker.can_execute():
+                status = _doc_breaker.get_status()
+                metrics.counter(
+                    "documentation.circuit_breaker_open",
+                    labels={"tool": "spec-review-fidelity"},
+                )
+                return asdict(
+                    error_response(
+                        "Fidelity review temporarily unavailable",
+                        error_code="UNAVAILABLE",
+                        error_type="unavailable",
+                        data={
+                            "retry_after_seconds": status.get("retry_after_seconds"),
+                            "breaker_state": status.get("state"),
+                        },
+                        remediation="Wait and retry. The service is recovering from errors.",
+                    )
+                )
+
+            # Validate spec_id
+            if not spec_id:
+                return asdict(
+                    error_response(
+                        "Specification ID is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a valid spec_id to review.",
+                    )
+                )
+
+            # Validate mutual exclusivity of task_id and phase_id
+            if task_id and phase_id:
+                return asdict(
+                    error_response(
+                        "Cannot specify both task_id and phase_id",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Provide either task_id OR phase_id, not both.",
+                    )
+                )
+
+            # Validate consensus_threshold
+            if consensus_threshold < 1 or consensus_threshold > 5:
+                return asdict(
+                    error_response(
+                        f"Invalid consensus_threshold: {consensus_threshold}. Must be between 1 and 5.",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Use a consensus_threshold between 1 and 5.",
+                    )
+                )
+
+            # Build command arguments
+            cmd_args = [spec_id]
+
+            if task_id:
+                cmd_args.extend(["--task", task_id])
+            elif phase_id:
+                cmd_args.extend(["--phase", phase_id])
+
+            if files:
+                cmd_args.extend(["--files"] + files)
+
+            if not use_ai:
+                cmd_args.append("--no-ai")
+            else:
+                if ai_tools:
+                    cmd_args.extend(["--ai-tools"] + ai_tools)
+                if model:
+                    cmd_args.extend(["--model", model])
+
+            cmd_args.extend(["--consensus-threshold", str(consensus_threshold)])
+
+            if incremental:
+                cmd_args.append("--incremental")
+
+            if not include_tests:
+                cmd_args.append("--no-tests")
+
+            cmd_args.extend(["--base-branch", base_branch])
+
+            if workspace:
+                cmd_args.extend(["--path", workspace])
+
+            # Execute fidelity review command
+            result = _run_sdd_fidelity_review_command(cmd_args)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            metrics.timer(
+                "documentation.fidelity_review_time",
+                duration_ms,
+                labels={
+                    "scope": "task" if task_id else ("phase" if phase_id else "spec"),
+                    "ai_enabled": str(use_ai),
+                },
+            )
+
+            if not result["success"]:
+                _doc_breaker.record_failure()
+
+                # Check for specific error patterns
+                error_msg = result["error"]
+                if "not found" in error_msg.lower():
+                    return asdict(
+                        error_response(
+                            f"Specification not found: {spec_id}",
+                            error_code="SPEC_NOT_FOUND",
+                            error_type="not_found",
+                            remediation="Verify the spec ID exists using spec-list.",
+                        )
+                    )
+
+                if "timed out" in error_msg.lower():
+                    return asdict(
+                        error_response(
+                            error_msg,
+                            error_code="UNAVAILABLE",
+                            error_type="unavailable",
+                            remediation="Try reviewing a smaller scope (single task or phase).",
+                        )
+                    )
+
+                return asdict(error_response(error_msg))
+
+            _doc_breaker.record_success()
+
+            # Parse the successful response
+            review_data = result["data"]
+
+            # Determine scope
+            scope = "task" if task_id else ("phase" if phase_id else "spec")
+
+            # Build response with review results
+            response_data = {
+                "spec_id": spec_id,
+                "scope": scope,
+            }
+
+            if task_id:
+                response_data["task_id"] = task_id
+            elif phase_id:
+                response_data["phase_id"] = phase_id
+
+            # Add review results
+            if "verdict" in review_data:
+                response_data["verdict"] = review_data["verdict"]
+            elif "consensus" in review_data:
+                response_data["verdict"] = review_data["consensus"].get("verdict", "unknown")
+
+            if "deviations" in review_data:
+                response_data["deviations"] = review_data["deviations"]
+
+            if "recommendations" in review_data:
+                response_data["recommendations"] = review_data["recommendations"]
+
+            if "consensus" in review_data:
+                response_data["consensus"] = review_data["consensus"]
+
+            if "issue_counts" in review_data:
+                response_data["issue_counts"] = review_data["issue_counts"]
+
+            if "artifacts" in review_data:
+                response_data["artifacts"] = review_data["artifacts"]
+
+            return asdict(
+                success_response(
+                    **response_data,
+                    telemetry={"duration_ms": round(duration_ms, 2)},
+                )
+            )
+
+        except CircuitBreakerError as e:
+            logger.warning(f"Circuit breaker open for fidelity review: {e}")
+            return asdict(
+                error_response(
+                    "Fidelity review temporarily unavailable",
+                    error_code="UNAVAILABLE",
+                    error_type="unavailable",
+                    data={"retry_after_seconds": e.retry_after},
+                    remediation="Wait and retry. The service is recovering from errors.",
+                )
+            )
+        except Exception as e:
+            _doc_breaker.record_failure()
+            logger.error(f"Error performing fidelity review: {e}")
+            return asdict(
+                error_response(
+                    str(e),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                )
+            )
+
+    logger.debug("Registered documentation tools: spec-doc, spec-doc-llm, spec-review-fidelity")

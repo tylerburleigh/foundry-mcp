@@ -2,7 +2,7 @@
   "spec_id": "sdd-llm-features-2025-11-27-001",
   "title": "SDD LLM-Powered Features - AI Integration",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-28T14:02:58.550066Z",
+  "last_updated": "2025-11-28T14:05:31.109075Z",
   "metadata": {
     "description": "Implement LLM-powered SDD operations including provider abstraction, review workflows, PR creation, and AI-enhanced documentation. Requires configurable LLM provider support with graceful degradation.",
     "objectives": [
@@ -24,7 +24,7 @@
     ],
     "status": "active",
     "activated_date": "2025-11-28T00:02:09.184712Z",
-    "progress_percentage": 64,
+    "progress_percentage": 66,
     "current_phase": "phase-3"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-4"
       ],
       "total_tasks": 42,
-      "completed_tasks": 27,
+      "completed_tasks": 28,
       "metadata": {}
     },
     "phase-1": {
@@ -832,7 +832,7 @@
         ]
       },
       "total_tasks": 9,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "purpose": "AI-enhanced documentation generation capabilities",
         "risk_level": "high"
@@ -849,7 +849,7 @@
         "task-3-3"
       ],
       "total_tasks": 6,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -871,7 +871,7 @@
         "task-3-1-4"
       ],
       "total_tasks": 4,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/documentation.py",
         "task_category": "implementation",
@@ -926,13 +926,19 @@
     "task-3-1-3": {
       "type": "subtask",
       "title": "Implement spec-review-fidelity - specialized documentation fidelity checks",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Wrap sdd fidelity-review, compare code implementation to spec documentation"
+        "details": "Wrap sdd fidelity-review, compare code implementation to spec documentation",
+        "started_at": "2025-11-28T14:03:28.886966Z",
+        "status_note": "Starting implementation of spec-review-fidelity tool",
+        "completed_at": "2025-11-28T14:05:31.103959Z",
+        "needs_journaling": false,
+        "actual_hours": 0.034,
+        "journaled_at": "2025-11-28T14:05:31.107595Z"
       }
     },
     "task-3-1-4": {
@@ -1520,6 +1526,15 @@
       "content": "Implemented spec-doc-llm tool in src/foundry_mcp/tools/documentation.py. The tool wraps sdd llm-doc-gen CLI to generate comprehensive LLM-powered documentation for codebases.\n\nFeatures implemented:\n- Wraps sdd llm-doc-gen generate command with proper error handling\n- Supports project documentation with directory input\n- Configurable batch size (1-10) for shard processing\n- Cache support (use_cache, clear_cache) for faster subsequent runs\n- Resume capability for interrupted generation\n- Extended timeout (600s) for LLM processing\n- Timeout-specific error messaging with resume hint\n- Circuit breaker resilience (shared with spec-doc)\n- Full response-v2 envelope compliance with proper error codes\n- Telemetry/metrics integration\n\nImplementation details:\n- Added helper function _run_sdd_llm_doc_gen_command() with proper subprocess handling\n- Defined constant LLM_DOC_GENERATION_TIMEOUT = 600\n- Approximately 220 lines added for tool implementation\n\nTesting:\n- 8 additional unit tests added to tests/unit/test_documentation.py\n- All 23 tests passing\n- Comprehensive coverage for batch sizes, cache modes, resume, timeout, and error scenarios\n\nFiles modified:\n- src/foundry_mcp/tools/documentation.py (added spec-doc-llm tool)\n- tests/unit/test_documentation.py (added 8 new test cases)",
       "metadata": {},
       "task_id": "task-3-1-2"
+    },
+    {
+      "timestamp": "2025-11-28T14:05:31.107590Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement spec-review-fidelity - specialized documentation fidelity checks",
+      "author": "claude-code",
+      "content": "Implemented spec-review-fidelity tool in src/foundry_mcp/tools/documentation.py. The tool wraps sdd fidelity-review CLI to compare code implementation against specification requirements. Features include:\n- Wraps sdd fidelity-review command with proper error handling\n- Supports multiple scopes: task, phase, or full spec review\n- File-specific review capability\n- AI consultation toggle with configurable AI tools and models\n- Consensus threshold configuration (1-5)\n- Incremental mode for changed files only\n- Test results inclusion toggle\n- Base branch configuration for git diff\n- Extended timeout (600s) for AI consultation\n- Circuit breaker resilience (shared with other doc tools)\n- Full response-v2 envelope compliance with proper error codes\n- Telemetry/metrics integration with scope labels\n\nAlso added helper function _run_sdd_fidelity_review_command and constant FIDELITY_REVIEW_TIMEOUT = 600.\n\n9 additional unit tests added to tests/unit/test_documentation.py - all 32 tests passing.\n\nFiles modified:\n- src/foundry_mcp/tools/documentation.py (added ~250 lines for spec-review-fidelity tool and helper)\n- tests/unit/test_documentation.py (added 9 new tests)",
+      "metadata": {},
+      "task_id": "task-3-1-3"
     }
   ]
 }
