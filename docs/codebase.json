@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-28T11:31:29.982672Z",
-    "generated_at_commit": "cfc7057b990ff1f17206f7109234993b9c0c5c62",
+    "generated_at": "2025-11-28T11:38:35.145092Z",
+    "generated_at_commit": "ffa3d681331276a30634eb18af1cac2ef8ca9da6",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 50,
-    "total_lines": 26671,
+    "total_lines": 26705,
     "total_classes": 95,
     "total_functions": 227,
-    "avg_complexity": 8.86,
+    "avg_complexity": 8.88,
     "max_complexity": 160,
     "high_complexity_functions": [
       "register_mutation_tools (160)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 50,
-        "lines": 26671,
+        "lines": 26705,
         "classes": 95,
         "functions": 227,
-        "avg_complexity": 8.86
+        "avg_complexity": 8.88
       }
     }
   },
@@ -432,7 +432,7 @@
       "name": "llm_config",
       "file": "src/foundry_mcp/core/llm_config.py",
       "language": "python",
-      "docstring": "LLM configuration parsing for foundry-mcp.\n\nParses the [llm] section from foundry-mcp.toml to configure LLM provider settings.\n\nTOML Configuration Example:\n    [llm]\n    provider = \"openai\"           # Required: \"openai\", \"anthropic\", or \"local\"\n    api_key = \"sk-...\"            # Optional: defaults to env var based on provider\n    model = \"gpt-4\"               # Optional: provider-specific default\n    timeout = 30                  # Optional: request timeout in seconds (default: 30)\n\nEnvironment Variables (fallback if not in TOML):\n    - OPENAI_API_KEY: OpenAI API key\n    - ANTHROPIC_API_KEY: Anthropic API key\n    - FOUNDRY_LLM_PROVIDER: Default provider\n    - FOUNDRY_LLM_MODEL: Default model\n    - FOUNDRY_LLM_TIMEOUT: Request timeout",
+      "docstring": "LLM configuration parsing for foundry-mcp.\n\nParses the [llm] section from foundry-mcp.toml to configure LLM provider settings.\n\nTOML Configuration Example:\n    [llm]\n    provider = \"openai\"           # Required: \"openai\", \"anthropic\", or \"local\"\n    api_key = \"sk-...\"            # Optional: defaults to env var based on provider\n    model = \"gpt-4\"               # Optional: provider-specific default\n    timeout = 30                  # Optional: request timeout in seconds (default: 30)\n\nEnvironment Variables (fallback if not in TOML):\n    - FOUNDRY_MCP_LLM_PROVIDER: LLM provider type (\"openai\", \"anthropic\", \"local\")\n    - FOUNDRY_MCP_LLM_API_KEY: API key (takes precedence over provider-specific keys)\n    - FOUNDRY_MCP_LLM_MODEL: Model identifier\n    - FOUNDRY_MCP_LLM_TIMEOUT: Request timeout in seconds\n    - FOUNDRY_MCP_LLM_BASE_URL: Custom API base URL\n    - FOUNDRY_MCP_LLM_MAX_TOKENS: Default max tokens\n    - FOUNDRY_MCP_LLM_TEMPERATURE: Default temperature\n    - FOUNDRY_MCP_LLM_ORGANIZATION: Organization ID (OpenAI)\n\nProvider-specific API key fallbacks:\n    - OPENAI_API_KEY: OpenAI API key (if FOUNDRY_MCP_LLM_API_KEY not set)\n    - ANTHROPIC_API_KEY: Anthropic API key (if FOUNDRY_MCP_LLM_API_KEY not set)",
       "classes": [
         "LLMProviderType",
         "LLMConfig"
@@ -455,7 +455,7 @@
         "typing.Any"
       ],
       "exports": [],
-      "lines": 382
+      "lines": 416
     },
     {
       "name": "llm_patterns",
@@ -3176,7 +3176,7 @@
     {
       "name": "LLMProviderType",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 37,
+      "line": 44,
       "language": "python",
       "docstring": "Supported LLM provider types.",
       "bases": [
@@ -3191,7 +3191,7 @@
         {
           "instantiator": "from_dict",
           "file": "src/foundry_mcp/core/llm_config.py",
-          "line": 178,
+          "line": 195,
           "context": [
             "LLMConfig",
             "from_dict"
@@ -3200,7 +3200,7 @@
         {
           "instantiator": "from_env",
           "file": "src/foundry_mcp/core/llm_config.py",
-          "line": 229,
+          "line": 248,
           "context": [
             "LLMConfig",
             "from_env"
@@ -3213,7 +3213,7 @@
     {
       "name": "LLMConfig",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 61,
+      "line": 68,
       "language": "python",
       "docstring": "LLM configuration parsed from foundry-mcp.toml.\n\nAttributes:\n    provider: The LLM provider type (\"openai\", \"anthropic\", \"local\")\n    api_key: API key for the provider (optional, falls back to env var)\n    model: Model identifier (optional, uses provider default)\n    timeout: Request timeout in seconds (default: 30)\n    base_url: Custom API base URL (optional, for proxies or local servers)\n    organization: Organization ID (OpenAI only)\n    max_tokens: Default max tokens for responses\n    temperature: Default temperature for generation",
       "bases": [],
@@ -3232,7 +3232,7 @@
         {
           "instantiator": "load_llm_config",
           "file": "src/foundry_mcp/core/llm_config.py",
-          "line": 283,
+          "line": 310,
           "context": [
             "load_llm_config"
           ]
@@ -6680,7 +6680,7 @@
         },
         {
           "name": "result",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 787,
           "call_type": "method_call"
         },
@@ -6716,7 +6716,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -8816,7 +8816,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -8828,7 +8828,7 @@
         },
         {
           "name": "write",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 535,
           "call_type": "method_call"
         },
@@ -9745,7 +9745,7 @@
     {
       "name": "load_llm_config",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 265,
+      "line": 292,
       "language": "python",
       "docstring": "Load LLM configuration from TOML file with environment fallback.\n\nPriority (highest to lowest):\n1. TOML config file (if provided or found at default locations)\n2. Environment variables\n3. Default values\n\nArgs:\n    config_file: Optional path to TOML config file\n    use_env_fallback: Whether to use environment variables as fallback\n\nReturns:\n    LLMConfig instance with merged settings",
       "parameters": [
@@ -9761,7 +9761,7 @@
         }
       ],
       "return_type": "LLMConfig",
-      "complexity": 21,
+      "complexity": 25,
       "decorators": [],
       "is_async": false,
       "is_exported": false,
@@ -9770,7 +9770,7 @@
         {
           "name": "get_llm_config",
           "file": "src/foundry_mcp/core/llm_config.py",
-          "line": 350,
+          "line": 384,
           "call_type": "function_call"
         }
       ],
@@ -9778,67 +9778,67 @@
         {
           "name": "exists",
           "file": "built-in",
-          "line": 287,
+          "line": 314,
           "call_type": "method_call"
         },
         {
           "name": "from_toml",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_config.py",
-          "line": 289,
+          "line": 316,
           "call_type": "method_call"
         },
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 291,
+          "line": 318,
           "call_type": "method_call"
         },
         {
           "name": "warning",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 293,
+          "line": 320,
           "call_type": "method_call"
         },
         {
           "name": "home",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 299,
+          "line": 326,
           "call_type": "method_call"
         },
         {
           "name": "exists",
           "file": "built-in",
-          "line": 302,
+          "line": 329,
           "call_type": "method_call"
         },
         {
           "name": "from_toml",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_config.py",
-          "line": 304,
+          "line": 331,
           "call_type": "method_call"
         },
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 306,
+          "line": 333,
           "call_type": "method_call"
         },
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 309,
+          "line": 336,
           "call_type": "method_call"
         },
         {
           "name": "from_env",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_config.py",
-          "line": 313,
+          "line": 340,
           "call_type": "method_call"
         },
         {
           "name": "get",
           "file": "/opt/anaconda3/lib/python3.13/_collections_abc.py",
-          "line": 317,
+          "line": 344,
           "call_type": "method_call"
         }
       ],
@@ -9847,7 +9847,7 @@
     {
       "name": "get_llm_config",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 342,
+      "line": 376,
       "language": "python",
       "docstring": "Get the global LLM configuration instance.\n\nReturns:\n    LLMConfig instance (loaded from file/env on first call)",
       "parameters": [],
@@ -9862,7 +9862,7 @@
         {
           "name": "load_llm_config",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/llm_config.py",
-          "line": 350,
+          "line": 384,
           "call_type": "function_call"
         }
       ]
@@ -9870,7 +9870,7 @@
     {
       "name": "set_llm_config",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 354,
+      "line": 388,
       "language": "python",
       "docstring": "Set the global LLM configuration instance.\n\nArgs:\n    config: LLMConfig instance to use globally",
       "parameters": [
@@ -9892,7 +9892,7 @@
     {
       "name": "reset_llm_config",
       "file": "src/foundry_mcp/core/llm_config.py",
-      "line": 364,
+      "line": 398,
       "language": "python",
       "docstring": "Reset the global LLM configuration to None.\n\nUseful for testing or reloading configuration.",
       "parameters": [],
