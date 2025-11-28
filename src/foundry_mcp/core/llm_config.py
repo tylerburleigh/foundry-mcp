@@ -11,11 +11,18 @@ TOML Configuration Example:
     timeout = 30                  # Optional: request timeout in seconds (default: 30)
 
 Environment Variables (fallback if not in TOML):
-    - OPENAI_API_KEY: OpenAI API key
-    - ANTHROPIC_API_KEY: Anthropic API key
-    - FOUNDRY_LLM_PROVIDER: Default provider
-    - FOUNDRY_LLM_MODEL: Default model
-    - FOUNDRY_LLM_TIMEOUT: Request timeout
+    - FOUNDRY_MCP_LLM_PROVIDER: LLM provider type ("openai", "anthropic", "local")
+    - FOUNDRY_MCP_LLM_API_KEY: API key (takes precedence over provider-specific keys)
+    - FOUNDRY_MCP_LLM_MODEL: Model identifier
+    - FOUNDRY_MCP_LLM_TIMEOUT: Request timeout in seconds
+    - FOUNDRY_MCP_LLM_BASE_URL: Custom API base URL
+    - FOUNDRY_MCP_LLM_MAX_TOKENS: Default max tokens
+    - FOUNDRY_MCP_LLM_TEMPERATURE: Default temperature
+    - FOUNDRY_MCP_LLM_ORGANIZATION: Organization ID (OpenAI)
+
+Provider-specific API key fallbacks:
+    - OPENAI_API_KEY: OpenAI API key (if FOUNDRY_MCP_LLM_API_KEY not set)
+    - ANTHROPIC_API_KEY: Anthropic API key (if FOUNDRY_MCP_LLM_API_KEY not set)
 """
 
 import logging
@@ -82,7 +89,12 @@ class LLMConfig:
     temperature: float = 0.7
 
     def get_api_key(self) -> Optional[str]:
-        """Get API key, falling back to environment variable if not set.
+        """Get API key, falling back to environment variables if not set.
+
+        Priority:
+        1. Explicit api_key set in config
+        2. FOUNDRY_MCP_LLM_API_KEY environment variable
+        3. Provider-specific env var (OPENAI_API_KEY, ANTHROPIC_API_KEY)
 
         Returns:
             API key string or None if not available
@@ -90,6 +102,11 @@ class LLMConfig:
         if self.api_key:
             return self.api_key
 
+        # Check unified env var first
+        if unified_key := os.environ.get("FOUNDRY_MCP_LLM_API_KEY"):
+            return unified_key
+
+        # Fall back to provider-specific env var
         env_var = API_KEY_ENV_VARS.get(self.provider, "")
         if env_var:
             return os.environ.get(env_var)
@@ -211,12 +228,14 @@ class LLMConfig:
         """Create LLMConfig from environment variables only.
 
         Environment variables:
-            - FOUNDRY_LLM_PROVIDER: Provider type
-            - FOUNDRY_LLM_MODEL: Model identifier
-            - FOUNDRY_LLM_TIMEOUT: Request timeout
-            - FOUNDRY_LLM_BASE_URL: Custom API base URL
-            - FOUNDRY_LLM_MAX_TOKENS: Default max tokens
-            - FOUNDRY_LLM_TEMPERATURE: Default temperature
+            - FOUNDRY_MCP_LLM_PROVIDER: Provider type ("openai", "anthropic", "local")
+            - FOUNDRY_MCP_LLM_API_KEY: API key (unified, takes precedence)
+            - FOUNDRY_MCP_LLM_MODEL: Model identifier
+            - FOUNDRY_MCP_LLM_TIMEOUT: Request timeout in seconds
+            - FOUNDRY_MCP_LLM_BASE_URL: Custom API base URL
+            - FOUNDRY_MCP_LLM_MAX_TOKENS: Default max tokens
+            - FOUNDRY_MCP_LLM_TEMPERATURE: Default temperature
+            - FOUNDRY_MCP_LLM_ORGANIZATION: Organization ID (OpenAI only)
 
         Returns:
             LLMConfig instance with environment-based settings
@@ -224,40 +243,48 @@ class LLMConfig:
         config = cls()
 
         # Provider
-        if provider := os.environ.get("FOUNDRY_LLM_PROVIDER"):
+        if provider := os.environ.get("FOUNDRY_MCP_LLM_PROVIDER"):
             try:
                 config.provider = LLMProviderType(provider.lower())
             except ValueError:
-                logger.warning(f"Invalid FOUNDRY_LLM_PROVIDER: {provider}, using default")
+                logger.warning(f"Invalid FOUNDRY_MCP_LLM_PROVIDER: {provider}, using default")
+
+        # API Key (explicit env var, not the provider-specific fallback)
+        if api_key := os.environ.get("FOUNDRY_MCP_LLM_API_KEY"):
+            config.api_key = api_key
 
         # Model
-        if model := os.environ.get("FOUNDRY_LLM_MODEL"):
+        if model := os.environ.get("FOUNDRY_MCP_LLM_MODEL"):
             config.model = model
 
         # Timeout
-        if timeout := os.environ.get("FOUNDRY_LLM_TIMEOUT"):
+        if timeout := os.environ.get("FOUNDRY_MCP_LLM_TIMEOUT"):
             try:
                 config.timeout = int(timeout)
             except ValueError:
-                logger.warning(f"Invalid FOUNDRY_LLM_TIMEOUT: {timeout}, using default")
+                logger.warning(f"Invalid FOUNDRY_MCP_LLM_TIMEOUT: {timeout}, using default")
 
         # Base URL
-        if base_url := os.environ.get("FOUNDRY_LLM_BASE_URL"):
+        if base_url := os.environ.get("FOUNDRY_MCP_LLM_BASE_URL"):
             config.base_url = base_url
 
         # Max tokens
-        if max_tokens := os.environ.get("FOUNDRY_LLM_MAX_TOKENS"):
+        if max_tokens := os.environ.get("FOUNDRY_MCP_LLM_MAX_TOKENS"):
             try:
                 config.max_tokens = int(max_tokens)
             except ValueError:
-                logger.warning(f"Invalid FOUNDRY_LLM_MAX_TOKENS: {max_tokens}, using default")
+                logger.warning(f"Invalid FOUNDRY_MCP_LLM_MAX_TOKENS: {max_tokens}, using default")
 
         # Temperature
-        if temperature := os.environ.get("FOUNDRY_LLM_TEMPERATURE"):
+        if temperature := os.environ.get("FOUNDRY_MCP_LLM_TEMPERATURE"):
             try:
                 config.temperature = float(temperature)
             except ValueError:
-                logger.warning(f"Invalid FOUNDRY_LLM_TEMPERATURE: {temperature}, using default")
+                logger.warning(f"Invalid FOUNDRY_MCP_LLM_TEMPERATURE: {temperature}, using default")
+
+        # Organization
+        if organization := os.environ.get("FOUNDRY_MCP_LLM_ORGANIZATION"):
+            config.organization = organization
 
         return config
 
@@ -314,8 +341,12 @@ def load_llm_config(
 
         # Only override if TOML didn't set the value
         if not toml_loaded or config.provider == LLMProviderType.OPENAI:
-            if os.environ.get("FOUNDRY_LLM_PROVIDER"):
+            if os.environ.get("FOUNDRY_MCP_LLM_PROVIDER"):
                 config.provider = env_config.provider
+
+        # API key: env overrides if set (explicit FOUNDRY_MCP_LLM_API_KEY)
+        if not config.api_key and env_config.api_key:
+            config.api_key = env_config.api_key
 
         if not config.model and env_config.model:
             config.model = env_config.model
@@ -331,6 +362,9 @@ def load_llm_config(
 
         if config.temperature == 0.7 and env_config.temperature != 0.7:
             config.temperature = env_config.temperature
+
+        if not config.organization and env_config.organization:
+            config.organization = env_config.organization
 
     return config
 

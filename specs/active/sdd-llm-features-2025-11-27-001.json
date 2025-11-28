@@ -2,7 +2,7 @@
   "spec_id": "sdd-llm-features-2025-11-27-001",
   "title": "SDD LLM-Powered Features - AI Integration",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-28T11:31:06.208431Z",
+  "last_updated": "2025-11-28T11:38:10.789835Z",
   "metadata": {
     "description": "Implement LLM-powered SDD operations including provider abstraction, review workflows, PR creation, and AI-enhanced documentation. Requires configurable LLM provider support with graceful degradation.",
     "objectives": [
@@ -24,7 +24,7 @@
     ],
     "status": "active",
     "activated_date": "2025-11-28T00:02:09.184712Z",
-    "progress_percentage": 11,
+    "progress_percentage": 14,
     "current_phase": "phase-1"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-4"
       ],
       "total_tasks": 42,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {}
     },
     "phase-1": {
@@ -53,7 +53,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Foundation for all LLM-powered features - provider abstraction and configuration",
         "risk_level": "medium"
@@ -79,7 +79,7 @@
         "task-1-5"
       ],
       "total_tasks": 12,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -202,7 +202,7 @@
         "task-1-2-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/core/llm_config.py",
         "task_category": "implementation",
@@ -240,13 +240,19 @@
     "task-1-2-2": {
       "type": "subtask",
       "title": "Implement environment variable fallback",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Support FOUNDRY_MCP_LLM_PROVIDER, FOUNDRY_MCP_LLM_API_KEY, etc."
+        "details": "Support FOUNDRY_MCP_LLM_PROVIDER, FOUNDRY_MCP_LLM_API_KEY, etc.",
+        "started_at": "2025-11-28T11:31:34.814673Z",
+        "status_note": "Updating env var prefix to FOUNDRY_MCP_LLM_*",
+        "completed_at": "2025-11-28T11:38:10.784752Z",
+        "needs_journaling": false,
+        "actual_hours": 0.11,
+        "journaled_at": "2025-11-28T11:38:10.788598Z"
       }
     },
     "task-1-2-3": {
@@ -1160,6 +1166,15 @@
       "content": "Implemented TOML config parsing for [llm] section in src/foundry_mcp/core/llm_config.py. Created LLMConfig dataclass with fields for provider, api_key, model, timeout, base_url, organization, max_tokens, and temperature. Includes from_toml() and from_dict() class methods for parsing, plus get_api_key() and get_model() methods with defaults. Validation ensures required fields are present. All 1746 existing tests pass. Manual verification confirmed parsing works correctly with test cases for basic instantiation, dict parsing, default models per provider, invalid provider validation, and global config functions.",
       "metadata": {},
       "task_id": "task-1-2-1"
+    },
+    {
+      "timestamp": "2025-11-28T11:38:10.788590Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement environment variable fallback",
+      "author": "claude-code",
+      "content": "Implemented environment variable fallback for LLM configuration. Updated env var prefix from FOUNDRY_LLM_* to FOUNDRY_MCP_LLM_* for consistency with existing config pattern. Added support for: FOUNDRY_MCP_LLM_PROVIDER, FOUNDRY_MCP_LLM_API_KEY (unified key with priority over provider-specific), FOUNDRY_MCP_LLM_MODEL, FOUNDRY_MCP_LLM_TIMEOUT, FOUNDRY_MCP_LLM_BASE_URL, FOUNDRY_MCP_LLM_MAX_TOKENS, FOUNDRY_MCP_LLM_TEMPERATURE, FOUNDRY_MCP_LLM_ORGANIZATION. get_api_key() now checks priority: explicit api_key > FOUNDRY_MCP_LLM_API_KEY > provider-specific (OPENAI_API_KEY/ANTHROPIC_API_KEY). Invalid env var values handled gracefully with warnings and defaults. Manual verification passed all 6 test cases.",
+      "metadata": {},
+      "task_id": "task-1-2-2"
     }
   ]
 }
