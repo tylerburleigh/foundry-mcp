@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-28T14:59:02.006827Z",
-    "generated_at_commit": "71a656c0fba1b8d61db7246f5b6a2c473c8de022",
+    "generated_at": "2025-11-28T15:02:30.038756Z",
+    "generated_at_commit": "15d0b1d901162e54215eb047ffe8f904bbffd398",
     "languages": [
       "python"
     ],
@@ -11,10 +11,10 @@
   },
   "statistics": {
     "total_files": 54,
-    "total_lines": 29310,
+    "total_lines": 29838,
     "total_classes": 97,
-    "total_functions": 247,
-    "avg_complexity": 9.05,
+    "total_functions": 251,
+    "avg_complexity": 8.93,
     "max_complexity": 160,
     "high_complexity_functions": [
       "register_mutation_tools (160)",
@@ -26,10 +26,10 @@
     "by_language": {
       "python": {
         "files": 54,
-        "lines": 29310,
+        "lines": 29838,
         "classes": 97,
-        "functions": 247,
-        "avg_complexity": 9.05
+        "functions": 251,
+        "avg_complexity": 8.93
       }
     }
   },
@@ -258,7 +258,11 @@
         "register_environment_tools",
         "get_environment_capabilities",
         "is_environment_tool",
-        "get_environment_tool_metadata"
+        "get_environment_tool_metadata",
+        "register_llm_tools",
+        "get_llm_capabilities",
+        "is_llm_tool",
+        "get_llm_tool_metadata"
       ],
       "imports": [
         "dataclasses.dataclass",
@@ -273,7 +277,7 @@
         "typing.TypeVar"
       ],
       "exports": [],
-      "lines": 902
+      "lines": 1430
     },
     {
       "name": "docs",
@@ -2425,10 +2429,172 @@
           "file": "src/foundry_mcp/core/discovery.py",
           "line": 753,
           "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 918,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 925,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 934,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 941,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 948,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 954,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1067,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1074,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1082,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1088,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1095,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1102,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1136,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1143,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1149,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1155,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1161,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1169,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1176,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1211,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1218,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1224,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1230,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1237,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1244,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1251,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1259,
+          "context": []
         }
       ],
       "imported_by": [],
-      "instantiation_count": 9
+      "instantiation_count": 36
     },
     {
       "name": "ToolMetadata",
@@ -2469,10 +2635,46 @@
           "file": "src/foundry_mcp/core/discovery.py",
           "line": 741,
           "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 912,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 998,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1026,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1061,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1130,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1205,
+          "context": []
         }
       ],
       "imported_by": [],
-      "instantiation_count": 4
+      "instantiation_count": 10
     },
     {
       "name": "ToolRegistry",
@@ -2566,10 +2768,40 @@
           "file": "src/foundry_mcp/core/discovery.py",
           "line": 826,
           "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1313,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1321,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1329,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1337,
+          "context": []
+        },
+        {
+          "instantiator": "<module>",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1345,
+          "context": []
         }
       ],
       "imported_by": [],
-      "instantiation_count": 2
+      "instantiation_count": 7
     },
     {
       "name": "QueryResult",
@@ -6924,7 +7156,7 @@
         },
         {
           "name": "cancel",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/tasks.py",
+          "file": "src/foundry_mcp/core/concurrency.py",
           "line": 772,
           "call_type": "method_call"
         },
@@ -6942,7 +7174,7 @@
         },
         {
           "name": "result",
-          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
+          "file": "unknown",
           "line": 787,
           "call_type": "method_call"
         },
@@ -7017,6 +7249,12 @@
           "call_type": "function_call"
         },
         {
+          "name": "register_llm_tools",
+          "file": "src/foundry_mcp/core/discovery.py",
+          "line": 1367,
+          "call_type": "function_call"
+        },
+        {
           "name": "sdd_server_capabilities",
           "file": "src/foundry_mcp/server.py",
           "line": 147,
@@ -7042,7 +7280,7 @@
         }
       ],
       "calls": [],
-      "call_count": 5
+      "call_count": 6
     },
     {
       "name": "get_capabilities",
@@ -7393,6 +7631,139 @@
           "name": "get",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
           "line": 902,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "register_llm_tools",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 1356,
+      "language": "python",
+      "docstring": "Register all LLM-powered tools in the registry.\n\nArgs:\n    registry: Optional registry to use. If None, uses global registry.\n\nReturns:\n    The registry with LLM tools registered.",
+      "parameters": [
+        {
+          "name": "registry",
+          "type": "Optional[ToolRegistry]",
+          "default": null
+        }
+      ],
+      "return_type": "ToolRegistry",
+      "complexity": 4,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "get_tool_registry",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 1367,
+          "call_type": "function_call"
+        },
+        {
+          "name": "values",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 1369,
+          "call_type": "method_call"
+        },
+        {
+          "name": "register",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 1371,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "get_llm_capabilities",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 1379,
+      "language": "python",
+      "docstring": "Get LLM-related capabilities for capability negotiation.\n\nReturns:\n    Dict with LLM tool availability, providers, and feature flags.",
+      "parameters": [],
+      "return_type": "Dict[str, Any]",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "list",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 1389,
+          "call_type": "function_call"
+        },
+        {
+          "name": "keys",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 1389,
+          "call_type": "method_call"
+        },
+        {
+          "name": "to_dict",
+          "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/discovery.py",
+          "line": 1402,
+          "call_type": "method_call"
+        },
+        {
+          "name": "items",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
+          "line": 1402,
+          "call_type": "method_call"
+        }
+      ]
+    },
+    {
+      "name": "is_llm_tool",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 1407,
+      "language": "python",
+      "docstring": "Check if a tool name is an LLM-powered tool.\n\nArgs:\n    tool_name: Name of the tool to check\n\nReturns:\n    True if tool is an LLM-powered tool",
+      "parameters": [
+        {
+          "name": "tool_name",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "bool",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": []
+    },
+    {
+      "name": "get_llm_tool_metadata",
+      "file": "src/foundry_mcp/core/discovery.py",
+      "line": 1420,
+      "language": "python",
+      "docstring": "Get metadata for a specific LLM tool.\n\nArgs:\n    tool_name: Name of the LLM tool\n\nReturns:\n    ToolMetadata if found, None otherwise",
+      "parameters": [
+        {
+          "name": "tool_name",
+          "type": "str",
+          "default": null
+        }
+      ],
+      "return_type": "Optional[ToolMetadata]",
+      "complexity": 1,
+      "decorators": [],
+      "is_async": false,
+      "is_exported": false,
+      "is_public": true,
+      "callers": [],
+      "calls": [
+        {
+          "name": "get",
+          "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/typing.pyi",
+          "line": 1430,
           "call_type": "method_call"
         }
       ]
@@ -9078,7 +9449,7 @@
         },
         {
           "name": "read",
-          "file": "/opt/anaconda3/lib/python3.13/typing.py",
+          "file": "built-in",
           "line": 533,
           "call_type": "method_call"
         },
