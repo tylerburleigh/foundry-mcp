@@ -2,7 +2,7 @@
   "spec_id": "sdd-core-operations-2025-11-27-001",
   "title": "SDD Core Operations - Non-LLM Tool Adapters",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-27T23:54:16.813506Z",
+  "last_updated": "2025-11-28T00:00:43.087055Z",
   "metadata": {
     "description": "Implement remaining SDD CLI operations as MCP tool adapters (non-LLM features). Covers environment setup, spec discovery, authoring/metadata, task planning, validation/reporting, and miscellaneous tooling.",
     "objectives": [
@@ -22,15 +22,15 @@
       "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
-    "progress_percentage": 98,
-    "status": "active",
+    "progress_percentage": 100,
+    "status": "completed",
     "current_phase": "phase-7"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "SDD Core Operations - Non-LLM Tool Adapters",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -42,7 +42,7 @@
         "phase-7"
       ],
       "total_tasks": 89,
-      "completed_tasks": 88,
+      "completed_tasks": 89,
       "metadata": {},
       "dependencies": {
         "blocks": [],
@@ -2542,7 +2542,7 @@
     "phase-7": {
       "type": "phase",
       "title": "Miscellaneous Tooling",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-7-files",
@@ -2556,10 +2556,13 @@
         "blocks": []
       },
       "total_tasks": 6,
-      "completed_tasks": 5,
+      "completed_tasks": 6,
       "metadata": {
         "purpose": "Cache management and schema export utilities",
-        "risk_level": "low"
+        "risk_level": "low",
+        "needs_journaling": false,
+        "completed_at": "2025-11-28T00:00:43.069544Z",
+        "journaled_at": "2025-11-28T00:00:43.087017Z"
       }
     },
     "phase-7-files": {
@@ -2694,7 +2697,7 @@
     "phase-7-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-7",
       "children": [
         "verify-7-1",
@@ -2708,8 +2711,12 @@
         "blocks": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-11-28T00:00:43.069541Z",
+        "journaled_at": "2025-11-28T00:00:43.083594Z"
+      }
     },
     "verify-7-1": {
       "type": "verify",
@@ -2735,16 +2742,22 @@
     "verify-7-2": {
       "type": "verify",
       "title": "Full test suite passes",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-7-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "agent": "run-tests",
         "command": "pytest -v",
-        "expected": "All tests pass including new tool adapters"
+        "expected": "All tests pass including new tool adapters",
+        "started_at": "2025-11-27T23:54:39.280032Z",
+        "status_note": "Running full test suite",
+        "completed_at": "2025-11-28T00:00:43.069341Z",
+        "needs_journaling": false,
+        "actual_hours": 0.101,
+        "journaled_at": "2025-11-28T00:00:43.076018Z"
       }
     }
   },
@@ -3729,6 +3742,33 @@
       "content": "All 18 unit tests pass in tests/unit/test_utilities.py covering: TestSddCacheManage (6 tests), TestUtilityToolRegistration (1 test), TestSpecSchemaExport (2 tests), TestCircuitBreaker (1 test), TestSddCacheManageTool (4 tests), TestSpecSchemaExportTool (2 tests), TestCircuitBreakerIntegration (2 tests). Execution time: 0.20 seconds.",
       "metadata": {},
       "task_id": "verify-7-1"
+    },
+    {
+      "timestamp": "2025-11-28T00:00:43.076013Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Full test suite passes",
+      "author": "claude-code",
+      "content": "Full test suite passes: 1746 passed, 12 skipped, 16 xfailed, 1 warning in 343.14s (5:43). All new tool adapters working correctly. No failures.",
+      "metadata": {},
+      "task_id": "verify-7-2"
+    },
+    {
+      "timestamp": "2025-11-28T00:00:43.083590Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-7-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-7-verify"
+    },
+    {
+      "timestamp": "2025-11-28T00:00:43.087012Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Miscellaneous Tooling",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-7 have been completed.",
+      "metadata": {},
+      "task_id": "phase-7"
     }
   ]
 }
