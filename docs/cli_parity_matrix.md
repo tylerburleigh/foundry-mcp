@@ -212,6 +212,173 @@ The CLI commands are registered via `claude_skills.cli.sdd.registry` which impor
 |-------------|-------------|----------|--------|
 | `create-task-commit` | Create commit for task | - | Not Implemented |
 
+## Overlap Classification
+
+This section classifies CLI commands by their MCP adapter status.
+
+### Already Wrapped (MCP Tool Exists)
+
+These CLI commands have corresponding MCP tools and are fully functional:
+
+**Core Operations:**
+- `find-specs` → `spec-list`, `spec-find`
+- `list-specs` → `spec-list`, `spec-list-by-folder`
+- `progress` → `task-progress`, `spec-render-progress`
+- `spec-stats` → `spec-stats`
+
+**Task Operations:**
+- `next-task` → `task-next`
+- `prepare-task` → `task-prepare`
+- `task-info` → `task-info`, `task-get`
+- `get-task` → `task-get`
+- `check-deps` → `task-check-deps`
+- `query-tasks` → `task-query`
+- `update-status` → `task-update-status`
+- `mark-blocked` → `task-block`
+- `unblock-task` → `task-unblock`
+- `list-blockers` → `task-list-blocked`
+- `complete-task` → `task-complete`
+- `add-task` → `task-add`
+- `remove-task` → `task-remove`
+- `update-estimate` → `task-update-estimate`
+- `update-task-metadata` → `task-update-metadata`
+
+**Validation:**
+- `validate` → `spec-validate`
+- `fix` → `spec-fix`
+- `validate-paths` → `spec-validate-paths`
+- `find-circular-deps` → `spec-detect-cycles`
+- `analyze-deps` → `spec-analyze-deps`
+
+**Journal:**
+- `add-journal` → `journal-add`
+- `get-journal` → `journal-list`
+- `check-journaling` → `journal-list-unjournaled`
+
+**Lifecycle:**
+- `move-spec` → `spec-lifecycle-move`
+- `complete-spec` → `spec-lifecycle-complete`
+- `activate-spec` → `spec-lifecycle-activate`
+
+**Authoring:**
+- `create` → `spec-create`
+- `template` → `spec-template`
+- `add-revision` → `revision-add`
+- `add-assumption` → `assumption-add`
+- `list-assumptions` → `assumption-list`
+- `update-frontmatter` → `spec-update-frontmatter`
+- `apply-modifications` → `spec-apply-plan`
+
+**Verification:**
+- `add-verification` → `verification-add`
+- `execute-verify` → `verification-execute`
+- `format-verification-summary` → `verification-format-summary`
+
+**Documentation:**
+- `render` → `spec-render`
+- `doc` → `spec-doc`, `spec-doc-llm`
+- `llm-doc-gen` → `spec-doc-llm`
+- `doc stats` → `doc-stats`
+
+**Testing:**
+- `test run` → `test-run`
+- `test discover` → `test-discover`
+
+**Review:**
+- `review` → `spec-review`
+- `list-review-tools` → `review-list-tools`
+- `list-plan-review-tools` → `review-list-plan-tools`
+- `fidelity-review` → `spec-review-fidelity`
+- `parse-review` → `review-parse-feedback`
+
+**PR Workflow:**
+- `create-pr` → `pr-create-with-spec`
+
+**Environment:**
+- `verify-tools` → `sdd-verify-toolchain`
+- `init-env` → `sdd-init-workspace`
+- `detect-project` → `sdd-detect-topology`
+- `check-environment` → `sdd-verify-environment`
+
+**Analysis:**
+- `analyze` → `spec-analyze`
+- `report` → `spec-report`
+- `stats` → `spec-stats`, `spec-report-summary`
+
+**Utilities:**
+- `find-pattern` → `spec-find-patterns`
+- `find-related-files` → `spec-find-related-files`
+- `sync-metadata` → `spec-sync-metadata`
+
+**Cache:**
+- `cache` → `sdd-cache-manage`
+
+**Schema:**
+- `schema` → `spec-schema-export`
+
+### Partial Implementation (Needs Enhancement)
+
+These have MCP tools but with incomplete feature parity:
+
+| CLI Command | MCP Tool | Gap Description |
+|-------------|----------|-----------------|
+| `list-phases` | `spec-get-hierarchy` | CLI shows progress %, MCP returns raw hierarchy |
+| `doc scope` | `code-find-*` | CLI has `--plan`/`--implement` modes not in MCP |
+| `status-report` | `spec-report-summary` | CLI has more formatting options |
+
+### Gaps (No MCP Equivalent)
+
+These CLI commands have no MCP tool and need implementation:
+
+| CLI Command | Priority | Rationale |
+|-------------|----------|-----------|
+| `bulk-journal` | Medium | Useful for batch operations |
+| `check-complete` | Medium | Validation before lifecycle transitions |
+| `time-report` | Low | Nice-to-have reporting feature |
+| `phase-time` | Low | Time tracking per phase |
+| `audit-spec` | Low | Deep spec analysis |
+| `reconcile-state` | Low | State repair utility |
+| `find-tests` | Low | Test discovery utility |
+| `format-plan` | Low | Display formatting |
+| `create-task-commit` | Medium | Git integration for workflows |
+
+### CLI-Specific (No MCP Needed)
+
+These commands are specific to CLI/Claude Code integration:
+
+| CLI Command | Reason |
+|-------------|--------|
+| `context` | Monitors Claude Code token usage - requires transcript access |
+| `session-marker` | Generates markers for transcript identification |
+| `get-work-mode` | Reads local config file for workflow mode |
+
+### MCP-Only Tools (No CLI Equivalent)
+
+These MCP tools extend beyond CLI capabilities:
+
+| MCP Tool | Description |
+|----------|-------------|
+| `task-start` | Explicit in_progress transition (CLI uses `update-status`) |
+| `task-list` | Flat task list view |
+| `code-trace-calls` | Function call graph traversal |
+| `code-impact-analysis` | Impact analysis for changes |
+| `code-get-callers` | Get function callers |
+| `code-get-callees` | Get function callees |
+| `test-presets` | List test preset configurations |
+| `test-run-quick` | Quick test preset |
+| `test-run-unit` | Unit test preset |
+| `pr-get-spec-context` | Get context for PR generation |
+| `tool-list` | MCP tool discovery |
+| `tool-get-schema` | MCP tool schema introspection |
+| `tool-list-categories` | MCP tool categorization |
+| `capability-get` | Server capability query |
+| `capability-negotiate` | Capability negotiation |
+| `get-server-context` | Server context info |
+| `get-llm-status` | LLM provider status |
+| `sdd-server-capabilities` | Full server capabilities |
+| `spec-lifecycle-state` | Lifecycle state query |
+| `spec-validate-fix` | Combined validate + fix |
+
 ## Not Implemented in MCP (CLI-Only)
 
 These CLI commands have no MCP equivalent and may not need one:
