@@ -199,6 +199,8 @@ def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
                 duration_ms = (time.perf_counter() - start_time) * 1000
 
+                # Remove spec_id from preview_data if present to avoid duplicate keyword arg
+                preview_data.pop("spec_id", None)
                 return asdict(
                     success_response(
                         spec_id=spec_id,
@@ -227,12 +229,14 @@ def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 pr_data = {"raw_output": result.stdout}
 
             duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.histogram(
+            _metrics.timer(
                 "pr_workflow.pr_create.duration_ms",
                 duration_ms,
                 labels={"include_journals": str(include_journals)},
             )
 
+            # Remove spec_id from pr_data if present to avoid duplicate keyword arg
+            pr_data.pop("spec_id", None)
             return asdict(
                 success_response(
                     spec_id=spec_id,

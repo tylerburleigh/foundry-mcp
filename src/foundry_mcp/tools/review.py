@@ -260,12 +260,15 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 review_data = {"raw_output": result.stdout}
 
             duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.histogram(
+            _metrics.timer(
                 "review.spec_review.duration_ms",
                 duration_ms,
                 labels={"review_type": review_type},
             )
 
+            # Remove keys that we're explicitly setting to avoid duplicate keyword args
+            review_data.pop("spec_id", None)
+            review_data.pop("review_type", None)
             return asdict(
                 success_response(
                     spec_id=spec_id,
