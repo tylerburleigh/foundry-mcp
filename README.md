@@ -230,6 +230,65 @@ name = "foundry-mcp"
 version = "0.2.0"
 ```
 
+### LLM Configuration
+
+Configure LLM providers for AI-powered features in the `[llm]` section:
+
+```toml
+[llm]
+provider = "openai"           # "openai", "anthropic", or "local"
+api_key = "sk-..."            # Optional: falls back to env var
+model = "gpt-4"               # Optional: uses provider default
+timeout = 30                  # Request timeout in seconds
+base_url = "https://..."      # Optional: custom API endpoint
+max_tokens = 1024             # Default max tokens for responses
+temperature = 0.7             # Default temperature (0-2)
+```
+
+**LLM Environment Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FOUNDRY_MCP_LLM_PROVIDER` | LLM provider type | openai |
+| `FOUNDRY_MCP_LLM_API_KEY` | Unified API key (overrides provider-specific) | None |
+| `FOUNDRY_MCP_LLM_MODEL` | Model identifier | Provider default |
+| `FOUNDRY_MCP_LLM_TIMEOUT` | Request timeout in seconds | 30 |
+| `FOUNDRY_MCP_LLM_BASE_URL` | Custom API base URL | Provider default |
+| `FOUNDRY_MCP_LLM_MAX_TOKENS` | Default max tokens | 1024 |
+| `FOUNDRY_MCP_LLM_TEMPERATURE` | Default temperature | 0.7 |
+
+Provider-specific API key fallbacks (used if `FOUNDRY_MCP_LLM_API_KEY` not set):
+- `OPENAI_API_KEY` for OpenAI provider
+- `ANTHROPIC_API_KEY` for Anthropic provider
+
+### Workflow Configuration
+
+Configure workflow execution modes in the `[workflow]` section:
+
+```toml
+[workflow]
+mode = "single"               # "single", "autonomous", or "batch"
+auto_validate = true          # Auto-validate after task completion
+journal_enabled = true        # Enable task journaling
+batch_size = 5                # Tasks per batch (batch mode)
+context_threshold = 85        # Context usage threshold (%)
+```
+
+**Workflow Modes:**
+- `single`: Execute one task at a time with user approval
+- `autonomous`: Execute all phase tasks automatically until completion or blocker
+- `batch`: Execute a batch of tasks, then pause for review
+
+**Workflow Environment Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FOUNDRY_MCP_WORKFLOW_MODE` | Execution mode | single |
+| `FOUNDRY_MCP_WORKFLOW_AUTO_VALIDATE` | Enable auto-validation | true |
+| `FOUNDRY_MCP_WORKFLOW_JOURNAL_ENABLED` | Enable journaling | true |
+| `FOUNDRY_MCP_WORKFLOW_BATCH_SIZE` | Batch size | 5 |
+| `FOUNDRY_MCP_WORKFLOW_CONTEXT_THRESHOLD` | Context threshold (%) | 85 |
+
 ## Spec Directory Structure
 
 foundry-mcp expects specs organized in status folders:

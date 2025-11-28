@@ -2,7 +2,7 @@
   "spec_id": "sdd-llm-features-2025-11-27-001",
   "title": "SDD LLM-Powered Features - AI Integration",
   "generated": "2025-11-27T12:00:00Z",
-  "last_updated": "2025-11-28T11:39:47.735024Z",
+  "last_updated": "2025-11-28T11:41:00.900815Z",
   "metadata": {
     "description": "Implement LLM-powered SDD operations including provider abstraction, review workflows, PR creation, and AI-enhanced documentation. Requires configurable LLM provider support with graceful degradation.",
     "objectives": [
@@ -24,7 +24,7 @@
     ],
     "status": "active",
     "activated_date": "2025-11-28T00:02:09.184712Z",
-    "progress_percentage": 16,
+    "progress_percentage": 19,
     "current_phase": "phase-1"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-4"
       ],
       "total_tasks": 42,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {}
     },
     "phase-1": {
@@ -53,7 +53,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 15,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {
         "purpose": "Foundation for all LLM-powered features - provider abstraction and configuration",
         "risk_level": "medium"
@@ -79,7 +79,7 @@
         "task-1-5"
       ],
       "total_tasks": 12,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -202,7 +202,7 @@
         "task-1-2-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "file_path": "src/foundry_mcp/core/llm_config.py",
         "task_category": "implementation",
@@ -276,13 +276,19 @@
     "task-1-2-4": {
       "type": "subtask",
       "title": "Update docs/README.md with LLM config guidance",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "details": "Document new [llm]/[workflow] keys, env vars, and feature flag expectations for LLM adapters"
+        "details": "Document new [llm]/[workflow] keys, env vars, and feature flag expectations for LLM adapters",
+        "started_at": "2025-11-28T11:40:15.652546Z",
+        "status_note": "Adding LLM configuration documentation",
+        "completed_at": "2025-11-28T11:41:00.896727Z",
+        "needs_journaling": false,
+        "actual_hours": 0.013,
+        "journaled_at": "2025-11-28T11:41:00.899672Z"
       }
     },
     "task-1-2-5": {
@@ -1190,6 +1196,15 @@
       "content": "Implemented [workflow] section configuration in llm_config.py. Created WorkflowMode enum with SINGLE, AUTONOMOUS, and BATCH modes. Created WorkflowConfig dataclass with fields: mode, auto_validate, journal_enabled, batch_size, context_threshold. Implemented from_dict(), from_toml(), and from_env() class methods for parsing. Added validation for batch_size (>=1) and context_threshold (50-100). Environment variables supported: FOUNDRY_MCP_WORKFLOW_MODE, FOUNDRY_MCP_WORKFLOW_AUTO_VALIDATE, FOUNDRY_MCP_WORKFLOW_JOURNAL_ENABLED, FOUNDRY_MCP_WORKFLOW_BATCH_SIZE, FOUNDRY_MCP_WORKFLOW_CONTEXT_THRESHOLD. Added global config functions: get_workflow_config(), set_workflow_config(), reset_workflow_config(). All 1746 existing tests pass. Manual verification passed all 7 test cases.",
       "metadata": {},
       "task_id": "task-1-2-3"
+    },
+    {
+      "timestamp": "2025-11-28T11:41:00.899668Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Update docs/README.md with LLM config guidance",
+      "author": "claude-code",
+      "content": "Updated README.md with comprehensive LLM and Workflow configuration documentation. Added new sections: 'LLM Configuration' documenting [llm] TOML section with provider, api_key, model, timeout, base_url, max_tokens, temperature fields. Added LLM environment variables table with FOUNDRY_MCP_LLM_* vars. Documented provider-specific API key fallbacks (OPENAI_API_KEY, ANTHROPIC_API_KEY). Added 'Workflow Configuration' documenting [workflow] TOML section with mode, auto_validate, journal_enabled, batch_size, context_threshold fields. Documented all three workflow modes (single, autonomous, batch). Added workflow environment variables table with FOUNDRY_MCP_WORKFLOW_* vars.",
+      "metadata": {},
+      "task_id": "task-1-2-4"
     }
   ]
 }
