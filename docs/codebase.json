@@ -2,8 +2,8 @@
   "metadata": {
     "project_name": "src",
     "version": "1.0.0",
-    "generated_at": "2025-11-28T14:48:44.466972Z",
-    "generated_at_commit": "f66fef6728ede10b0cbde25119760853bb856917",
+    "generated_at": "2025-11-28T14:55:08.518066Z",
+    "generated_at_commit": "86f83f33ffa17b909dddd269d93c8958123f8364",
     "languages": [
       "python"
     ],
@@ -11,7 +11,7 @@
   },
   "statistics": {
     "total_files": 54,
-    "total_lines": 29309,
+    "total_lines": 29310,
     "total_classes": 97,
     "total_functions": 247,
     "avg_complexity": 9.05,
@@ -26,7 +26,7 @@
     "by_language": {
       "python": {
         "files": 54,
-        "lines": 29309,
+        "lines": 29310,
         "classes": 97,
         "functions": 247,
         "avg_complexity": 9.05
@@ -1332,7 +1332,7 @@
       "name": "documentation",
       "file": "src/foundry_mcp/tools/documentation.py",
       "language": "python",
-      "docstring": "Documentation generation tools for foundry-mcp.\n\nProvides MCP tools for generating human-facing documentation bundles\nfrom SDD specifications. Wraps the `sdd doc` CLI to produce markdown\nand HTML documentation artifacts.",
+      "docstring": "Documentation generation tools for foundry-mcp.\n\nProvides MCP tools for generating human-facing documentation bundles\nfrom SDD specifications. Wraps the `sdd render` CLI to produce markdown\ndocumentation artifacts, `sdd llm-doc-gen` for AI-enhanced documentation,\nand `sdd fidelity-review` for specification compliance checking.",
       "classes": [],
       "functions": [
         "_run_sdd_doc_command",
@@ -1368,7 +1368,7 @@
         "foundry_mcp.core.security.MAX_STRING_LENGTH"
       ],
       "exports": [],
-      "lines": 1087
+      "lines": 1088
     },
     {
       "name": "environment",
@@ -5172,7 +5172,7 @@
         {
           "instantiator": "<module>",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 41,
+          "line": 42,
           "context": []
         },
         {
@@ -6918,7 +6918,7 @@
       "calls": [
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 771,
           "call_type": "method_call"
         },
@@ -6936,7 +6936,7 @@
         },
         {
           "name": "done",
-          "file": "unknown",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 785,
           "call_type": "method_call"
         },
@@ -6978,7 +6978,7 @@
         },
         {
           "name": "cancel",
-          "file": "src/foundry_mcp/core/concurrency.py",
+          "file": "/opt/anaconda3/lib/python3.13/asyncio/futures.py",
           "line": 799,
           "call_type": "method_call"
         },
@@ -9078,7 +9078,7 @@
         },
         {
           "name": "read",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 533,
           "call_type": "method_call"
         },
@@ -9090,7 +9090,7 @@
         },
         {
           "name": "write",
-          "file": "built-in",
+          "file": "/opt/anaconda3/lib/python3.13/typing.py",
           "line": 535,
           "call_type": "method_call"
         },
@@ -11175,19 +11175,19 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 257,
+          "line": 258,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 486,
+          "line": 487,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 765,
+          "line": 766,
           "call_type": "function_call"
         },
         {
@@ -11811,7 +11811,7 @@
         {
           "name": "register_documentation_tools",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 255,
+          "line": 256,
           "call_type": "function_call"
         },
         {
@@ -12206,19 +12206,19 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 261,
+          "line": 262,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 490,
+          "line": 491,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 769,
+          "line": 770,
           "call_type": "function_call"
         },
         {
@@ -15554,19 +15554,19 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 458,
+          "line": 459,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 737,
+          "line": 738,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 1059,
+          "line": 1060,
           "call_type": "function_call"
         },
         {
@@ -16983,175 +16983,175 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 312,
+          "line": 313,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 327,
+          "line": 328,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 339,
+          "line": 340,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 359,
+          "line": 360,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 397,
+          "line": 398,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 415,
+          "line": 416,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 467,
+          "line": 468,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 479,
+          "line": 480,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 545,
+          "line": 546,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 560,
+          "line": 561,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 571,
+          "line": 572,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 593,
+          "line": 594,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 608,
+          "line": 609,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 664,
+          "line": 665,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 678,
+          "line": 679,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 691,
+          "line": 692,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 746,
+          "line": 747,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 758,
+          "line": 759,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 831,
+          "line": 832,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 846,
+          "line": 847,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 857,
+          "line": 858,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 868,
+          "line": 869,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 891,
+          "line": 892,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 908,
+          "line": 909,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 972,
+          "line": 973,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 986,
+          "line": 987,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 998,
+          "line": 999,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 1068,
+          "line": 1069,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 1080,
+          "line": 1081,
           "call_type": "function_call"
         },
         {
@@ -19458,25 +19458,25 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 353,
+          "line": 354,
           "call_type": "function_call"
         },
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 587,
+          "line": 588,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 885,
+          "line": 886,
           "call_type": "function_call"
         },
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 902,
+          "line": 903,
           "call_type": "function_call"
         }
       ],
@@ -19530,7 +19530,7 @@
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 603,
+          "line": 604,
           "call_type": "function_call"
         }
       ],
@@ -27193,7 +27193,7 @@
     {
       "name": "_run_sdd_doc_command",
       "file": "src/foundry_mcp/tools/documentation.py",
-      "line": 57,
+      "line": 58,
       "language": "python",
       "docstring": "Run an SDD doc CLI command and return parsed JSON output.\n\nArgs:\n    args: Command arguments to pass to sdd doc CLI\n    timeout: Command timeout in seconds\n\nReturns:\n    Dict with parsed JSON output or error info",
       "parameters": [
@@ -27219,19 +27219,19 @@
         {
           "name": "run",
           "file": "/opt/anaconda3/lib/python3.13/subprocess.py",
-          "line": 71,
+          "line": 72,
           "call_type": "method_call"
         },
         {
           "name": "loads",
           "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
-          "line": 82,
+          "line": 83,
           "call_type": "method_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 101,
+          "line": 102,
           "call_type": "function_call"
         }
       ]
@@ -27239,7 +27239,7 @@
     {
       "name": "_run_sdd_render_command",
       "file": "src/foundry_mcp/tools/documentation.py",
-      "line": 104,
+      "line": 105,
       "language": "python",
       "docstring": "Run an SDD render CLI command and return parsed JSON output.\n\nArgs:\n    args: Command arguments to pass to sdd render CLI\n    timeout: Command timeout in seconds\n\nReturns:\n    Dict with parsed JSON output or error info",
       "parameters": [
@@ -27264,7 +27264,7 @@
         {
           "name": "spec_doc",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 377,
+          "line": 378,
           "call_type": "function_call"
         }
       ],
@@ -27272,19 +27272,19 @@
         {
           "name": "run",
           "file": "/opt/anaconda3/lib/python3.13/subprocess.py",
-          "line": 118,
+          "line": 119,
           "call_type": "method_call"
         },
         {
           "name": "loads",
           "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
-          "line": 129,
+          "line": 130,
           "call_type": "method_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 148,
+          "line": 149,
           "call_type": "function_call"
         }
       ],
@@ -27293,7 +27293,7 @@
     {
       "name": "_run_sdd_llm_doc_gen_command",
       "file": "src/foundry_mcp/tools/documentation.py",
-      "line": 151,
+      "line": 152,
       "language": "python",
       "docstring": "Run an SDD llm-doc-gen CLI command and return parsed JSON output.\n\nArgs:\n    args: Command arguments to pass to sdd llm-doc-gen CLI\n    timeout: Command timeout in seconds (default 600s for LLM processing)\n\nReturns:\n    Dict with parsed JSON output or error info",
       "parameters": [
@@ -27318,7 +27318,7 @@
         {
           "name": "spec_doc_llm",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 643,
+          "line": 644,
           "call_type": "function_call"
         }
       ],
@@ -27326,19 +27326,19 @@
         {
           "name": "run",
           "file": "/opt/anaconda3/lib/python3.13/subprocess.py",
-          "line": 165,
+          "line": 166,
           "call_type": "method_call"
         },
         {
           "name": "loads",
           "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
-          "line": 176,
+          "line": 177,
           "call_type": "method_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 196,
+          "line": 197,
           "call_type": "function_call"
         }
       ],
@@ -27347,7 +27347,7 @@
     {
       "name": "_run_sdd_fidelity_review_command",
       "file": "src/foundry_mcp/tools/documentation.py",
-      "line": 199,
+      "line": 200,
       "language": "python",
       "docstring": "Run an SDD fidelity-review CLI command and return parsed JSON output.\n\nArgs:\n    args: Command arguments to pass to sdd fidelity-review CLI\n    timeout: Command timeout in seconds (default 600s for AI consultation)\n\nReturns:\n    Dict with parsed JSON output or error info",
       "parameters": [
@@ -27372,7 +27372,7 @@
         {
           "name": "spec_review_fidelity",
           "file": "src/foundry_mcp/tools/documentation.py",
-          "line": 949,
+          "line": 950,
           "call_type": "function_call"
         }
       ],
@@ -27380,19 +27380,19 @@
         {
           "name": "run",
           "file": "/opt/anaconda3/lib/python3.13/subprocess.py",
-          "line": 213,
+          "line": 214,
           "call_type": "method_call"
         },
         {
           "name": "loads",
           "file": "/opt/anaconda3/lib/python3.13/json/__init__.py",
-          "line": 224,
+          "line": 225,
           "call_type": "method_call"
         },
         {
           "name": "str",
           "file": "/Users/tylerburleigh/anaconda3/lib/python3.11/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi",
-          "line": 244,
+          "line": 245,
           "call_type": "function_call"
         }
       ],
@@ -27401,7 +27401,7 @@
     {
       "name": "register_documentation_tools",
       "file": "src/foundry_mcp/tools/documentation.py",
-      "line": 247,
+      "line": 248,
       "language": "python",
       "docstring": "Register documentation generation tools with the FastMCP server.\n\nArgs:\n    mcp: FastMCP server instance\n    config: Server configuration",
       "parameters": [
@@ -27434,13 +27434,13 @@
         {
           "name": "get_metrics",
           "file": "/Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/tools/documentation.py",
-          "line": 255,
+          "line": 256,
           "call_type": "function_call"
         },
         {
           "name": "debug",
           "file": "/opt/anaconda3/lib/python3.13/logging/__init__.py",
-          "line": 1087,
+          "line": 1088,
           "call_type": "method_call"
         }
       ],
