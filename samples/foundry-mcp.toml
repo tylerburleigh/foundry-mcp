@@ -1,0 +1,143 @@
+# foundry-mcp Configuration Sample
+#
+# This file demonstrates all available configuration options.
+# Copy to your project root as `foundry-mcp.toml` and customize.
+#
+# Configuration Priority (highest to lowest):
+# 1. Environment variables
+# 2. TOML config file
+# 3. Default values
+
+# =============================================================================
+# Workspace Configuration
+# =============================================================================
+
+[workspace]
+# Path to specs directory (auto-detected if not set)
+specs_dir = "./specs"
+
+# Additional workspace roots for multi-project setups
+# roots = ["./project-a", "./project-b"]
+
+# Path to journals directory (defaults to specs_dir/journals)
+# journals_path = "./specs/journals"
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+[logging]
+# Log level: DEBUG, INFO, WARNING, ERROR
+level = "INFO"
+
+# Enable structured JSON logging (recommended for production)
+structured = true
+
+# =============================================================================
+# Authentication Configuration
+# =============================================================================
+
+[auth]
+# Require API key authentication for all requests
+require_auth = false
+
+# Valid API keys (rotate regularly, recommended: every 90 days)
+# api_keys = ["key1", "key2"]
+
+# =============================================================================
+# Server Configuration
+# =============================================================================
+
+[server]
+name = "foundry-mcp"
+version = "0.2.0"
+
+# =============================================================================
+# LLM Provider Configuration
+# =============================================================================
+
+[llm]
+# Provider type: "openai", "anthropic", or "local"
+provider = "openai"
+
+# API key (optional - falls back to environment variable)
+# Priority: config api_key > FOUNDRY_MCP_LLM_API_KEY > provider-specific env var
+# api_key = "sk-..."
+
+# Model identifier (uses provider default if not set)
+# OpenAI default: "gpt-4"
+# Anthropic default: "claude-sonnet-4-20250514"
+# Local default: "llama3.2"
+# model = "gpt-4"
+
+# Request timeout in seconds
+timeout = 30
+
+# Custom API base URL (for proxies, Azure OpenAI, or local servers)
+# base_url = "https://api.openai.com/v1"
+
+# Organization ID (OpenAI only)
+# organization = "org-..."
+
+# Default max tokens for responses
+max_tokens = 1024
+
+# Default temperature for generation (0.0 - 2.0)
+# Lower = more deterministic, Higher = more creative
+temperature = 0.7
+
+# =============================================================================
+# Workflow Configuration
+# =============================================================================
+
+[workflow]
+# Execution mode:
+#   "single"     - One task at a time with user approval
+#   "autonomous" - Complete all phase tasks automatically
+#   "batch"      - Execute batch_size tasks, then pause
+mode = "single"
+
+# Automatically run validation after task completion
+auto_validate = true
+
+# Enable journaling of task completions
+journal_enabled = true
+
+# Number of tasks to execute in batch mode
+batch_size = 5
+
+# Context usage threshold (%) to trigger automatic pause
+# When context reaches this threshold, autonomous/batch mode pauses
+context_threshold = 85
+
+# =============================================================================
+# Provider-Specific Examples
+# =============================================================================
+
+# --- OpenAI Configuration ---
+# [llm]
+# provider = "openai"
+# model = "gpt-4-turbo"
+# timeout = 60
+# max_tokens = 2048
+# temperature = 0.5
+# # API key via OPENAI_API_KEY environment variable
+
+# --- Anthropic Configuration ---
+# [llm]
+# provider = "anthropic"
+# model = "claude-3-opus-20240229"
+# timeout = 90
+# max_tokens = 4096
+# temperature = 0.7
+# # API key via ANTHROPIC_API_KEY environment variable
+
+# --- Local (Ollama) Configuration ---
+# [llm]
+# provider = "local"
+# model = "llama3.2"
+# base_url = "http://localhost:11434/v1"
+# timeout = 120
+# max_tokens = 2048
+# temperature = 0.8
+# # No API key required for local providers
