@@ -206,7 +206,176 @@ result = await task_next(spec_id=spec_id)
 - Need to ensure core functions work synchronously for CLI
 - May need thin async wrappers in MCP tools over sync core functions
 
+## Shared Helper Strategy
+
+The CLI implementation leverages existing core helpers to avoid duplication and ensure consistent behavior across MCP and CLI surfaces.
+
+### Core Helper Modules
+
+| Module | Purpose | CLI Usage |
+|--------|---------|-----------|
+| `core/responses.py` | Response envelope helpers | Adapt for CLI JSON output |
+| `core/validation.py` | Spec validation + auto-fix | Direct use for `sdd validate` |
+| `core/security.py` | Input limits and sanitization | Direct use for path/input validation |
+| `core/observability.py` | Telemetry and tracing | Optional for CLI debugging |
+| `core/resilience.py` | Retry and timeout patterns | Use for file operations |
+| `core/pagination.py` | Cursor-based pagination | Adapt for CLI list commands |
+
+### Response Adaptation Pattern
+
+MCP tools use `core/responses.py` for structured envelopes:
+
+```python
+# MCP tool response
+{
+    "success": True,
+    "data": {"task_id": "task-1-1", "status": "completed"},
+    "error": None,
+    "meta": {"version": "response-v2", "request_id": "req_abc123"}
+}
+```
+
+CLI adapts this for human-readable and JSON modes:
+
+```python
+# foundry_mcp/cli/output.py
+from foundry_mcp.core.responses import make_success_response, make_error_response
+
+def output_result(result: dict, json_mode: bool = False):
+    """Output result in appropriate format."""
+    if json_mode:
+        # Use core response envelope for JSON output
+        click.echo(json.dumps(result, indent=2))
+    else:
+        # Human-readable format
+        if result.get('success'):
+            format_success(result['data'])
+        else:
+            format_error(result['error'])
+```
+
+### Validation Helper Usage
+
+CLI commands use core validation directly:
+
+```python
+# foundry_mcp/cli/commands/validation.py
+from foundry_mcp.core.validation import validate_spec, apply_fixes
+
+@validation.command('validate')
+@click.argument('spec_id')
+@click.pass_context
+def validate(ctx, spec_id):
+    """Validate a spec file."""
+    result = validate_spec(spec_id)  # Direct core call
+    output_result(result.to_dict(), json_mode=ctx.obj.get('json', False))
+
+@validation.command('fix')
+@click.argument('spec_id')
+@click.option('--dry-run', is_flag=True)
+@click.pass_context
+def fix(ctx, spec_id, dry_run):
+    """Auto-fix validation issues."""
+    result = apply_fixes(spec_id, dry_run=dry_run)  # Direct core call
+    output_result(result.to_dict(), json_mode=ctx.obj.get('json', False))
+```
+
+### Security Helpers
+
+Both MCP and CLI use the same security limits:
+
+```python
+# foundry_mcp/core/security.py
+MAX_INPUT_SIZE = 10_000_000      # 10MB max file size
+MAX_ARRAY_LENGTH = 10_000        # Max items in arrays
+MAX_STRING_LENGTH = 1_000_000    # Max string length
+MAX_NESTED_DEPTH = 50            # Max JSON nesting
+```
+
+CLI uses these for input validation:
+
+```python
+# foundry_mcp/cli/commands/spec.py
+from foundry_mcp.core.security import MAX_INPUT_SIZE, validate_file_size
+
+@spec.command('create')
+@click.argument('name')
+@click.option('--template', type=click.Path(exists=True))
+def create(name, template):
+    if template:
+        validate_file_size(template, MAX_INPUT_SIZE)  # Reuse core security
+    # ... rest of implementation
+```
+
+### Pagination in CLI
+
+List commands adapt core pagination for CLI output:
+
+```python
+# foundry_mcp/cli/commands/task.py
+from foundry_mcp.core.pagination import paginate_results
+
+@task.command('list')
+@click.argument('spec_id')
+@click.option('--limit', default=50)
+@click.option('--cursor')
+@click.pass_context
+def list_tasks(ctx, spec_id, limit, cursor):
+    """List tasks with pagination."""
+    result = paginate_results(
+        query_tasks(spec_id),
+        cursor=cursor,
+        limit=limit
+    )
+    output_result(result, json_mode=ctx.obj.get('json', False))
+```
+
+### Resilience Patterns
+
+File operations use core retry logic:
+
+```python
+# foundry_mcp/cli/commands/spec.py
+from foundry_mcp.core.resilience import with_retry, FileOperationError
+
+@spec.command('save')
+@click.argument('spec_id')
+def save(spec_id):
+    """Save spec to disk with retry."""
+    try:
+        with_retry(
+            lambda: write_spec(spec_id),
+            max_attempts=3,
+            retry_on=(IOError, PermissionError)
+        )
+    except FileOperationError as e:
+        output_error(str(e))
+```
+
+### CLI-Only Helpers
+
+Some helpers are CLI-specific and don't belong in core:
+
+| CLI Module | Purpose |
+|------------|---------|
+| `cli/output.py` | Text/JSON formatting for terminal |
+| `cli/config.py` | Work mode, session config |
+| `cli/context.py` | Token tracking, session markers |
+| `cli/progress.py` | Progress bars, spinners |
+
+These are NOT shared with MCP tools.
+
+### Helper Selection Criteria
+
+When implementing a CLI command, use this decision tree:
+
+1. **Is the logic transport-agnostic?** → Use `core/*` directly
+2. **Is it about response formatting?** → Use `cli/output.py` adapting core envelopes
+3. **Is it about input validation/security?** → Use `core/security.py` + `core/validation.py`
+4. **Is it about pagination/limits?** → Use `core/pagination.py`
+5. **Is it CLI-only (terminal, session)?** → Create in `cli/*`
+
 ## Related Decisions
 
-- **Shared Helper Strategy:** See task-1-2-2 for helper function patterns
+- **Package Boundaries:** Defined in task-1-2-1 above
 - **Migration Priority Tiers:** See docs/cli_parity_matrix.md for implementation order
