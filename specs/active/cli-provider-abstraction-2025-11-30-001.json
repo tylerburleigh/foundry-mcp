@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T21:59:30.624375Z",
+  "last_updated": "2025-12-01T22:01:49.874154Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 52,
+      "completed_tasks": 53,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1342,7 +1342,7 @@
     "phase-4": {
       "type": "phase",
       "title": "MCP Tool Exposure",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-4-files",
@@ -1358,7 +1358,7 @@
         "depends": []
       },
       "total_tasks": 11,
-      "completed_tasks": 10,
+      "completed_tasks": 11,
       "metadata": {
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
@@ -1371,7 +1371,10 @@
           "docs/codebase_standards/cli-output.md",
           "docs/codebase_standards/naming-conventions.md",
           "docs/cli_best_practices/README.md"
-        ]
+        ],
+        "needs_journaling": false,
+        "completed_at": "2025-12-01T22:01:49.861805Z",
+        "journaled_at": "2025-12-01T22:01:49.874126Z"
       }
     },
     "phase-4-files": {
@@ -1621,7 +1624,7 @@
     "phase-4-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-4",
       "children": [
         "verify-4-1",
@@ -1636,8 +1639,12 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2025-12-01T22:01:49.861802Z",
+        "journaled_at": "2025-12-01T22:01:49.872005Z"
+      }
     },
     "verify-4-1": {
       "type": "verify",
@@ -1661,14 +1668,20 @@
     "verify-4-2": {
       "type": "verify",
       "title": "Response envelope compliance",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "manual",
-        "description": "Verify all tool responses follow response-v2 envelope format with success/error/meta fields per docs/codebase_standards/mcp_response_schema.md"
+        "description": "Verify all tool responses follow response-v2 envelope format with success/error/meta fields per docs/codebase_standards/mcp_response_schema.md",
+        "started_at": "2025-12-01T22:00:24.235608Z",
+        "status_note": "Starting manual verification of response envelope compliance",
+        "completed_at": "2025-12-01T22:01:49.861615Z",
+        "needs_journaling": false,
+        "actual_hours": 0.024,
+        "journaled_at": "2025-12-01T22:01:49.866840Z"
       }
     },
     "phase-5": {
@@ -2082,7 +2095,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 77,
+    "progress_percentage": 79,
     "current_phase": "phase-4"
   },
   "journal": [
@@ -2518,6 +2531,33 @@
       "content": "Manual verification of MCP tool registration completed. Verified: 1) server.py imports and calls register_provider_tools (lines 65, 115), 2) All three tools registered: provider-list, provider-status, provider-execute, 3) capabilities_manifest.json contains full discovery metadata for all tools including descriptions, parameters with types/constraints, rate limits (20 req/min for execute), and feature flags (provider_tools). All requirements from docs/mcp_best_practices/13-tool-discovery.md satisfied.",
       "metadata": {},
       "task_id": "verify-4-1"
+    },
+    {
+      "timestamp": "2025-12-01T22:01:49.866831Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Response envelope compliance",
+      "author": "claude-code",
+      "content": "Manual verification of response envelope compliance completed. Verified: 1) providers.py imports success_response and error_response from foundry_mcp.core.responses (line 20), 2) All tool returns use asdict(success_response(...)) or asdict(error_response(...)), 3) ToolResponse produces envelope with {success, data, error, meta} where meta.version=\"response-v2\", 4) Error responses include error_code, error_type, remediation fields per docs/codebase_standards/mcp_response_schema.md (e.g., lines 150-155 show error with MISSING_REQUIRED code, validation type, and remediation guidance). All response-v2 envelope requirements satisfied.",
+      "metadata": {},
+      "task_id": "verify-4-2"
+    },
+    {
+      "timestamp": "2025-12-01T22:01:49.871998Z",
+      "entry_type": "status_change",
+      "title": "Group Completed: Verification",
+      "author": "claude-code",
+      "content": "All child tasks in group phase-4-verify have been completed.",
+      "metadata": {},
+      "task_id": "phase-4-verify"
+    },
+    {
+      "timestamp": "2025-12-01T22:01:49.874122Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: MCP Tool Exposure",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-4 have been completed.",
+      "metadata": {},
+      "task_id": "phase-4"
     }
   ]
 }
