@@ -94,6 +94,48 @@ from foundry_mcp.core.providers.registry import (
     get_registration,
 )
 
+from foundry_mcp.core.providers.validation import (
+    # Validation
+    ValidationError,
+    strip_ansi,
+    ensure_utf8,
+    sanitize_prompt,
+    validate_request,
+    # Command allowlists
+    COMMON_SAFE_COMMANDS,
+    BLOCKED_COMMANDS,
+    is_command_allowed,
+    # Observability
+    ExecutionSpan,
+    create_execution_span,
+    log_span,
+    # Retry
+    RETRYABLE_STATUSES,
+    is_retryable,
+    is_retryable_error,
+    # Circuit breaker
+    CircuitState,
+    CircuitBreaker,
+    get_circuit_breaker,
+    reset_circuit_breakers,
+    # Rate limiting
+    RateLimiter,
+    get_rate_limiter,
+    reset_rate_limiters,
+    # Execution wrapper
+    with_validation_and_resilience,
+)
+
+# ---------------------------------------------------------------------------
+# Import provider modules to trigger auto-registration with the registry.
+# Each provider module calls register_provider() at import time.
+# ---------------------------------------------------------------------------
+from foundry_mcp.core.providers import gemini as _gemini_provider  # noqa: F401
+from foundry_mcp.core.providers import codex as _codex_provider  # noqa: F401
+from foundry_mcp.core.providers import cursor_agent as _cursor_agent_provider  # noqa: F401
+from foundry_mcp.core.providers import claude as _claude_provider  # noqa: F401
+from foundry_mcp.core.providers import opencode as _opencode_provider  # noqa: F401
+
 __all__ = [
     # === Base Types (base.py) ===
     # Enums
@@ -149,4 +191,34 @@ __all__ = [
     # Testing
     "reset_registry",
     "get_registration",
+    # === Validation & Resilience (validation.py) ===
+    # Validation
+    "ValidationError",
+    "strip_ansi",
+    "ensure_utf8",
+    "sanitize_prompt",
+    "validate_request",
+    # Command allowlists
+    "COMMON_SAFE_COMMANDS",
+    "BLOCKED_COMMANDS",
+    "is_command_allowed",
+    # Observability
+    "ExecutionSpan",
+    "create_execution_span",
+    "log_span",
+    # Retry
+    "RETRYABLE_STATUSES",
+    "is_retryable",
+    "is_retryable_error",
+    # Circuit breaker
+    "CircuitState",
+    "CircuitBreaker",
+    "get_circuit_breaker",
+    "reset_circuit_breakers",
+    # Rate limiting
+    "RateLimiter",
+    "get_rate_limiter",
+    "reset_rate_limiters",
+    # Execution wrapper
+    "with_validation_and_resilience",
 ]

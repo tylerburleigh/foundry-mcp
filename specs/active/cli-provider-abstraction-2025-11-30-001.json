@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T21:04:53.165356Z",
+  "last_updated": "2025-12-01T21:26:01.851104Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 21,
+      "completed_tasks": 43,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -695,7 +695,7 @@
     "phase-3": {
       "type": "phase",
       "title": "CLI Provider Implementations",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "phase-3-files",
@@ -711,7 +711,7 @@
         "depends": []
       },
       "total_tasks": 20,
-      "completed_tasks": 2,
+      "completed_tasks": 20,
       "metadata": {
         "purpose": "Implement the 5 concrete CLI providers",
         "risk_level": "medium",
@@ -722,13 +722,15 @@
           "docs/mcp_best_practices/12-timeout-resilience.md",
           "docs/mcp_best_practices/13-tool-discovery.md",
           "docs/mcp_best_practices/15-concurrency-patterns.md"
-        ]
+        ],
+        "needs_journaling": true,
+        "completed_at": "2025-12-01T21:17:26.908868Z"
       }
     },
     "phase-3-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "task-3-0",
@@ -741,8 +743,11 @@
         "task-3-7"
       ],
       "total_tasks": 18,
-      "completed_tasks": 2,
-      "metadata": {},
+      "completed_tasks": 18,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2025-12-01T21:14:59.624252Z"
+      },
       "dependencies": {
         "blocks": [
           "phase-3-verify"
@@ -822,41 +827,51 @@
     "task-3-1-1": {
       "type": "subtask",
       "title": "Define GEMINI_METADATA constant",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:56.133920Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-1-2": {
       "type": "subtask",
       "title": "Implement GeminiProvider class",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Extend ProviderContext, implement _execute() with subprocess call, JSON parsing"
+        "description": "Extend ProviderContext, implement _execute() with subprocess call, JSON parsing",
+        "completed_at": "2025-12-01T21:14:56.454583Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-1-3": {
       "type": "subtask",
       "title": "Add factory and auto-registration",
-      "status": "pending",
+      "status": "completed",
       "parent": "spec-root",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "create_provider() factory function and register_provider() call at module level"
+        "description": "create_provider() factory function and register_provider() call at module level",
+        "completed_at": "2025-12-01T21:14:56.702148Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-2": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/codex.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-2-1",
@@ -874,53 +889,64 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/codex.py",
         "task_category": "implementation",
         "estimated_hours": 1.5,
         "started_at": "2025-12-01T21:00:58.338280Z",
-        "status_note": "Starting Codex provider implementation",
-        "needs_journaling": false,
+        "status_note": "Codex provider implemented and verified",
+        "needs_journaling": true,
         "journaled_at": "2025-12-01T21:02:42.896251Z"
       }
     },
     "task-3-2-1": {
       "type": "subtask",
       "title": "Define CODEX_METADATA constant",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:56.931588Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-2-2": {
       "type": "subtask",
       "title": "Implement CodexProvider class",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Extend ProviderContext, implement _execute() with --sandbox read-only flag, JSONL parsing"
+        "description": "Extend ProviderContext, implement _execute() with --sandbox read-only flag, JSONL parsing",
+        "completed_at": "2025-12-01T21:14:57.163236Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-2-3": {
       "type": "subtask",
       "title": "Add factory and auto-registration",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:57.395044Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-3": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/cursor_agent.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-3-1",
@@ -938,53 +964,64 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/cursor_agent.py",
         "task_category": "implementation",
         "estimated_hours": 1.5,
         "started_at": "2025-12-01T21:03:00.085705Z",
-        "status_note": "Starting Cursor Agent provider implementation",
-        "needs_journaling": false,
+        "status_note": "Cursor agent provider implemented and verified",
+        "needs_journaling": true,
         "journaled_at": "2025-12-01T21:04:53.165322Z"
       }
     },
     "task-3-3-1": {
       "type": "subtask",
       "title": "Define CURSOR_METADATA constant",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:57.624506Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-3-2": {
       "type": "subtask",
       "title": "Implement CursorAgentProvider class",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Extend ProviderContext, implement _execute() with config file management for read-only"
+        "description": "Extend ProviderContext, implement _execute() with config file management for read-only",
+        "completed_at": "2025-12-01T21:14:57.856921Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-3-3": {
       "type": "subtask",
       "title": "Add factory and auto-registration",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-3",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:58.088424Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-4": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/claude.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-4-1",
@@ -1002,49 +1039,63 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/claude.py",
         "task_category": "implementation",
-        "estimated_hours": 1.5
+        "estimated_hours": 1.5,
+        "started_at": "2025-12-01T21:05:10.747776Z",
+        "status_note": "Claude provider implemented and verified",
+        "needs_journaling": true
       }
     },
     "task-3-4-1": {
       "type": "subtask",
       "title": "Define CLAUDE_METADATA constant",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-4",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:58.319177Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-4-2": {
       "type": "subtask",
       "title": "Implement ClaudeProvider class",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-4",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Extend ProviderContext, implement _execute() with read-only tool allowlisting"
+        "description": "Extend ProviderContext, implement _execute() with read-only tool allowlisting",
+        "completed_at": "2025-12-01T21:14:58.589391Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-4-3": {
       "type": "subtask",
       "title": "Add factory and auto-registration",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-4",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:58.846708Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-5": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/opencode.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-5-1",
@@ -1062,49 +1113,63 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/opencode.py",
         "task_category": "implementation",
-        "estimated_hours": 1.5
+        "estimated_hours": 1.5,
+        "started_at": "2025-12-01T21:07:17.989697Z",
+        "needs_journaling": true,
+        "status_note": "OpenCode provider implemented and verified"
       }
     },
     "task-3-5-1": {
       "type": "subtask",
       "title": "Define OPENCODE_METADATA constant",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-5",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:59.089217Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-5-2": {
       "type": "subtask",
       "title": "Implement OpenCodeProvider class",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-5",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Extend ProviderContext, implement _execute() with Node.js wrapper handling"
+        "description": "Extend ProviderContext, implement _execute() with Node.js wrapper handling",
+        "completed_at": "2025-12-01T21:14:59.363349Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
       }
     },
     "task-3-5-3": {
       "type": "subtask",
       "title": "Add factory and auto-registration",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-5",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2025-12-01T21:14:59.624042Z",
+        "needs_journaling": true,
+        "status_note": "Implementation complete in parent task"
+      }
     },
     "task-3-6": {
       "type": "task",
       "title": "Update src/foundry_mcp/core/providers/__init__.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [],
       "dependencies": {
@@ -1120,18 +1185,22 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/__init__.py",
         "task_category": "implementation",
         "estimated_hours": 0.25,
-        "description": "Import provider modules to trigger auto-registration"
+        "description": "Import provider modules to trigger auto-registration",
+        "started_at": "2025-12-01T21:13:41.106586Z",
+        "status_note": "Updated __init__.py to import all 5 provider modules for auto-registration plus validation module exports. Verified all providers registered: gemini, codex, cursor-agent, claude, opencode",
+        "completed_at": "2025-12-01T21:14:24.527340Z",
+        "needs_journaling": true
       }
     },
     "task-3-7": {
       "type": "task",
       "title": "Cross-provider validation & resilience hooks",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-files",
       "children": [
         "task-3-7-1",
@@ -1153,54 +1222,67 @@
         "depends": []
       },
       "total_tasks": 3,
-      "completed_tasks": 0,
+      "completed_tasks": 3,
       "metadata": {
         "task_category": "implementation",
         "estimated_hours": 1.5,
         "description": "Centralize ProviderRequest validation, observability hooks, and rate limiting consistent with docs/mcp_best_practices/{04,05,12,15}.",
-        "file_path": "task-3-7.py"
+        "file_path": "task-3-7.py",
+        "started_at": "2025-12-01T21:10:52.633369Z",
+        "status_note": "Cross-provider validation & resilience hooks implemented in src/foundry_mcp/core/providers/validation.py per best practices docs 04, 05, 12, 15",
+        "completed_at": "2025-12-01T21:13:30.384189Z",
+        "needs_journaling": true
       }
     },
     "task-3-7-1": {
       "type": "subtask",
       "title": "Input hygiene & allowlists",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-7",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Validate prompts/metadata, enforce UTF-8, strip ANSI, and block disallowed flags before subprocess exec per docs/mcp_best_practices/04-validation-input-hygiene.md."
+        "description": "Validate prompts/metadata, enforce UTF-8, strip ANSI, and block disallowed flags before subprocess exec per docs/mcp_best_practices/04-validation-input-hygiene.md.",
+        "completed_at": "2025-12-01T21:13:27.775142Z",
+        "needs_journaling": true,
+        "status_note": "Input hygiene implemented in validation.py: strip_ansi, ensure_utf8, sanitize_prompt, validate_request, command allowlists"
       }
     },
     "task-3-7-2": {
       "type": "subtask",
       "title": "Structured logging & metrics",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-7",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Emit provider execution spans w/ correlation IDs, timings, and ProviderStatus mapping via shared telemetry helpers (docs/mcp_best_practices/05-observability-telemetry.md)."
+        "description": "Emit provider execution spans w/ correlation IDs, timings, and ProviderStatus mapping via shared telemetry helpers (docs/mcp_best_practices/05-observability-telemetry.md).",
+        "completed_at": "2025-12-01T21:13:28.716832Z",
+        "needs_journaling": true,
+        "status_note": "Structured logging implemented in validation.py: ExecutionSpan, create_execution_span, log_span with correlation IDs and telemetry"
       }
     },
     "task-3-7-3": {
       "type": "subtask",
       "title": "Timeout budgets & retries",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-3-7",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Wire ProviderContext to CircuitBreaker + concurrency limits, configure retry matrix per ProviderStatus.is_retryable() with docs/mcp_best_practices/12-timeout-resilience.md and 15-concurrency-patterns.md."
+        "description": "Wire ProviderContext to CircuitBreaker + concurrency limits, configure retry matrix per ProviderStatus.is_retryable() with docs/mcp_best_practices/12-timeout-resilience.md and 15-concurrency-patterns.md.",
+        "completed_at": "2025-12-01T21:13:29.566061Z",
+        "needs_journaling": true,
+        "status_note": "Timeout budgets & retries implemented in validation.py: CircuitBreaker, RateLimiter, is_retryable, with_validation_and_resilience decorator"
       }
     },
     "phase-3-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [
         "verify-3-1",
@@ -1215,41 +1297,52 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2025-12-01T21:17:26.908865Z"
+      }
     },
     "verify-3-1": {
       "type": "verify",
       "title": "All providers register successfully",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "FOUNDRY_PROVIDER_TEST_MODE=1 PYTHONPATH=src python -c \"from foundry_mcp.core.providers import available_providers; providers = available_providers(); print(f'Registered: {list(providers.keys())}')\"",
-        "expected": "Shows registered providers via mocked availability"
+        "expected": "Shows registered providers via mocked availability",
+        "started_at": "2025-12-01T21:16:45.827807Z",
+        "status_note": "Verified all 5 providers register successfully with factories. All available via available_providers().",
+        "completed_at": "2025-12-01T21:17:04.789642Z",
+        "needs_journaling": true
       }
     },
     "verify-3-2": {
       "type": "verify",
       "title": "Provider can be resolved and instantiated",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "command": "FOUNDRY_PROVIDER_TEST_MODE=1 PYTHONPATH=src python -c \"from foundry_mcp.core.providers import resolve_provider, check_provider_available; pid='gemini'; print(f'{pid} available: {check_provider_available(pid)}')\"",
-        "expected": "Shows availability status using mocked detectors without errors"
+        "expected": "Shows availability status using mocked detectors without errors",
+        "started_at": "2025-12-01T21:17:09.925751Z",
+        "status_note": "All 5 providers resolved and instantiated correctly as ProviderContext subclasses",
+        "completed_at": "2025-12-01T21:17:26.907911Z",
+        "needs_journaling": true
       }
     },
     "phase-4": {
       "type": "phase",
       "title": "MCP Tool Exposure",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-4-files",
@@ -1265,7 +1358,7 @@
         "depends": []
       },
       "total_tasks": 11,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
@@ -1284,7 +1377,7 @@
     "phase-4-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4",
       "children": [
         "task-4-1",
@@ -1292,7 +1385,7 @@
         "task-4-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1305,7 +1398,7 @@
     "task-4-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/providers.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4-files",
       "children": [
         "task-4-1-1",
@@ -1323,7 +1416,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/providers.py",
         "task_category": "implementation",
@@ -1333,13 +1426,19 @@
     "task-4-1-1": {
       "type": "subtask",
       "title": "Create register_provider_tools() function",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Main registration function following foundry-mcp pattern"
+        "description": "Main registration function following foundry-mcp pattern",
+        "started_at": "2025-12-01T21:19:13.073331Z",
+        "status_note": "Starting Phase 4: MCP Tool Exposure",
+        "completed_at": "2025-12-01T21:26:01.843737Z",
+        "needs_journaling": false,
+        "actual_hours": 0.114,
+        "journaled_at": "2025-12-01T21:26:01.849133Z"
       }
     },
     "task-4-1-2": {
@@ -1937,8 +2036,8 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 31,
-    "current_phase": "phase-3"
+    "progress_percentage": 64,
+    "current_phase": "phase-4"
   },
   "journal": [
     {
@@ -2218,6 +2317,71 @@
       "content": "Created src/foundry_mcp/core/providers/cursor_agent.py with full Cursor Agent CLI provider implementation. Features config-based permission system via ~/.cursor/cli-config.json with backup/restore logic for thread safety. Includes CursorAgentProvider class, CURSOR_MODELS with 2 model descriptors, CURSOR_METADATA, ALLOWED_TOOLS and DISALLOWED_TOOLS lists, _create_readonly_config and _cleanup_config_file methods for safe config management, fallback mode for CLIs without JSON support, and automatic registration. Verified imports work correctly.",
       "metadata": {},
       "task_id": "task-3-3"
+    },
+    {
+      "timestamp": "2025-12-01T21:07:17.940677Z",
+      "task_id": "task-3-4",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/claude.py",
+      "content": "Created src/foundry_mcp/core/providers/claude.py with ClaudeProvider implementation. Features: read-only tool restrictions via --allowed-tools and --disallowed-tools CLI flags, SHELL_COMMAND_WARNING system prompt injection, model validation (sonnet/haiku), JSON response parsing from 'result' field, token usage extraction, RunnerProtocol for testability. Registers with provider registry at module load time. Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:07:17.989697Z",
+      "task_id": "task-3-5",
+      "entry_type": "status_change",
+      "title": "Task Started: src/foundry_mcp/core/providers/opencode.py",
+      "content": "Creating opencode.py provider implementation",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:09:07.482265Z",
+      "task_id": "task-3-5",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/opencode.py",
+      "content": "Created src/foundry_mcp/core/providers/opencode.py with OpenCodeProvider implementation. Features: Node.js wrapper via stdin JSON protocol, server lifecycle management (auto-start with _ensure_server_running), dual-layer read-only protection (READONLY_TOOLS_CONFIG + permission denial), temporary config file cleanup in __del__, port detection via socket, JSONL streaming response parsing. Registers with provider registry at module load time. Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:09:43.168853Z",
+      "task_id": "task-3-2",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/codex.py",
+      "content": "Created src/foundry_mcp/core/providers/codex.py with CodexProvider implementation. Features OS-level sandboxing via --sandbox read-only flag, JSONL event parsing for streaming, RunnerProtocol for testability. Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:09:43.207776Z",
+      "task_id": "task-3-3",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/cursor_agent.py",
+      "content": "Created src/foundry_mcp/core/providers/cursor_agent.py with CursorAgentProvider implementation. Features config-based permission system via ~/.cursor/cli-config.json, backup/restore logic for thread safety, RunnerProtocol for testability. Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:09:43.245990Z",
+      "task_id": "task-3-4",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/claude.py",
+      "content": "Created src/foundry_mcp/core/providers/claude.py with ClaudeProvider implementation. Features read-only tool restrictions via --allowed-tools and --disallowed-tools CLI flags, SHELL_COMMAND_WARNING system prompt injection, model validation (sonnet/haiku). Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:09:43.286527Z",
+      "task_id": "task-3-5",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/providers/opencode.py",
+      "content": "Created src/foundry_mcp/core/providers/opencode.py with OpenCodeProvider implementation. Features Node.js wrapper via stdin JSON protocol, server lifecycle management, dual-layer read-only protection, temporary config file cleanup. Imports verified.",
+      "author": "foundry-mcp"
+    },
+    {
+      "timestamp": "2025-12-01T21:26:01.849124Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create register_provider_tools() function",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/tools/providers.py with register_provider_tools() function following the foundry-mcp tool registration pattern. The function:\n- Imports provider dependencies lazily to avoid circular imports  \n- Uses @canonical_tool decorator for MCP tool registration\n- Registers with the FastMCP server via the standard pattern\n- Added import and registration call in src/foundry_mcp/server.py\n- Exported from src/foundry_mcp/tools/__init__.py\n\nAll imports verified successful.",
+      "metadata": {},
+      "task_id": "task-4-1-1"
     }
   ]
 }
