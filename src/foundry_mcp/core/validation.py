@@ -1534,3 +1534,107 @@ def _recalculate_counts(spec_data: Dict[str, Any]) -> None:
 
     if "spec-root" in hierarchy:
         calculate_node("spec-root")
+
+
+# Verification management functions
+
+# Valid verification results
+VERIFICATION_RESULTS = ("PASSED", "FAILED", "PARTIAL")
+
+
+def add_verification(
+    spec_data: Dict[str, Any],
+    verify_id: str,
+    result: str,
+    command: Optional[str] = None,
+    output: Optional[str] = None,
+    issues: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> tuple[bool, Optional[str]]:
+    """
+    Add verification result to a verify node.
+
+    Records verification results including test outcomes, command output,
+    and issues found during verification.
+
+    Args:
+        spec_data: The loaded spec data dict (modified in place).
+        verify_id: Verification node ID (e.g., verify-1-1).
+        result: Verification result (PASSED, FAILED, PARTIAL).
+        command: Optional command that was run for verification.
+        output: Optional command output or test results.
+        issues: Optional issues found during verification.
+        notes: Optional additional notes about the verification.
+
+    Returns:
+        Tuple of (success, error_message).
+        On success: (True, None)
+        On failure: (False, "error message")
+    """
+    # Validate result
+    result_upper = result.upper().strip()
+    if result_upper not in VERIFICATION_RESULTS:
+        return False, f"Invalid result '{result}'. Must be one of: {', '.join(VERIFICATION_RESULTS)}"
+
+    # Get hierarchy
+    hierarchy = spec_data.get("hierarchy")
+    if not hierarchy or not isinstance(hierarchy, dict):
+        return False, "Invalid spec data: missing or invalid hierarchy"
+
+    # Find the verify node
+    node = hierarchy.get(verify_id)
+    if node is None:
+        return False, f"Verification node '{verify_id}' not found"
+
+    # Validate node type
+    node_type = node.get("type")
+    if node_type != "verify":
+        return False, f"Node '{verify_id}' is type '{node_type}', expected 'verify'"
+
+    # Get or create metadata
+    metadata = node.get("metadata")
+    if metadata is None:
+        metadata = {}
+        node["metadata"] = metadata
+
+    # Build verification result entry
+    verification_entry: Dict[str, Any] = {
+        "result": result_upper,
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
+    if command:
+        verification_entry["command"] = command.strip()
+
+    if output:
+        # Truncate output if very long
+        max_output_len = MAX_STRING_LENGTH
+        output_text = output.strip()
+        if len(output_text) > max_output_len:
+            output_text = output_text[:max_output_len] + "\n... (truncated)"
+        verification_entry["output"] = output_text
+
+    if issues:
+        verification_entry["issues"] = issues.strip()
+
+    if notes:
+        verification_entry["notes"] = notes.strip()
+
+    # Add to verification history (keep last N entries)
+    verification_history = metadata.get("verification_history", [])
+    if not isinstance(verification_history, list):
+        verification_history = []
+
+    verification_history.append(verification_entry)
+
+    # Keep only last 10 entries
+    if len(verification_history) > 10:
+        verification_history = verification_history[-10:]
+
+    metadata["verification_history"] = verification_history
+
+    # Update latest result fields for quick access
+    metadata["last_result"] = result_upper
+    metadata["last_verified_at"] = verification_entry["timestamp"]
+
+    return True, None
