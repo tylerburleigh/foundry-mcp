@@ -29,9 +29,26 @@ _metrics = get_metrics()
 # Available review types
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
 
-# Legacy list - now replaced by provider abstraction
-# Use available_providers() and get_provider_statuses() instead
-# REVIEW_TOOLS = ["cursor-agent", "gemini", "codex"]
+# Legacy list - used as fallback when review_provider_integration flag is disabled
+LEGACY_REVIEW_TOOLS = ["cursor-agent", "gemini", "codex"]
+
+# Feature flag name for provider integration
+REVIEW_PROVIDER_FLAG = "review_provider_integration"
+
+
+def _is_provider_integration_enabled() -> bool:
+    """Check if provider integration feature flag is enabled.
+
+    Returns:
+        True if provider integration should be used, False for legacy behavior.
+    """
+    # Default to True (use provider integration)
+    # This can be overridden by environment variable for rollback
+    import os
+    flag_override = os.environ.get("FOUNDRY_REVIEW_PROVIDER_INTEGRATION", "").lower()
+    if flag_override == "false" or flag_override == "0":
+        return False
+    return True
 
 
 def _get_llm_status() -> Dict[str, Any]:
@@ -161,34 +178,48 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
         try:
             llm_status = _get_llm_status()
+            use_provider_integration = _is_provider_integration_enabled()
 
-            # Get provider statuses from the provider abstraction layer
-            provider_statuses = get_provider_statuses()
+            if use_provider_integration:
+                # Get provider statuses from the provider abstraction layer
+                provider_statuses = get_provider_statuses()
 
-            # Build tools info from provider statuses
-            tools_info = []
-            for provider_id, status in provider_statuses.items():
-                tools_info.append({
-                    "name": provider_id,
-                    "available": status.status.value == "available",
-                    "status": status.status.value,
-                    "reason": status.reason,
-                    "checked_at": (
-                        status.checked_at.isoformat() if status.checked_at else None
-                    ),
-                })
-
-            # Also include providers that are registered but not checked
-            all_providers = available_providers()
-            for provider_id in all_providers:
-                if provider_id not in provider_statuses:
+                # Build tools info from provider statuses
+                tools_info = []
+                for provider_id, status in provider_statuses.items():
                     tools_info.append({
                         "name": provider_id,
+                        "available": status.status.value == "available",
+                        "status": status.status.value,
+                        "reason": status.reason,
+                        "checked_at": (
+                            status.checked_at.isoformat() if status.checked_at else None
+                        ),
+                    })
+
+                # Also include providers that are registered but not checked
+                all_providers = available_providers()
+                for provider_id in all_providers:
+                    if provider_id not in provider_statuses:
+                        tools_info.append({
+                            "name": provider_id,
+                            "available": None,
+                            "status": "unknown",
+                            "reason": "Not yet checked",
+                            "checked_at": None,
+                        })
+            else:
+                # Legacy fallback: return static tool list with placeholder availability
+                tools_info = [
+                    {
+                        "name": tool,
                         "available": None,
                         "status": "unknown",
-                        "reason": "Not yet checked",
+                        "reason": "Legacy mode - external shell check required",
                         "checked_at": None,
-                    })
+                    }
+                    for tool in LEGACY_REVIEW_TOOLS
+                ]
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             _metrics.timer("review.review_list_tools.duration_ms", duration_ms)
@@ -201,6 +232,7 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     available_count=sum(1 for t in tools_info if t.get("available")),
                     total_count=len(tools_info),
                     duration_ms=round(duration_ms, 2),
+                    provider_integration=use_provider_integration,
                 )
             )
 

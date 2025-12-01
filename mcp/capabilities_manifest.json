@@ -1028,6 +1028,17 @@
         "dependencies": [],
         "created_at": "2025-12-01T00:00:00Z",
         "expires_at": null
+      },
+      "review_provider_integration": {
+        "description": "Use provider abstraction for review-list-tools instead of static tool list. Enables real-time availability checking via get_provider_statuses().",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "platform-team",
+        "dependencies": ["provider_tools"],
+        "created_at": "2025-12-01T00:00:00Z",
+        "expires_at": null,
+        "rollback_notes": "Set to false to fall back to legacy static REVIEW_TOOLS list with placeholder availability"
       }
     },
     "lifecycle_states": {
