@@ -3,19 +3,14 @@ Analysis tools for foundry-mcp.
 
 Provides MCP tools for analyzing SDD specifications and performing
 structural/quality analysis on specs and their dependencies.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+Uses direct Python API calls to core modules.
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -23,88 +18,13 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-)
+from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec
+from foundry_mcp.core.task import check_dependencies
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for analysis tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli_analysis",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: list,
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"analysis.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_analysis",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"analysis.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -127,9 +47,8 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Perform deep structural and quality analysis on SDD specifications.
 
-        Wraps the SDD CLI analyze command to inspect the specification
-        directory and provide heuristics about spec health, structure,
-        and documentation availability.
+        Analyzes the specification directory to provide heuristics about
+        spec health, structure, and documentation availability.
 
         WHEN TO USE:
         - Evaluating spec health before starting work
@@ -149,85 +68,60 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - Additional heuristics from sdd analyze
         """
         tool_name = "spec_analyze"
+        start_time = time.perf_counter()
+
         try:
-            # Build command
-            cmd = ["foundry-cli", "analyze", "--json"]
-
-            if directory:
-                cmd.append(directory)
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(directory or path or ".").resolve()
 
             # Log the operation
             audit_log(
                 "tool_invocation",
                 tool="spec-analyze",
                 action="analyze_specs",
-                directory=directory or ".",
+                directory=str(ws_path),
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Find specs directory
+            specs_dir = find_specs_directory(ws_path)
+            has_specs = specs_dir is not None
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {"raw_output": result.stdout}
+            # Build analysis results
+            analysis_data: Dict[str, Any] = {
+                "directory": str(ws_path),
+                "has_specs": has_specs,
+                "specs_dir": str(specs_dir) if specs_dir else None,
+            }
 
-                # Track metrics
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "success"})
+            if has_specs and specs_dir:
+                # Count specs by folder
+                folder_counts: Dict[str, int] = {}
+                for folder in ["active", "pending", "completed", "archived"]:
+                    folder_path = specs_dir / folder
+                    if folder_path.exists():
+                        spec_files = list(folder_path.glob("*.json"))
+                        folder_counts[folder] = len(spec_files)
+                    else:
+                        folder_counts[folder] = 0
 
-                return asdict(success_response(
-                    data=output_data,
-                    message="Specification analysis completed",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
+                analysis_data["spec_counts"] = folder_counts
+                analysis_data["total_specs"] = sum(folder_counts.values())
 
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the directory exists and contains SDD specifications"
-                else:
-                    error_code = "ANALYSIS_FAILED"
-                    remediation = "Check the directory path and ensure sdd is properly configured"
+                # Check for documentation
+                docs_dir = specs_dir / ".human-readable"
+                analysis_data["documentation_available"] = docs_dir.exists() and any(docs_dir.glob("*.md"))
 
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "error", "code": error_code})
+                # Check for codebase.json
+                codebase_json = ws_path / "docs" / "codebase.json"
+                analysis_data["codebase_docs_available"] = codebase_json.exists()
 
-                return asdict(error_response(
-                    stderr or "Analysis failed",
-                    error_code=error_code,
-                    error_type="analysis",
-                    remediation=remediation,
-                ))
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"analysis.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"analysis.{tool_name}.duration_ms", duration_ms)
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
-
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Analysis timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try analyzing a smaller directory or increase timeout",
-            ))
-
-        except FileNotFoundError:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            return asdict(success_response(
+                duration_ms=round(duration_ms, 2),
+                **analysis_data,
             ))
 
         except Exception as e:
@@ -253,9 +147,8 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Transform review feedback into structured modification actions.
 
-        Wraps the SDD CLI parse-review command to convert review markdown
-        or JSON into a structured suggestions file that can be applied
-        to modify the specification.
+        Converts review markdown or JSON into a structured suggestions file
+        that can be applied to modify the specification.
 
         WHEN TO USE:
         - Processing AI-generated review feedback
@@ -275,118 +168,27 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - output_file: Path to generated suggestions file
             - categories: Breakdown of suggestion types
         """
-        tool_name = "review_parse_feedback"
-        try:
-            # Validate required parameters
-            if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
-
-            if not review_path:
-                return asdict(error_response(
-                    "review_path is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a path to the review file (.md or .json)",
-                ))
-
-            # Build command
-            cmd = ["foundry-cli", "parse-review", spec_id, "--review", review_path, "--json"]
-
-            if output_path:
-                cmd.extend(["--output", output_path])
-
-            if path:
-                cmd.extend(["--path", path])
-
-            # Log the operation
-            audit_log(
-                "tool_invocation",
-                tool="review-parse-feedback",
-                action="parse_review",
-                spec_id=spec_id,
-                review_path=review_path,
+        # Review feedback parsing requires complex text/markdown parsing with
+        # AI-powered understanding of review comments. This functionality is
+        # not available as a direct core API.
+        # Use the sdd-toolkit:sdd-modify skill for applying review feedback.
+        return asdict(
+            error_response(
+                "Review feedback parsing requires complex text/markdown parsing. "
+                "Use the sdd-toolkit:sdd-modify skill to apply review feedback.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
+                    "spec_id": spec_id,
+                    "review_path": review_path,
+                    "output_path": output_path,
+                    "alternative": "sdd-toolkit:sdd-modify skill",
+                    "feature_status": "requires_complex_parsing",
+                },
+                remediation="Use the sdd-toolkit:sdd-modify skill which provides "
+                "review feedback application with proper parsing support.",
             )
-
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {"raw_output": result.stdout}
-
-                # Track metrics
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=output_data,
-                    message="Review feedback parsed successfully",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the review file and spec exist"
-                elif "invalid" in stderr.lower() or "parse" in stderr.lower():
-                    error_code = "PARSE_ERROR"
-                    remediation = "Check the review file format (.md or .json)"
-                else:
-                    error_code = "PARSE_FAILED"
-                    remediation = "Check the review file and spec_id"
-
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "error", "code": error_code})
-
-                return asdict(error_response(
-                    stderr or "Review parsing failed",
-                    error_code=error_code,
-                    error_type="analysis",
-                    remediation=remediation,
-                ))
-
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
-
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Review parsing timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try with a smaller review file",
-            ))
-
-        except FileNotFoundError:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
-            ))
-
-        except Exception as e:
-            logger.exception(f"Unexpected error in {tool_name}")
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                f"Unexpected error: {str(e)}",
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+        )
 
     @canonical_tool(
         mcp,
@@ -400,9 +202,8 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Inspect dependency graph health for an SDD specification.
 
-        Wraps the SDD CLI analyze-deps command to analyze dependency
-        relationships between tasks, identify bottlenecks, and surface
-        potential blocking issues.
+        Analyzes dependency relationships between tasks, identifies bottlenecks,
+        and surfaces potential blocking issues.
 
         WHEN TO USE:
         - Identifying blocking tasks before starting work
@@ -423,6 +224,9 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - critical_path: Tasks on the longest dependency chain
         """
         tool_name = "spec_analyze_deps"
+        start_time = time.perf_counter()
+        threshold = bottleneck_threshold if bottleneck_threshold is not None else 3
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -433,14 +237,8 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a spec_id parameter (e.g., my-feature-spec)",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "analyze-deps", spec_id, "--json"]
-
-            if bottleneck_threshold is not None:
-                cmd.extend(["--bottleneck-threshold", str(bottleneck_threshold)])
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -450,70 +248,100 @@ def register_analysis_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 spec_id=spec_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {"raw_output": result.stdout}
-
-                # Track metrics
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=output_data,
-                    message="Dependency analysis completed",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec exists in specs/active or specs/pending"
-                elif "circular" in stderr.lower():
-                    error_code = "CIRCULAR_DEPENDENCY"
-                    remediation = "Review and fix circular dependencies in the spec"
-                else:
-                    error_code = "ANALYSIS_FAILED"
-                    remediation = "Check the spec_id and ensure the spec file is valid"
-
-                _metrics.counter(f"analysis.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Dependency analysis failed",
-                    error_code=error_code,
-                    error_type="analysis",
-                    remediation=remediation,
+                    f"Specs directory not found in {ws_path}",
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Spec '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="analysis",
+                    data={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+                    remediation="Ensure the spec exists in specs/active or specs/pending",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Dependency analysis timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try analyzing a smaller spec or increase timeout",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"analysis.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            hierarchy = spec_data.get("hierarchy", {})
+
+            # Analyze dependencies
+            dependency_count = 0
+            bottlenecks: List[Dict[str, Any]] = []
+            blocks_count: Dict[str, int] = {}  # task_id -> number of tasks it blocks
+
+            # Build dependency graph and count
+            for node_id, node in hierarchy.items():
+                deps = node.get("dependencies", {})
+                blocked_by = deps.get("blocked_by", [])
+                blocks = deps.get("blocks", [])
+
+                dependency_count += len(blocked_by)
+
+                # Track how many tasks each task blocks
+                for blocker_id in blocked_by:
+                    blocks_count[blocker_id] = blocks_count.get(blocker_id, 0) + 1
+
+            # Find bottlenecks (tasks that block many others)
+            for task_id, count in blocks_count.items():
+                if count >= threshold:
+                    task = hierarchy.get(task_id, {})
+                    bottlenecks.append({
+                        "task_id": task_id,
+                        "title": task.get("title", ""),
+                        "status": task.get("status", ""),
+                        "blocks_count": count,
+                    })
+
+            # Sort bottlenecks by blocks_count descending
+            bottlenecks.sort(key=lambda x: x["blocks_count"], reverse=True)
+
+            # Check for cycles using DFS
+            visited: set = set()
+            rec_stack: set = set()
+            circular_deps: List[str] = []
+
+            def detect_cycle(node_id: str, path: List[str]) -> bool:
+                visited.add(node_id)
+                rec_stack.add(node_id)
+
+                node = hierarchy.get(node_id, {})
+                for child_id in node.get("children", []):
+                    if child_id not in visited:
+                        if detect_cycle(child_id, path + [child_id]):
+                            return True
+                    elif child_id in rec_stack:
+                        circular_deps.append(" -> ".join(path + [child_id]))
+                        return True
+
+                rec_stack.remove(node_id)
+                return False
+
+            if "spec-root" in hierarchy:
+                detect_cycle("spec-root", ["spec-root"])
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"analysis.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"analysis.{tool_name}.duration_ms", duration_ms)
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                dependency_count=dependency_count,
+                bottlenecks=bottlenecks,
+                bottleneck_threshold=threshold,
+                circular_deps=circular_deps,
+                has_cycles=len(circular_deps) > 0,
+                duration_ms=round(duration_ms, 2),
             ))
 
         except Exception as e:

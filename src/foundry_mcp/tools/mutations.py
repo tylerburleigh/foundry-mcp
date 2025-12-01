@@ -2,21 +2,15 @@
 Mutation tools for foundry-mcp.
 
 Provides MCP tools for batch modifications to SDD specifications.
-These tools wrap SDD CLI commands for applying plans, verification,
-and metadata mutations.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+These tools use direct Python API calls to core modules for applying plans,
+verification, and metadata mutations.
 """
 
 import json
 import logging
-import subprocess
-import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -24,90 +18,20 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-)
 from foundry_mcp.core.modifications import apply_modifications, load_modifications_file
-from foundry_mcp.core.spec import find_specs_directory
+from foundry_mcp.core.spec import find_specs_directory, load_spec, save_spec, find_spec_file
+from foundry_mcp.core.task import update_estimate, update_task_metadata
+from foundry_mcp.core.validation import (
+    add_verification,
+    execute_verification,
+    format_verification_summary,
+    _recalculate_counts,
+)
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for mutation tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli_mutations",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"mutations.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_mutations",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"mutations.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -277,7 +201,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="verification-add",
     )
-    def verification_add(
+    def verification_add_tool(
         spec_id: str,
         verify_id: str,
         result: str,
@@ -340,34 +264,14 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Validate result
             valid_results = ("PASSED", "FAILED", "PARTIAL")
-            if result not in valid_results:
+            result_upper = result.upper().strip()
+            if result_upper not in valid_results:
                 return asdict(error_response(
                     f"Invalid result '{result}'. Must be one of: {', '.join(valid_results)}",
                     error_code="VALIDATION_ERROR",
                     error_type="validation",
                     remediation=f"Use one of: {', '.join(valid_results)}",
                 ))
-
-            # Build command
-            cmd = ["foundry-cli", "add-verification", spec_id, verify_id, result, "--json"]
-
-            if command:
-                cmd.extend(["--command", command])
-
-            if output:
-                cmd.extend(["--output", output])
-
-            if issues:
-                cmd.extend(["--issues", issues])
-
-            if notes:
-                cmd.extend(["--notes", notes])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
 
             # Log the operation
             audit_log(
@@ -376,90 +280,108 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 action="add_verification",
                 spec_id=spec_id,
                 verify_id=verify_id,
-                result=result,
+                result=result_upper,
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result_proc = _run_sdd_command(cmd, tool_name)
+            # Find specs directory
+            specs_dir = find_specs_directory(path)
+            if not specs_dir:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "specs_not_found"})
+                return asdict(error_response(
+                    "Could not find specs directory",
+                    error_code="SPECS_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Ensure you are in a project with a specs/ directory",
+                ))
 
-            # Parse the JSON output
-            if result_proc.returncode == 0:
-                try:
-                    output_data = json.loads(result_proc.stdout) if result_proc.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # Load spec
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "spec_not_found"})
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="SPEC_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
 
-                # Build response data
+            # If dry_run, just validate without making changes
+            if dry_run:
+                hierarchy = spec_data.get("hierarchy", {})
+                node = hierarchy.get(verify_id)
+                if node is None:
+                    return asdict(error_response(
+                        f"Verification '{verify_id}' not found in spec",
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the verification ID exists in the specification",
+                    ))
+
                 data: Dict[str, Any] = {
                     "spec_id": spec_id,
                     "verify_id": verify_id,
-                    "result": result,
-                    "dry_run": dry_run,
+                    "result": result_upper,
+                    "dry_run": True,
                 }
-
                 if command:
                     data["command"] = command
-
-                if output_data.get("timestamp"):
-                    data["timestamp"] = output_data["timestamp"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "result": result})
-
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "result": result_upper, "dry_run": "true"})
                 return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result_proc.stderr.strip() if result_proc.stderr else "Command failed"
+
+            # Add verification using core function
+            success, error_msg = add_verification(
+                spec_data=spec_data,
+                verify_id=verify_id,
+                result=result_upper,
+                command=command,
+                output=output,
+                issues=issues,
+                notes=notes,
+            )
+
+            if not success:
                 _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
-
-                # Check for common errors
                 if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
-                        return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list",
-                        ))
-                    elif "verify" in error_msg.lower() or verify_id in error_msg:
-                        return asdict(error_response(
-                            f"Verification '{verify_id}' not found in spec",
-                            error_code="NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the verification ID exists in the specification",
-                        ))
-
+                    return asdict(error_response(
+                        error_msg,
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the verification ID exists in the specification",
+                    ))
                 return asdict(error_response(
-                    f"Failed to add verification: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec and verification ID exist",
+                    error_msg,
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Check input parameters",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Save spec
+            if not save_spec(spec_id, spec_data, specs_dir):
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "save_failed"})
+                return asdict(error_response(
+                    "Failed to save specification",
+                    error_code="SAVE_FAILED",
+                    error_type="internal",
+                    remediation="Check file permissions",
+                ))
+
+            # Build response data
+            data = {
+                "spec_id": spec_id,
+                "verify_id": verify_id,
+                "result": result_upper,
+                "dry_run": False,
+            }
+
+            if command:
+                data["command"] = command
+
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "result": result_upper})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in verification-add")
             _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
@@ -474,7 +396,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="verification-execute",
     )
-    def verification_execute(
+    def verification_execute_tool(
         spec_id: str,
         verify_id: str,
         record: bool = False,
@@ -528,15 +450,6 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a verify_id parameter (e.g., verify-1-1)",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "execute-verify", spec_id, verify_id, "--json"]
-
-            if record:
-                cmd.append("--record")
-
-            if path:
-                cmd.extend(["--path", path])
-
             # Log the operation
             audit_log(
                 "tool_invocation",
@@ -547,68 +460,60 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 record=record,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Find specs directory
+            specs_dir = find_specs_directory(path)
+            if not specs_dir:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "specs_not_found"})
+                return asdict(error_response(
+                    "Could not find specs directory",
+                    error_code="SPECS_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Ensure you are in a project with a specs/ directory",
+                ))
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # Load spec
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "spec_not_found"})
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="SPEC_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
 
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "verify_id": verify_id,
-                    "result": output_data.get("result", output_data.get("status", "UNKNOWN")),
-                    "recorded": record,
-                }
+            # Execute verification using core function
+            result_data = execute_verification(
+                spec_data=spec_data,
+                verify_id=verify_id,
+                record=record,
+                cwd=path,
+            )
 
-                if output_data.get("command"):
-                    data["command"] = output_data["command"]
+            # If recording, save the spec
+            if record and result_data.get("recorded"):
+                if not save_spec(spec_id, spec_data, specs_dir):
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "save_failed"})
+                    # Don't fail the whole operation, just note the recording failed
+                    result_data["recorded"] = False
+                    result_data["error"] = (result_data.get("error") or "") + "; Failed to save spec"
 
-                if output_data.get("output"):
-                    data["output"] = output_data["output"]
-
-                if "exit_code" in output_data:
-                    data["exit_code"] = output_data["exit_code"]
-
-                if output_data.get("timestamp"):
-                    data["timestamp"] = output_data["timestamp"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={
-                    "status": "success",
-                    "result": data.get("result", "UNKNOWN"),
-                })
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            # Check for errors
+            if result_data.get("error") and not result_data.get("success"):
                 _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+                error_msg = result_data["error"]
 
-                # Check for common errors
                 if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
-                        return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list",
-                        ))
-                    elif "verify" in error_msg.lower() or verify_id in error_msg:
-                        return asdict(error_response(
-                            f"Verification '{verify_id}' not found in spec",
-                            error_code="NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the verification ID exists in the specification",
-                        ))
+                    return asdict(error_response(
+                        error_msg,
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the verification ID exists in the specification",
+                    ))
 
                 if "no command" in error_msg.lower():
                     return asdict(error_response(
-                        f"Verification '{verify_id}' has no command defined",
+                        error_msg,
                         error_code="NO_COMMAND",
                         error_type="validation",
                         remediation="Add a command to the verification before executing",
@@ -618,32 +523,34 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     f"Failed to execute verification: {error_msg}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
-                    remediation="Check that the spec and verification ID exist",
+                    remediation="Check that the verification has a valid command",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data (re-map from core function output)
+            data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "verify_id": verify_id,
+                "result": result_data.get("result", "UNKNOWN"),
+                "recorded": result_data.get("recorded", False),
+            }
+
+            if result_data.get("command"):
+                data["command"] = result_data["command"]
+
+            if result_data.get("output"):
+                data["output"] = result_data["output"]
+
+            if result_data.get("exit_code") is not None:
+                data["exit_code"] = result_data["exit_code"]
+
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={
+                "status": "success",
+                "result": data.get("result", "UNKNOWN"),
+            })
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in verification-execute")
             _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
@@ -658,7 +565,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="verification-format-summary",
     )
-    def verification_format_summary(
+    def verification_format_summary_tool(
         json_file: Optional[str] = None,
         json_input: Optional[str] = None,
         path: Optional[str] = None,
@@ -707,17 +614,6 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide either json_file or json_input, not both",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "format-verification-summary", "--json"]
-
-            if json_file:
-                cmd.extend(["--json-file", json_file])
-            elif json_input:
-                cmd.extend(["--json-input", json_input])
-
-            if path:
-                cmd.extend(["--path", path])
-
             # Log the operation
             audit_log(
                 "tool_invocation",
@@ -727,91 +623,49 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 has_input=bool(json_input),
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "summary": output_data.get("summary", output_data.get("formatted", "")),
-                }
-
-                # Include stats if available
-                if "total_verifications" in output_data:
-                    data["total_verifications"] = output_data["total_verifications"]
-                if "passed" in output_data:
-                    data["passed"] = output_data["passed"]
-                if "failed" in output_data:
-                    data["failed"] = output_data["failed"]
-                if "partial" in output_data:
-                    data["partial"] = output_data["partial"]
-
-                # Include raw results if available
-                if "results" in output_data:
-                    data["results"] = output_data["results"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
-
-                # Check for common errors
-                if "not found" in error_msg.lower() and json_file:
+            # Load verification data from file or parse from input
+            verification_data = None
+            if json_file:
+                file_path = Path(json_file)
+                if not file_path.exists():
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "file_not_found"})
                     return asdict(error_response(
                         f"JSON file not found: {json_file}",
                         error_code="FILE_NOT_FOUND",
                         error_type="not_found",
                         remediation="Verify the JSON file path exists",
                     ))
-
-                if "invalid" in error_msg.lower() and "json" in error_msg.lower():
+                try:
+                    with open(file_path, "r") as f:
+                        verification_data = json.load(f)
+                except json.JSONDecodeError as e:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "invalid_json"})
                     return asdict(error_response(
-                        "Invalid JSON format in input",
+                        f"Invalid JSON in file: {e}",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Ensure the file contains valid JSON",
+                    ))
+            elif json_input:
+                try:
+                    verification_data = json.loads(json_input)
+                except json.JSONDecodeError as e:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "invalid_json"})
+                    return asdict(error_response(
+                        f"Invalid JSON input: {e}",
                         error_code="VALIDATION_ERROR",
                         error_type="validation",
                         remediation="Ensure the input contains valid JSON",
                     ))
 
-                return asdict(error_response(
-                    f"Failed to format verification summary: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the input JSON is valid",
-                ))
+            # Format using core function
+            summary_data = format_verification_summary(verification_data)
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(summary_data))
+
         except Exception as e:
             logger.exception("Unexpected error in verification-format-summary")
             _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
@@ -826,7 +680,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="task-update-estimate",
     )
-    def task_update_estimate(
+    def task_update_estimate_tool(
         spec_id: str,
         task_id: str,
         hours: Optional[float] = None,
@@ -893,28 +747,13 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 ))
 
             # Validate complexity if provided
-            if complexity and complexity not in ("low", "medium", "high"):
+            if complexity and complexity.lower() not in ("low", "medium", "high"):
                 return asdict(error_response(
                     f"Invalid complexity '{complexity}'. Must be one of: low, medium, high",
                     error_code="VALIDATION_ERROR",
                     error_type="validation",
                     remediation="Use one of: low, medium, high",
                 ))
-
-            # Build command
-            cmd = ["foundry-cli", "update-estimate", spec_id, task_id, "--json"]
-
-            if hours is not None:
-                cmd.extend(["--hours", str(hours)])
-
-            if complexity:
-                cmd.extend(["--complexity", complexity])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
 
             # Log the operation
             audit_log(
@@ -928,90 +767,110 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Find specs directory
+            specs_dir = find_specs_directory(path)
+            if not specs_dir:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "specs_not_found"})
+                return asdict(error_response(
+                    "Could not find specs directory",
+                    error_code="SPECS_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Ensure you are in a project with a specs/ directory",
+                ))
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # For dry_run, load spec and validate task exists
+            if dry_run:
+                spec_data = load_spec(spec_id, specs_dir)
+                if not spec_data:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "spec_not_found"})
+                    return asdict(error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list",
+                    ))
 
-                # Build response data
+                hierarchy = spec_data.get("hierarchy", {})
+                task = hierarchy.get(task_id)
+                if not task:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "task_not_found"})
+                    return asdict(error_response(
+                        f"Task '{task_id}' not found in spec",
+                        error_code="TASK_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the task ID exists in the specification",
+                    ))
+
+                metadata = task.get("metadata", {})
                 data: Dict[str, Any] = {
                     "spec_id": spec_id,
                     "task_id": task_id,
-                    "dry_run": dry_run,
+                    "dry_run": True,
+                    "previous_hours": metadata.get("estimated_hours"),
+                    "previous_complexity": metadata.get("complexity"),
                 }
-
                 if hours is not None:
                     data["hours"] = hours
                 if complexity:
-                    data["complexity"] = complexity
+                    data["complexity"] = complexity.lower()
 
-                # Include previous values if available
-                if "previous_hours" in output_data:
-                    data["previous_hours"] = output_data["previous_hours"]
-                if "previous_complexity" in output_data:
-                    data["previous_complexity"] = output_data["previous_complexity"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
-
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "dry_run": "true"})
                 return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
 
-                # Check for common errors
+            # Use core function to update estimate
+            result_data, error_msg = update_estimate(
+                spec_id=spec_id,
+                task_id=task_id,
+                estimated_hours=hours,
+                complexity=complexity,
+                specs_dir=specs_dir,
+            )
+
+            if error_msg:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
                 if "not found" in error_msg.lower():
                     if "spec" in error_msg.lower():
                         return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
+                            error_msg,
                             error_code="SPEC_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the spec ID exists using spec-list",
                         ))
-                    elif "task" in error_msg.lower() or task_id in error_msg:
+                    else:
                         return asdict(error_response(
-                            f"Task '{task_id}' not found in spec",
+                            error_msg,
                             error_code="TASK_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the task ID exists in the specification",
                         ))
-
                 return asdict(error_response(
-                    f"Failed to update estimate: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec and task ID exist",
+                    error_msg,
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Check input parameters",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data = {
+                "spec_id": spec_id,
+                "task_id": task_id,
+                "dry_run": False,
+            }
+
+            if result_data.get("hours") is not None:
+                data["hours"] = result_data["hours"]
+            if result_data.get("complexity"):
+                data["complexity"] = result_data["complexity"]
+            if result_data.get("previous_hours") is not None:
+                data["previous_hours"] = result_data["previous_hours"]
+            if result_data.get("previous_complexity"):
+                data["previous_complexity"] = result_data["previous_complexity"]
+
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in task-update-estimate")
             _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
@@ -1026,7 +885,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="task-update-metadata",
     )
-    def task_update_metadata(
+    def task_update_metadata_tool(
         spec_id: str,
         task_id: str,
         file_path: Optional[str] = None,
@@ -1107,7 +966,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 ))
 
             # Validate verification_type if provided
-            if verification_type and verification_type not in ("auto", "manual", "none"):
+            if verification_type and verification_type.lower() not in ("auto", "manual", "none"):
                 return asdict(error_response(
                     f"Invalid verification_type '{verification_type}'. Must be one of: auto, manual, none",
                     error_code="VALIDATION_ERROR",
@@ -1115,40 +974,44 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Use one of: auto, manual, none",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "update-task-metadata", spec_id, task_id, "--json"]
+            # Parse custom metadata JSON if provided
+            custom_metadata = None
+            if metadata_json:
+                try:
+                    custom_metadata = json.loads(metadata_json)
+                    if not isinstance(custom_metadata, dict):
+                        return asdict(error_response(
+                            "metadata_json must be a JSON object",
+                            error_code="VALIDATION_ERROR",
+                            error_type="validation",
+                            remediation="Provide a JSON object like {\"key\": \"value\"}",
+                        ))
+                except json.JSONDecodeError as e:
+                    return asdict(error_response(
+                        f"Invalid JSON in metadata_json: {e}",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Ensure metadata_json contains valid JSON",
+                    ))
 
+            # Build list of fields being updated
             fields_updated = []
             if file_path:
-                cmd.extend(["--file-path", file_path])
                 fields_updated.append("file_path")
             if description:
-                cmd.extend(["--description", description])
                 fields_updated.append("description")
             if task_category:
-                cmd.extend(["--task-category", task_category])
                 fields_updated.append("task_category")
             if actual_hours is not None:
-                cmd.extend(["--actual-hours", str(actual_hours)])
                 fields_updated.append("actual_hours")
             if status_note:
-                cmd.extend(["--status-note", status_note])
                 fields_updated.append("status_note")
             if verification_type:
-                cmd.extend(["--verification-type", verification_type])
                 fields_updated.append("verification_type")
             if command:
-                cmd.extend(["--command", command])
                 fields_updated.append("command")
-            if metadata_json:
-                cmd.extend(["--metadata", metadata_json])
-                fields_updated.append("custom_metadata")
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            if custom_metadata:
+                fields_updated.extend(list(custom_metadata.keys()))
 
             # Log the operation
             audit_log(
@@ -1161,95 +1024,104 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Find specs directory
+            specs_dir = find_specs_directory(path)
+            if not specs_dir:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "specs_not_found"})
+                return asdict(error_response(
+                    "Could not find specs directory",
+                    error_code="SPECS_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Ensure you are in a project with a specs/ directory",
+                ))
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # For dry_run, load spec and validate task exists
+            if dry_run:
+                spec_data = load_spec(spec_id, specs_dir)
+                if not spec_data:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "spec_not_found"})
+                    return asdict(error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list",
+                    ))
 
-                # Build response data
+                hierarchy = spec_data.get("hierarchy", {})
+                task = hierarchy.get(task_id)
+                if not task:
+                    _metrics.counter(f"mutations.{tool_name}", labels={"status": "task_not_found"})
+                    return asdict(error_response(
+                        f"Task '{task_id}' not found in spec",
+                        error_code="TASK_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the task ID exists in the specification",
+                    ))
+
                 data: Dict[str, Any] = {
                     "spec_id": spec_id,
                     "task_id": task_id,
                     "fields_updated": fields_updated,
-                    "dry_run": dry_run,
+                    "dry_run": True,
                 }
-
-                # Include previous values if available
-                if "previous_values" in output_data:
-                    data["previous_values"] = output_data["previous_values"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={
-                    "status": "success",
-                    "field_count": str(len(fields_updated)),
-                })
-
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "success", "dry_run": "true"})
                 return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
 
-                # Check for common errors
+            # Use core function to update metadata
+            result_data, error_msg = update_task_metadata(
+                spec_id=spec_id,
+                task_id=task_id,
+                file_path=file_path,
+                description=description,
+                task_category=task_category,
+                actual_hours=actual_hours,
+                status_note=status_note,
+                verification_type=verification_type,
+                command=command,
+                custom_metadata=custom_metadata,
+                specs_dir=specs_dir,
+            )
+
+            if error_msg:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
                 if "not found" in error_msg.lower():
                     if "spec" in error_msg.lower():
                         return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
+                            error_msg,
                             error_code="SPEC_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the spec ID exists using spec-list",
                         ))
-                    elif "task" in error_msg.lower() or task_id in error_msg:
+                    else:
                         return asdict(error_response(
-                            f"Task '{task_id}' not found in spec",
+                            error_msg,
                             error_code="TASK_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the task ID exists in the specification",
                         ))
-
-                if "invalid" in error_msg.lower() and "json" in error_msg.lower():
-                    return asdict(error_response(
-                        "Invalid JSON in metadata_json parameter",
-                        error_code="VALIDATION_ERROR",
-                        error_type="validation",
-                        remediation="Ensure metadata_json contains valid JSON",
-                    ))
-
                 return asdict(error_response(
-                    f"Failed to update metadata: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec and task ID exist",
+                    error_msg,
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation="Check input parameters",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data = {
+                "spec_id": spec_id,
+                "task_id": task_id,
+                "fields_updated": result_data.get("fields_updated", fields_updated),
+                "dry_run": False,
+            }
+
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={
+                "status": "success",
+                "field_count": str(len(fields_updated)),
+            })
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in task-update-metadata")
             _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
@@ -1272,9 +1144,8 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Synchronize spec metadata across stores.
 
-        Wraps the SDD CLI sync-metadata command to push/pull spec metadata
-        between locations, ensuring consistency across different storage
-        backends or documentation caches.
+        Recalculates task counts and ensures consistency between spec file
+        and derived artifacts.
 
         WHEN TO USE:
         - Syncing spec metadata after bulk edits
@@ -1305,15 +1176,6 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a spec_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "sync-metadata", spec_id, "--json"]
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
-
             # Log the operation
             audit_log(
                 "tool_invocation",
@@ -1323,110 +1185,90 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "synced": True,
-                    "dry_run": dry_run,
-                }
-
-                # Include changes if available
-                if "changes" in output_data:
-                    data["changes"] = output_data["changes"]
-                elif "synced_fields" in output_data:
-                    data["changes"] = output_data["synced_fields"]
-
-                # Include source/target info if available
-                if "source" in output_data:
-                    data["source"] = output_data["source"]
-                if "target" in output_data:
-                    data["target"] = output_data["target"]
-
-                # Include warnings if any
-                warnings = []
-                if output_data.get("warnings"):
-                    warnings = output_data["warnings"]
-
-                # Track metrics
-                _metrics.counter(f"mutations.{tool_name}", labels={
-                    "status": "success",
-                    "dry_run": str(dry_run),
-                })
-
-                if warnings:
-                    return asdict(success_response(data, warnings=warnings))
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            # Resolve workspace
+            workspace = Path(path) if path else Path.cwd()
+            specs_dir = find_specs_directory(workspace)
+            if not specs_dir:
                 _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
-
-                # Check for common errors
-                if "not found" in error_msg.lower():
-                    return asdict(error_response(
-                        f"Specification '{spec_id}' not found",
-                        error_code="SPEC_NOT_FOUND",
-                        error_type="not_found",
-                        remediation="Verify the spec ID exists using spec-list",
-                    ))
-
-                if "no changes" in error_msg.lower():
-                    # No changes to sync is not an error
-                    return asdict(success_response({
-                        "spec_id": spec_id,
-                        "synced": True,
-                        "changes": [],
-                        "dry_run": dry_run,
-                        "message": "No metadata changes to sync",
-                    }))
-
-                if "permission" in error_msg.lower() or "access" in error_msg.lower():
-                    return asdict(error_response(
-                        f"Permission denied while syncing metadata: {error_msg}",
-                        error_code="PERMISSION_DENIED",
-                        error_type="validation",
-                        remediation="Check file permissions and access rights",
-                    ))
-
                 return asdict(error_response(
-                    f"Failed to sync metadata: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec exists and is accessible",
+                    "Could not find specs directory",
+                    error_code="SPECS_DIR_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Ensure you're in a project with a specs/ directory",
                 ))
 
-        except CircuitBreakerError as e:
+            # Find the spec file
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="SPEC_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
+
+            # Load the spec
+            spec_data = load_spec(spec_file)
+
+            # Capture original counts for change tracking
+            hierarchy = spec_data.get("hierarchy", {})
+            original_counts = {}
+            for node_id, node in hierarchy.items():
+                if "task_count" in node or "completed_count" in node:
+                    original_counts[node_id] = {
+                        "task_count": node.get("task_count", 0),
+                        "completed_count": node.get("completed_count", 0),
+                    }
+
+            # Recalculate counts
+            _recalculate_counts(spec_data)
+
+            # Track changes
+            changes = []
+            for node_id, node in spec_data.get("hierarchy", {}).items():
+                if node_id in original_counts:
+                    orig = original_counts[node_id]
+                    new_task = node.get("task_count", 0)
+                    new_completed = node.get("completed_count", 0)
+                    if orig["task_count"] != new_task or orig["completed_count"] != new_completed:
+                        changes.append({
+                            "node_id": node_id,
+                            "field": "counts",
+                            "old": f"{orig['completed_count']}/{orig['task_count']}",
+                            "new": f"{new_completed}/{new_task}",
+                        })
+
+            # Save unless dry_run
+            if not dry_run:
+                save_spec(spec_data, spec_file)
+
+            # Build response data
+            data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "synced": True,
+                "dry_run": dry_run,
+                "changes": changes,
+            }
+
+            if not changes:
+                data["message"] = "No metadata changes to sync"
+
+            # Track metrics
+            _metrics.counter(f"mutations.{tool_name}", labels={
+                "status": "success",
+                "dry_run": str(dry_run),
+            })
+
+            return asdict(success_response(data))
+
+        except PermissionError as e:
+            _metrics.counter(f"mutations.{tool_name}", labels={"status": "error"})
             return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"mutations.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
+                f"Permission denied while syncing metadata: {str(e)}",
+                error_code="PERMISSION_DENIED",
+                error_type="validation",
+                remediation="Check file permissions and access rights",
             ))
         except Exception as e:
             logger.exception("Unexpected error in spec-sync-metadata")

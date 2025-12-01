@@ -1,17 +1,15 @@
 """
 Unit tests for foundry_mcp.tools.analysis module.
 
-Tests the analysis tools for SDD specifications,
-including circuit breaker protection, validation, and response contracts.
+Tests the analysis tools for SDD specifications, including validation,
+direct core API integration, and response contracts.
 """
 
 import json
-import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from foundry_mcp.core.resilience import CircuitBreakerError, CircuitState
 
 
 # =============================================================================
@@ -27,7 +25,8 @@ def mock_mcp():
 
     def mock_tool(*args, **kwargs):
         def decorator(func):
-            mcp._tools[func.__name__] = func
+            tool_name = kwargs.get("name", func.__name__)
+            mcp._tools[tool_name] = func
             return func
         return decorator
 
@@ -43,341 +42,261 @@ def mock_config():
     return config
 
 
+@pytest.fixture
+def temp_project(tmp_path):
+    """Create a temporary project with specs."""
+    # Create specs directory structure
+    specs_dir = tmp_path / "specs"
+    specs_dir.mkdir()
+    (specs_dir / "active").mkdir()
+    (specs_dir / "pending").mkdir()
+    (specs_dir / "completed").mkdir()
+
+    # Create a sample spec with dependencies
+    spec_data = {
+        "spec_id": "test-spec-001",
+        "title": "Test Specification",
+        "version": "1.0.0",
+        "hierarchy": {
+            "spec-root": {
+                "type": "spec",
+                "title": "Test Specification",
+                "status": "pending",
+                "children": ["phase-1"],
+                "parent": None
+            },
+            "phase-1": {
+                "type": "phase",
+                "title": "Phase 1",
+                "status": "pending",
+                "children": ["task-1-1", "task-1-2", "task-1-3"],
+                "parent": "spec-root"
+            },
+            "task-1-1": {
+                "type": "task",
+                "title": "Task 1",
+                "status": "pending",
+                "children": [],
+                "parent": "phase-1",
+                "dependencies": {}
+            },
+            "task-1-2": {
+                "type": "task",
+                "title": "Task 2",
+                "status": "pending",
+                "children": [],
+                "parent": "phase-1",
+                "dependencies": {
+                    "blocked_by": ["task-1-1"]
+                }
+            },
+            "task-1-3": {
+                "type": "task",
+                "title": "Task 3",
+                "status": "pending",
+                "children": [],
+                "parent": "phase-1",
+                "dependencies": {
+                    "blocked_by": ["task-1-1"]
+                }
+            }
+        }
+    }
+
+    spec_file = specs_dir / "active" / "test-spec-001.json"
+    with open(spec_file, "w") as f:
+        json.dump(spec_data, f)
+
+    return tmp_path, spec_data
+
+
 # =============================================================================
-# Analysis Module Tests - _run_sdd_command
-# =============================================================================
-
-
-class TestAnalysisRunSddCommand:
-    """Test the _run_sdd_command helper function in analysis module."""
-
-    def test_successful_command_execution(self):
-        """Successful command should return result and record success."""
-        from foundry_mcp.tools.analysis import _run_sdd_command, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "test"],
-                returncode=0,
-                stdout='{"result": "success"}',
-                stderr="",
-            )
-
-            result = _run_sdd_command(["foundry-cli", "test"], "test_tool")
-
-            assert result.returncode == 0
-            assert '{"result": "success"}' in result.stdout
-            mock_run.assert_called_once()
-
-    def test_circuit_breaker_open_raises_error(self):
-        """When circuit breaker is open, should raise CircuitBreakerError."""
-        from foundry_mcp.tools.analysis import _run_sdd_command, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-
-        for _ in range(5):
-            _sdd_cli_breaker.record_failure()
-
-        assert _sdd_cli_breaker.state == CircuitState.OPEN
-
-        with pytest.raises(CircuitBreakerError) as exc_info:
-            _run_sdd_command(["foundry-cli", "test"], "test_tool")
-
-        assert exc_info.value.breaker_name == "sdd_cli_analysis"
-        _sdd_cli_breaker.reset()
-
-
-# =============================================================================
-# spec_analyze Tool Tests
+# spec-analyze Tool Tests
 # =============================================================================
 
 
 class TestSpecAnalyze:
     """Test the spec-analyze tool."""
 
-    def test_basic_analysis(self, mock_mcp, mock_config, assert_response_contract):
+    def test_basic_analysis(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
         """Should analyze specs successfully."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze"],
-                returncode=0,
-                stdout=json.dumps({
-                    "has_specs": True,
-                    "documentation_available": True,
-                    "spec_count": 5,
-                }),
-                stderr="",
-            )
+        spec_analyze = mock_mcp._tools["spec-analyze"]
+        result = spec_analyze()
 
-            spec_analyze = mock_mcp._tools["spec_analyze"]
-            result = spec_analyze()
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["has_specs"] is True
+        assert "spec_counts" in result["data"]
+        assert "total_specs" in result["data"]
 
-            assert_response_contract(result)
-            assert result["success"] is True
-            assert result["data"]["has_specs"] is True
+    def test_analysis_with_directory(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should pass directory parameter."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-    def test_analysis_with_directory(self, mock_mcp, mock_config, assert_response_contract):
-        """Should pass directory parameter to CLI."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze"],
-                returncode=0,
-                stdout=json.dumps({"has_specs": True}),
-                stderr="",
-            )
+        spec_analyze = mock_mcp._tools["spec-analyze"]
+        result = spec_analyze(directory=str(project_path))
 
-            spec_analyze = mock_mcp._tools["spec_analyze"]
-            result = spec_analyze(directory="/custom/dir")
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["directory"] == str(project_path)
 
-            assert_response_contract(result)
-            assert result["success"] is True
-            # Verify directory was passed to command
-            call_args = mock_cmd.call_args[0][0]
-            assert "/custom/dir" in call_args
+    def test_no_specs_directory(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should handle missing specs directory."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-    def test_analysis_not_found_error(self, mock_mcp, mock_config, assert_response_contract):
-        """Should handle not found errors."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+        # Empty directory without specs
+        monkeypatch.chdir(tmp_path)
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze"],
-                returncode=1,
-                stdout="",
-                stderr="Directory not found",
-            )
+        spec_analyze = mock_mcp._tools["spec-analyze"]
+        result = spec_analyze()
 
-            spec_analyze = mock_mcp._tools["spec_analyze"]
-            result = spec_analyze(directory="/nonexistent")
-
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "NOT_FOUND"
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["has_specs"] is False
 
 
 # =============================================================================
-# review_parse_feedback Tool Tests
+# review-parse-feedback Tool Tests
 # =============================================================================
 
 
 class TestReviewParseFeedback:
     """Test the review-parse-feedback tool."""
 
-    def test_basic_parse(self, mock_mcp, mock_config, assert_response_contract):
-        """Should parse review feedback successfully."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_returns_not_implemented(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return NOT_IMPLEMENTED since it requires complex parsing."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "parse-review"],
-                returncode=0,
-                stdout=json.dumps({
-                    "suggestions_count": 3,
-                    "output_file": "/tmp/suggestions.json",
-                    "categories": {"improvement": 2, "fix": 1},
-                }),
-                stderr="",
-            )
-
-            review_parse_feedback = mock_mcp._tools["review_parse_feedback"]
-            result = review_parse_feedback(
-                spec_id="test-spec",
-                review_path="/path/to/review.md",
-            )
-
-            assert_response_contract(result)
-            assert result["success"] is True
-            assert result["data"]["suggestions_count"] == 3
-
-    def test_missing_spec_id_validation(self, mock_mcp, mock_config, assert_response_contract):
-        """Should return error for missing spec_id."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-        register_analysis_tools(mock_mcp, mock_config)
-
-        review_parse_feedback = mock_mcp._tools["review_parse_feedback"]
-        result = review_parse_feedback(spec_id="", review_path="/path/to/review.md")
+        parse_feedback = mock_mcp._tools["review-parse-feedback"]
+        result = parse_feedback(spec_id="test-spec", review_path="/path/to/review.md")
 
         assert_response_contract(result)
         assert result["success"] is False
-        assert "spec_id" in result["error"].lower()
+        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
+        assert result["data"].get("error_type") == "unavailable"
 
-    def test_missing_review_path_validation(self, mock_mcp, mock_config, assert_response_contract):
-        """Should return error for missing review_path."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_includes_remediation(self, mock_mcp, mock_config, assert_response_contract):
+        """Should include remediation guidance."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        review_parse_feedback = mock_mcp._tools["review_parse_feedback"]
-        result = review_parse_feedback(spec_id="test-spec", review_path="")
+        parse_feedback = mock_mcp._tools["review-parse-feedback"]
+        result = parse_feedback(spec_id="test-spec", review_path="/path/to/review.md")
 
         assert_response_contract(result)
-        assert result["success"] is False
-        assert "review_path" in result["error"].lower()
+        assert "remediation" in result["data"]
+        assert "sdd-toolkit:sdd-modify" in result["data"]["remediation"]
 
-    def test_parse_error_handling(self, mock_mcp, mock_config, assert_response_contract):
-        """Should handle parse errors correctly."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_returns_request_parameters_in_data(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return request parameters in response data."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "parse-review"],
-                returncode=1,
-                stdout="",
-                stderr="Parse error: invalid format",
-            )
+        parse_feedback = mock_mcp._tools["review-parse-feedback"]
+        result = parse_feedback(
+            spec_id="test-spec-001",
+            review_path="/path/to/review.md",
+            output_path="/path/to/output.json"
+        )
 
-            review_parse_feedback = mock_mcp._tools["review_parse_feedback"]
-            result = review_parse_feedback(
-                spec_id="test-spec",
-                review_path="/path/to/invalid.txt",
-            )
-
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "PARSE_ERROR"
+        assert_response_contract(result)
+        assert result["data"]["spec_id"] == "test-spec-001"
+        assert result["data"]["review_path"] == "/path/to/review.md"
+        assert result["data"]["output_path"] == "/path/to/output.json"
 
 
 # =============================================================================
-# spec_analyze_deps Tool Tests
+# spec-analyze-deps Tool Tests
 # =============================================================================
 
 
 class TestSpecAnalyzeDeps:
     """Test the spec-analyze-deps tool."""
 
-    def test_basic_dependency_analysis(self, mock_mcp, mock_config, assert_response_contract):
-        """Should analyze dependencies successfully."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_validation_error_on_empty_spec_id(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return validation error on empty spec_id."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze-deps"],
-                returncode=0,
-                stdout=json.dumps({
-                    "dependency_count": 15,
-                    "bottlenecks": ["task-1-2"],
-                    "circular_deps": [],
-                    "critical_path": ["task-1-1", "task-1-2", "task-2-1"],
-                }),
-                stderr="",
-            )
-
-            spec_analyze_deps = mock_mcp._tools["spec_analyze_deps"]
-            result = spec_analyze_deps(spec_id="test-spec")
-
-            assert_response_contract(result)
-            assert result["success"] is True
-            assert result["data"]["dependency_count"] == 15
-
-    def test_missing_spec_id_validation(self, mock_mcp, mock_config, assert_response_contract):
-        """Should return error for missing spec_id."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-        register_analysis_tools(mock_mcp, mock_config)
-
-        spec_analyze_deps = mock_mcp._tools["spec_analyze_deps"]
-        result = spec_analyze_deps(spec_id="")
+        analyze_deps = mock_mcp._tools["spec-analyze-deps"]
+        result = analyze_deps(spec_id="")
 
         assert_response_contract(result)
         assert result["success"] is False
-        assert "spec_id" in result["error"].lower()
+        assert result["data"].get("error_code") == "MISSING_REQUIRED"
+        assert result["data"].get("error_type") == "validation"
 
-    def test_bottleneck_threshold_parameter(self, mock_mcp, mock_config, assert_response_contract):
-        """Should pass bottleneck_threshold to CLI."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_basic_dependency_analysis(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should analyze dependencies successfully."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze-deps"],
-                returncode=0,
-                stdout=json.dumps({"dependency_count": 10}),
-                stderr="",
-            )
+        analyze_deps = mock_mcp._tools["spec-analyze-deps"]
+        result = analyze_deps(spec_id="test-spec-001")
 
-            spec_analyze_deps = mock_mcp._tools["spec_analyze_deps"]
-            result = spec_analyze_deps(spec_id="test-spec", bottleneck_threshold=5)
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["spec_id"] == "test-spec-001"
+        assert "dependency_count" in result["data"]
+        assert "bottlenecks" in result["data"]
+        assert "circular_deps" in result["data"]
 
-            assert_response_contract(result)
-            assert result["success"] is True
-            # Verify threshold was passed to command
-            call_args = mock_cmd.call_args[0][0]
-            assert "--bottleneck-threshold" in call_args
-            assert "5" in call_args
-
-    def test_circular_dependency_error(self, mock_mcp, mock_config, assert_response_contract):
-        """Should handle circular dependency errors."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-        register_analysis_tools(mock_mcp, mock_config)
-
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze-deps"],
-                returncode=1,
-                stdout="",
-                stderr="Circular dependency detected: task-1 -> task-2 -> task-1",
-            )
-
-            spec_analyze_deps = mock_mcp._tools["spec_analyze_deps"]
-            result = spec_analyze_deps(spec_id="test-spec")
-
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "CIRCULAR_DEPENDENCY"
-
-    def test_spec_not_found_error(self, mock_mcp, mock_config, assert_response_contract):
+    def test_spec_not_found(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
         """Should handle spec not found errors."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
         register_analysis_tools(mock_mcp, mock_config)
 
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.return_value = subprocess.CompletedProcess(
-                args=["foundry-cli", "analyze-deps"],
-                returncode=1,
-                stdout="",
-                stderr="Spec not found: nonexistent-spec",
-            )
+        analyze_deps = mock_mcp._tools["spec-analyze-deps"]
+        result = analyze_deps(spec_id="nonexistent-spec")
 
-            spec_analyze_deps = mock_mcp._tools["spec_analyze_deps"]
-            result = spec_analyze_deps(spec_id="nonexistent-spec")
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "NOT_FOUND"
 
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "NOT_FOUND"
+    def test_bottleneck_threshold(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should use bottleneck_threshold parameter."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_analysis_tools(mock_mcp, mock_config)
+
+        analyze_deps = mock_mcp._tools["spec-analyze-deps"]
+        result = analyze_deps(spec_id="test-spec-001", bottleneck_threshold=1)
+
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["bottleneck_threshold"] == 1
+        # task-1-1 blocks 2 tasks, so with threshold 1 it should be a bottleneck
+        assert len(result["data"]["bottlenecks"]) > 0
 
 
 # =============================================================================
@@ -388,81 +307,68 @@ class TestSpecAnalyzeDeps:
 class TestAnalysisToolRegistration:
     """Test that all analysis tools are registered correctly."""
 
-    def test_all_analysis_tools_registered(self, mock_mcp, mock_config):
-        """All analysis tools should be registered."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
+    def test_all_tools_registered(self, mock_mcp, mock_config):
+        """All analysis tools should be registered with the MCP server."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
         expected_tools = [
-            "spec_analyze",
-            "review_parse_feedback",
-            "spec_analyze_deps",
+            "spec-analyze",
+            "review-parse-feedback",
+            "spec-analyze-deps",
         ]
 
         for tool_name in expected_tools:
             assert tool_name in mock_mcp._tools, f"Tool {tool_name} not registered"
 
+    def test_tools_are_callable(self, mock_mcp, mock_config):
+        """All registered tools should be callable functions."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
 
-# =============================================================================
-# Error Handling Tests
-# =============================================================================
-
-
-class TestAnalysisErrorHandling:
-    """Test error handling scenarios for analysis tools."""
-
-    def test_circuit_breaker_error_handling(self, mock_mcp, mock_config, assert_response_contract):
-        """Should return error response when circuit breaker is open."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
         register_analysis_tools(mock_mcp, mock_config)
 
-        # Open the circuit breaker
-        for _ in range(5):
-            _sdd_cli_breaker.record_failure()
+        for tool_name, tool_func in mock_mcp._tools.items():
+            assert callable(tool_func), f"Tool {tool_name} is not callable"
 
-        spec_analyze = mock_mcp._tools["spec_analyze"]
+
+# =============================================================================
+# Response Contract Compliance Tests
+# =============================================================================
+
+
+class TestResponseContractCompliance:
+    """Test that all responses comply with the response-v2 contract."""
+
+    def test_validation_error_response_structure(self, mock_mcp, mock_config, assert_response_contract):
+        """Validation error responses should have correct structure."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
+
+        register_analysis_tools(mock_mcp, mock_config)
+
+        analyze_deps = mock_mcp._tools["spec-analyze-deps"]
+        result = analyze_deps(spec_id="")
+
+        # Validate structure
+        assert "success" in result
+        assert "data" in result
+        assert "error" in result
+        assert "meta" in result
+        assert result["meta"]["version"] == "response-v2"
+
+    def test_success_response_has_required_fields(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Success responses should have all required fields."""
+        from foundry_mcp.tools.analysis import register_analysis_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_analysis_tools(mock_mcp, mock_config)
+
+        spec_analyze = mock_mcp._tools["spec-analyze"]
         result = spec_analyze()
 
-        assert_response_contract(result)
-        assert result["success"] is False
-        assert result["data"]["error_code"] == "CIRCUIT_OPEN"
-
-        _sdd_cli_breaker.reset()
-
-    def test_timeout_error_handling(self, mock_mcp, mock_config, assert_response_contract):
-        """Should handle timeout errors gracefully."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-        register_analysis_tools(mock_mcp, mock_config)
-
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.side_effect = subprocess.TimeoutExpired(cmd=["foundry-cli"], timeout=30)
-
-            spec_analyze = mock_mcp._tools["spec_analyze"]
-            result = spec_analyze()
-
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "TIMEOUT"
-
-    def test_cli_not_found_error_handling(self, mock_mcp, mock_config, assert_response_contract):
-        """Should handle CLI not found errors."""
-        from foundry_mcp.tools.analysis import register_analysis_tools, _sdd_cli_breaker
-
-        _sdd_cli_breaker.reset()
-        register_analysis_tools(mock_mcp, mock_config)
-
-        with patch("foundry_mcp.tools.analysis._run_sdd_command") as mock_cmd:
-            mock_cmd.side_effect = FileNotFoundError("foundry-cli not found")
-
-            spec_analyze = mock_mcp._tools["spec_analyze"]
-            result = spec_analyze()
-
-            assert_response_contract(result)
-            assert result["success"] is False
-            assert result["data"]["error_code"] == "CLI_NOT_FOUND"
+        # Validate structure
+        assert result["success"] is True
+        assert result["error"] is None
+        assert result["meta"]["version"] == "response-v2"

@@ -1,18 +1,11 @@
 """
 Review tools for foundry-mcp.
 
-Provides MCP tools for LLM-powered spec review and analysis.
-Wraps SDD CLI review commands with intelligent spec analysis.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Graceful degradation when LLM not configured
+Provides MCP tools for spec review information and configuration status.
+Actual LLM-powered reviews require external AI tool integration.
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
@@ -23,29 +16,11 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import get_metrics, mcp_tool
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-    SLOW_TIMEOUT,
-)
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for review tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI review operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_review_breaker = CircuitBreaker(
-    name="sdd_cli_review",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for review operations (120 seconds - reviews can be slow)
-REVIEW_TIMEOUT: float = SLOW_TIMEOUT
 
 # Available review types
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
@@ -77,66 +52,6 @@ def _get_llm_status() -> Dict[str, Any]:
         return {"configured": False, "error": "LLM config not available"}
     except Exception as e:
         return {"configured": False, "error": str(e)}
-
-
-def _run_review_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = REVIEW_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD review CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _review_breaker.can_execute():
-        status = _review_breaker.get_status()
-        _metrics.counter(f"review.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD review circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_review",
-            state=_review_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _review_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _review_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _review_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"review.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -196,129 +111,28 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Falls back to basic structural review if LLM unavailable
         - External tools (cursor-agent, gemini, codex) must be installed
         """
-        start_time = time.perf_counter()
-
-        try:
-            # Validate review type
-            if review_type not in REVIEW_TYPES:
-                return asdict(
-                    error_response(
-                        f"Invalid review type: {review_type}. Must be one of: {REVIEW_TYPES}",
-                        data={"valid_types": REVIEW_TYPES},
-                    )
-                )
-
-            # Check LLM status
-            llm_status = _get_llm_status()
-
-            # Build command
-            cmd = ["foundry-cli", "review", spec_id, "--type", review_type, "--json"]
-
-            if tools:
-                cmd.extend(["--tools", tools])
-            if model:
-                cmd.extend(["--model", model])
-            if path:
-                cmd.extend(["--path", path])
-            if dry_run:
-                cmd.append("--dry-run")
-
-            # Dry run mode - return what would be executed
-            if dry_run:
-                return asdict(
-                    success_response(
-                        spec_id=spec_id,
-                        review_type=review_type,
-                        llm_status=llm_status,
-                        dry_run=True,
-                        command=" ".join(cmd),
-                        message="Dry run - no review executed",
-                    )
-                )
-
-            # Execute review
-            result = _run_review_command(cmd, "spec-review")
-
-            if result.returncode != 0:
-                error_msg = result.stderr.strip() if result.stderr else "Review failed"
-                return asdict(
-                    error_response(
-                        f"Review failed: {error_msg}",
-                        data={
-                            "spec_id": spec_id,
-                            "review_type": review_type,
-                            "exit_code": result.returncode,
-                        },
-                    )
-                )
-
-            # Parse JSON output
-            try:
-                review_data = json.loads(result.stdout)
-            except json.JSONDecodeError:
-                # If not JSON, return raw output
-                review_data = {"raw_output": result.stdout}
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.timer(
-                "review.spec_review.duration_ms",
-                duration_ms,
-                labels={"review_type": review_type},
+        # LLM-powered spec review requires external AI tool integration.
+        # This functionality is not available as a direct core API.
+        # Use the sdd-toolkit:sdd-plan-review skill for AI-powered spec reviews.
+        return asdict(
+            error_response(
+                "LLM-powered spec review requires external AI tool integration. "
+                "Use the sdd-toolkit:sdd-plan-review skill for AI-powered spec reviews.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
+                    "spec_id": spec_id,
+                    "review_type": review_type,
+                    "tools": tools,
+                    "model": model,
+                    "dry_run": dry_run,
+                    "alternative": "sdd-toolkit:sdd-plan-review skill",
+                    "feature_status": "requires_external_integration",
+                },
+                remediation="Use the sdd-toolkit:sdd-plan-review skill which provides "
+                "multi-model AI consultation and structured review feedback.",
             )
-
-            # Remove keys that we're explicitly setting to avoid duplicate keyword args
-            review_data.pop("spec_id", None)
-            review_data.pop("review_type", None)
-            return asdict(
-                success_response(
-                    spec_id=spec_id,
-                    review_type=review_type,
-                    llm_status=llm_status,
-                    duration_ms=round(duration_ms, 2),
-                    **review_data,
-                )
-            )
-
-        except CircuitBreakerError as e:
-            return asdict(
-                error_response(
-                    str(e),
-                    data={
-                        "spec_id": spec_id,
-                        "retry_after_seconds": e.retry_after,
-                        "breaker_state": e.state,
-                    },
-                )
-            )
-        except subprocess.TimeoutExpired:
-            return asdict(
-                error_response(
-                    f"Review timed out after {REVIEW_TIMEOUT}s",
-                    data={
-                        "spec_id": spec_id,
-                        "review_type": review_type,
-                        "timeout_seconds": REVIEW_TIMEOUT,
-                    },
-                )
-            )
-        except FileNotFoundError:
-            return asdict(
-                error_response(
-                    "SDD CLI not found. Ensure 'sdd' is installed and in PATH.",
-                    data={"spec_id": spec_id},
-                )
-            )
-        except Exception as e:
-            logger.exception(f"Error in spec-review for {spec_id}")
-            return asdict(
-                error_response(
-                    f"Review error: {str(e)}",
-                    data={
-                        "spec_id": spec_id,
-                        "error_type": type(e).__name__,
-                    },
-                )
-            )
+        )
 
     @canonical_tool(
         mcp,
@@ -347,30 +161,21 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             llm_status = _get_llm_status()
 
-            # Check tool availability
-            tools_info = []
-            for tool in REVIEW_TOOLS:
-                # Check if tool is available by trying to run --version
-                try:
-                    result = subprocess.run(
-                        [tool, "--version"],
-                        capture_output=True,
-                        text=True,
-                        timeout=5.0,
-                    )
-                    available = result.returncode == 0
-                    version = result.stdout.strip() if available else None
-                except (FileNotFoundError, subprocess.TimeoutExpired):
-                    available = False
-                    version = None
-
-                tools_info.append({
+            # Return static tool information
+            # Actual availability checking requires subprocess calls to external tools
+            # which is outside the scope of direct core API integration
+            tools_info = [
+                {
                     "name": tool,
-                    "available": available,
-                    "version": version,
-                })
+                    "available": None,  # Unknown - requires external check
+                    "version": None,
+                    "note": "Tool availability requires external shell integration",
+                }
+                for tool in REVIEW_TOOLS
+            ]
 
             duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer("review.review_list_tools.duration_ms", duration_ms)
 
             return asdict(
                 success_response(
@@ -378,6 +183,8 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     llm_status=llm_status,
                     review_types=REVIEW_TYPES,
                     duration_ms=round(duration_ms, 2),
+                    note="Tool availability status requires external shell integration. "
+                    "Use shell commands to verify tool installation.",
                 )
             )
 
@@ -476,6 +283,7 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 ]
 
             duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer("review.review_list_plan_tools.duration_ms", duration_ms)
 
             return asdict(
                 success_response(

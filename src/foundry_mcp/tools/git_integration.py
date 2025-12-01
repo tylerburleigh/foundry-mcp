@@ -2,19 +2,13 @@
 Git integration tools for foundry-mcp.
 
 Provides MCP tools for git-related SDD operations including task commits
-and bulk journaling.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+and bulk journaling. Uses direct Python API calls to core modules.
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -23,88 +17,13 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-)
+from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec, save_spec
+from foundry_mcp.core.journal import bulk_journal, find_unjournaled_tasks
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for git integration tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli_git_integration",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"git_integration.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_git_integration",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"git_integration.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -130,9 +49,8 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Generate a git commit for task-scoped changes.
 
-        Wraps the SDD CLI create-task-commit command to create a git commit
-        with proper task context including spec ID, task ID, and task metadata
-        in the commit message.
+        Creates a git commit with proper task context including spec ID,
+        task ID, and task metadata in the commit message.
 
         WHEN TO USE:
         - Creating commits for completed task work
@@ -155,175 +73,26 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - commit_message: The generated commit message
             - files_committed: List of files included in commit
         """
-        tool_name = "task_create_commit"
-        try:
-            # Validate required parameters
-            if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
-
-            if not task_id:
-                return asdict(error_response(
-                    "task_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a task_id parameter",
-                ))
-
-            # Build command
-            cmd = ["foundry-cli", "create-task-commit", spec_id, task_id, "--json"]
-
-            if skip_status_check:
-                cmd.append("--skip-status-check")
-
-            if force:
-                cmd.append("--force")
-
-            if path:
-                cmd.extend(["--path", path])
-
-            # Log the operation
-            audit_log(
-                "tool_invocation",
-                tool="task-create-commit",
-                action="create_commit",
-                spec_id=spec_id,
-                task_id=task_id,
-                force=force,
-            )
-
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
+        # Git commit creation requires git CLI integration and subprocess calls.
+        # This functionality is not available as a direct core API.
+        # Use git commands directly or the Claude Code commit workflow.
+        return asdict(
+            error_response(
+                "Task commit creation requires git CLI integration. "
+                "Use git commands directly to create commits with task context.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
                     "spec_id": spec_id,
                     "task_id": task_id,
-                }
-
-                # Include commit details
-                if "commit_hash" in output_data:
-                    data["commit_hash"] = output_data["commit_hash"]
-                elif "hash" in output_data:
-                    data["commit_hash"] = output_data["hash"]
-
-                if "commit_message" in output_data:
-                    data["commit_message"] = output_data["commit_message"]
-                elif "message" in output_data:
-                    data["commit_message"] = output_data["message"]
-
-                if "files_committed" in output_data:
-                    data["files_committed"] = output_data["files_committed"]
-                elif "files" in output_data:
-                    data["files_committed"] = output_data["files"]
-
-                # Include warnings if any
-                warnings = []
-                if output_data.get("warnings"):
-                    warnings = output_data["warnings"]
-
-                # Track metrics
-                _metrics.counter(f"git_integration.{tool_name}", labels={"status": "success"})
-
-                if warnings:
-                    return asdict(success_response(data, warnings=warnings))
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"git_integration.{tool_name}", labels={"status": "error"})
-
-                # Check for common errors
-                if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
-                        return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list",
-                        ))
-                    elif "task" in error_msg.lower() or task_id in error_msg:
-                        return asdict(error_response(
-                            f"Task '{task_id}' not found in spec",
-                            error_code="TASK_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the task ID exists in the specification",
-                        ))
-
-                if "not completed" in error_msg.lower():
-                    return asdict(error_response(
-                        f"Task '{task_id}' is not completed",
-                        error_code="TASK_NOT_COMPLETED",
-                        error_type="validation",
-                        remediation="Complete the task first or use force=True to override",
-                    ))
-
-                if "nothing to commit" in error_msg.lower():
-                    return asdict(error_response(
-                        "No changes to commit",
-                        error_code="NO_CHANGES",
-                        error_type="validation",
-                        remediation="Make changes to files before creating a commit",
-                    ))
-
-                if "git" in error_msg.lower() and "not a repository" in error_msg.lower():
-                    return asdict(error_response(
-                        "Not a git repository",
-                        error_code="NOT_GIT_REPO",
-                        error_type="validation",
-                        remediation="Initialize a git repository first",
-                    ))
-
-                return asdict(error_response(
-                    f"Failed to create commit: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec and task exist and git is configured",
-                ))
-
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"git_integration.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"git_integration.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
-        except Exception as e:
-            logger.exception("Unexpected error in task-create-commit")
-            _metrics.counter(f"git_integration.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                f"Unexpected error: {str(e)}",
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+                    "force": force,
+                    "alternative": "git commit with task-id in message",
+                    "feature_status": "requires_git_cli",
+                },
+                remediation="Use 'git commit -m \"task-id: description\"' to create "
+                "commits with task context, or use the Claude Code commit workflow.",
+            )
+        )
 
     @canonical_tool(
         mcp,
@@ -340,9 +109,8 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Add multiple journal entries in one shot.
 
-        Wraps the SDD CLI bulk-journal command to add journal entries
-        to multiple tasks at once. Can use templates for consistent
-        journal entry formatting.
+        Adds journal entries to multiple tasks at once. Can use templates
+        for consistent journal entry formatting.
 
         WHEN TO USE:
         - Journaling multiple completed tasks at once
@@ -367,6 +135,8 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "journal_bulk_add"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -387,23 +157,8 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation=f"Use one of: {', '.join(valid_templates)}",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "bulk-journal", spec_id, "--json"]
-
-            if tasks:
-                cmd.extend(["--tasks", tasks])
-
-            if template:
-                cmd.extend(["--template", template])
-
-            if template_author:
-                cmd.extend(["--template-author", template_author])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -416,109 +171,139 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "dry_run": dry_run,
-                }
-
-                # Include journaling results
-                if "tasks_journaled" in output_data:
-                    data["tasks_journaled"] = output_data["tasks_journaled"]
-                elif "count" in output_data:
-                    data["tasks_journaled"] = output_data["count"]
-                elif "journaled" in output_data:
-                    data["tasks_journaled"] = len(output_data["journaled"]) if isinstance(output_data["journaled"], list) else output_data["journaled"]
-
-                if "task_ids" in output_data:
-                    data["task_ids"] = output_data["task_ids"]
-                elif "journaled" in output_data and isinstance(output_data["journaled"], list):
-                    data["task_ids"] = output_data["journaled"]
-
-                if template:
-                    data["template_used"] = template
-
-                # Include warnings if any
-                warnings = []
-                if output_data.get("warnings"):
-                    warnings = output_data["warnings"]
-                if output_data.get("skipped"):
-                    warnings.append(f"{len(output_data['skipped'])} tasks were skipped")
-
-                # Track metrics
-                _metrics.counter(f"git_integration.{tool_name}", labels={
-                    "status": "success",
-                    "dry_run": str(dry_run),
-                    "has_template": str(bool(template)),
-                })
-
-                if warnings:
-                    return asdict(success_response(data, warnings=warnings))
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"git_integration.{tool_name}", labels={"status": "error"})
-
-                # Check for common errors
-                if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
-                        return asdict(error_response(
-                            f"Specification '{spec_id}' not found",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list",
-                        ))
-
-                if "no tasks" in error_msg.lower() or "nothing to journal" in error_msg.lower():
-                    return asdict(success_response({
-                        "spec_id": spec_id,
-                        "tasks_journaled": 0,
-                        "task_ids": [],
-                        "dry_run": dry_run,
-                        "message": "No unjournaled tasks found",
-                    }))
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    f"Failed to bulk journal: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec exists and tasks are valid",
+                    f"Specs directory not found in {ws_path}",
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="SPEC_NOT_FOUND",
+                    error_type="not_found",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
+
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
+
+            # Determine which tasks to journal
+            task_ids: List[str] = []
+            if tasks:
+                # Parse comma-separated task IDs
+                task_ids = [t.strip() for t in tasks.split(",") if t.strip()]
+            else:
+                # Find all unjournaled tasks
+                unjournaled = find_unjournaled_tasks(spec_data)
+                task_ids = [t["task_id"] for t in unjournaled]
+
+            if not task_ids:
+                return asdict(success_response(
+                    spec_id=spec_id,
+                    tasks_journaled=0,
+                    task_ids=[],
+                    dry_run=dry_run,
+                    message="No unjournaled tasks found",
+                ))
+
+            # Build journal entries based on template
+            author = template_author or "claude-code"
+            hierarchy = spec_data.get("hierarchy", {})
+
+            entries: List[Dict[str, Any]] = []
+            for task_id in task_ids:
+                task = hierarchy.get(task_id, {})
+                task_title = task.get("title", task_id)
+
+                # Build entry based on template
+                if template == "completion":
+                    entry = {
+                        "title": f"Completed: {task_title}",
+                        "content": f"Task {task_id} has been completed.",
+                        "entry_type": "status_change",
+                        "task_id": task_id,
+                        "author": author,
+                    }
+                elif template == "decision":
+                    entry = {
+                        "title": f"Decision: {task_title}",
+                        "content": f"Decision made for task {task_id}.",
+                        "entry_type": "decision",
+                        "task_id": task_id,
+                        "author": author,
+                    }
+                elif template == "blocker":
+                    entry = {
+                        "title": f"Blocker: {task_title}",
+                        "content": f"Blocker identified for task {task_id}.",
+                        "entry_type": "blocker",
+                        "task_id": task_id,
+                        "author": author,
+                    }
+                else:
+                    # Default note entry
+                    entry = {
+                        "title": f"Journal: {task_title}",
+                        "content": f"Journal entry for task {task_id}.",
+                        "entry_type": "note",
+                        "task_id": task_id,
+                        "author": author,
+                    }
+                entries.append(entry)
+
+            # If dry run, just return what would be journaled
+            if dry_run:
+                duration_ms = (time.perf_counter() - start_time) * 1000
+                _metrics.counter(f"git_integration.{tool_name}", labels={
+                    "status": "success",
+                    "dry_run": "True",
+                })
+
+                return asdict(success_response(
+                    spec_id=spec_id,
+                    tasks_journaled=len(entries),
+                    task_ids=task_ids,
+                    template_used=template,
+                    dry_run=True,
+                    preview=entries,
+                    duration_ms=round(duration_ms, 2),
+                ))
+
+            # Apply bulk journal entries
+            created_entries = bulk_journal(spec_data, entries)
+
+            # Save the spec
+            if not save_spec(spec_data, spec_file):
+                return asdict(error_response(
+                    "Failed to save spec after journaling",
+                    data={"spec_id": spec_id},
+                ))
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"git_integration.{tool_name}", labels={
+                "status": "success",
+                "dry_run": "False",
+                "has_template": str(bool(template)),
+            })
+            _metrics.timer(f"git_integration.{tool_name}.duration_ms", duration_ms)
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                tasks_journaled=len(created_entries),
+                task_ids=[e.task_id for e in created_entries if e.task_id],
+                template_used=template,
+                dry_run=False,
+                duration_ms=round(duration_ms, 2),
             ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"git_integration.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"git_integration.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+
         except Exception as e:
             logger.exception("Unexpected error in journal-bulk-add")
             _metrics.counter(f"git_integration.{tool_name}", labels={"status": "error"})

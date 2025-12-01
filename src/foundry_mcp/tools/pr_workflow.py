@@ -1,21 +1,16 @@
 """
 PR workflow tools for foundry-mcp.
 
-Provides MCP tools for LLM-powered GitHub PR creation with SDD context.
-Wraps SDD CLI create-pr commands with AI-enhanced PR descriptions.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Graceful degradation when LLM not configured
+Provides MCP tools for GitHub PR creation with SDD spec context.
+Uses direct Python API calls to core modules for progress and journal retrieval.
+PR creation requires external GitHub CLI integration and is not directly supported.
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -23,84 +18,14 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import get_metrics, mcp_tool
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    SLOW_TIMEOUT,
-)
+from foundry_mcp.core.spec import find_specs_directory, load_spec, find_spec_file
+from foundry_mcp.core.progress import get_progress_summary
+from foundry_mcp.core.journal import get_journal_entries, JournalEntry
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for PR workflow tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI PR operations
-_pr_breaker = CircuitBreaker(
-    name="sdd_cli_pr",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for PR operations (120 seconds)
-PR_TIMEOUT: float = SLOW_TIMEOUT
-
-
-def _get_llm_status() -> Dict[str, Any]:
-    """Get LLM configuration status for PR operations."""
-    try:
-        from foundry_mcp.core.llm_config import get_llm_config
-
-        config = get_llm_config()
-        return {
-            "configured": config.get_api_key() is not None,
-            "provider": config.provider.value,
-            "model": config.get_model(),
-        }
-    except ImportError:
-        return {"configured": False, "error": "LLM config not available"}
-    except Exception as e:
-        return {"configured": False, "error": str(e)}
-
-
-def _run_pr_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = PR_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """Execute an SDD PR CLI command with circuit breaker protection."""
-    if not _pr_breaker.can_execute():
-        status = _pr_breaker.get_status()
-        _metrics.counter(f"pr_workflow.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD PR circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_pr",
-            state=_pr_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        if result.returncode == 0:
-            _pr_breaker.record_success()
-        else:
-            _pr_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        _pr_breaker.record_failure()
-        raise
-    finally:
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"pr_workflow.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -156,129 +81,27 @@ def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Requires LLM for enhanced descriptions (falls back to basic if unavailable)
         - Git working tree must be clean or changes staged
         """
-        start_time = time.perf_counter()
-
-        try:
-            llm_status = _get_llm_status()
-
-            # Build command
-            cmd = ["foundry-cli", "create-pr", spec_id, "--json"]
-
-            if title:
-                cmd.extend(["--title", title])
-            cmd.extend(["--base", base_branch])
-
-            if include_journals:
-                cmd.append("--include-journals")
-            if include_diffs:
-                cmd.append("--include-diffs")
-            if model:
-                cmd.extend(["--model", model])
-            if path:
-                cmd.extend(["--path", path])
-            if dry_run:
-                cmd.append("--dry-run")
-
-            # Dry run mode
-            if dry_run:
-                result = _run_pr_command(cmd, "pr-create-with-spec")
-
-                if result.returncode != 0:
-                    error_msg = result.stderr.strip() if result.stderr else "PR preview failed"
-                    return asdict(
-                        error_response(
-                            f"PR preview failed: {error_msg}",
-                            data={"spec_id": spec_id, "exit_code": result.returncode},
-                        )
-                    )
-
-                try:
-                    preview_data = json.loads(result.stdout)
-                except json.JSONDecodeError:
-                    preview_data = {"raw_output": result.stdout}
-
-                duration_ms = (time.perf_counter() - start_time) * 1000
-
-                # Remove spec_id from preview_data if present to avoid duplicate keyword arg
-                preview_data.pop("spec_id", None)
-                return asdict(
-                    success_response(
-                        spec_id=spec_id,
-                        dry_run=True,
-                        llm_status=llm_status,
-                        duration_ms=round(duration_ms, 2),
-                        **preview_data,
-                    )
-                )
-
-            # Execute PR creation
-            result = _run_pr_command(cmd, "pr-create-with-spec")
-
-            if result.returncode != 0:
-                error_msg = result.stderr.strip() if result.stderr else "PR creation failed"
-                return asdict(
-                    error_response(
-                        f"PR creation failed: {error_msg}",
-                        data={"spec_id": spec_id, "exit_code": result.returncode},
-                    )
-                )
-
-            try:
-                pr_data = json.loads(result.stdout)
-            except json.JSONDecodeError:
-                pr_data = {"raw_output": result.stdout}
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.timer(
-                "pr_workflow.pr_create.duration_ms",
-                duration_ms,
-                labels={"include_journals": str(include_journals)},
+        # PR creation requires GitHub CLI integration and LLM-powered description generation.
+        # This functionality is not available as a direct core API.
+        # Use the sdd-toolkit:sdd-pr skill for AI-powered PR creation.
+        return asdict(
+            error_response(
+                "PR creation requires GitHub CLI integration and LLM-powered description generation. "
+                "Use the sdd-toolkit:sdd-pr skill for AI-powered PR creation.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
+                    "spec_id": spec_id,
+                    "title": title,
+                    "base_branch": base_branch,
+                    "dry_run": dry_run,
+                    "alternative": "sdd-toolkit:sdd-pr skill",
+                    "feature_status": "requires_external_integration",
+                },
+                remediation="Use the sdd-toolkit:sdd-pr skill which provides "
+                "GitHub CLI integration and LLM-powered PR description generation.",
             )
-
-            # Remove spec_id from pr_data if present to avoid duplicate keyword arg
-            pr_data.pop("spec_id", None)
-            return asdict(
-                success_response(
-                    spec_id=spec_id,
-                    llm_status=llm_status,
-                    duration_ms=round(duration_ms, 2),
-                    **pr_data,
-                )
-            )
-
-        except CircuitBreakerError as e:
-            return asdict(
-                error_response(
-                    str(e),
-                    data={
-                        "spec_id": spec_id,
-                        "retry_after_seconds": e.retry_after,
-                        "breaker_state": e.state,
-                    },
-                )
-            )
-        except subprocess.TimeoutExpired:
-            return asdict(
-                error_response(
-                    f"PR creation timed out after {PR_TIMEOUT}s",
-                    data={"spec_id": spec_id, "timeout_seconds": PR_TIMEOUT},
-                )
-            )
-        except FileNotFoundError:
-            return asdict(
-                error_response(
-                    "foundry-cli not found. Ensure foundry-mcp is installed and in PATH.",
-                    data={"spec_id": spec_id},
-                )
-            )
-        except Exception as e:
-            logger.exception(f"Error creating PR for {spec_id}")
-            return asdict(
-                error_response(
-                    f"PR creation error: {str(e)}",
-                    data={"spec_id": spec_id, "error_type": type(e).__name__},
-                )
-            )
+        )
 
     @canonical_tool(
         mcp,
@@ -322,64 +145,81 @@ def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
         start_time = time.perf_counter()
 
         try:
-            # Build command to get spec info
-            cmd = ["foundry-cli", "progress", spec_id, "--json"]
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
-            result = _run_pr_command(cmd, "pr-get-spec-context")
-
-            if result.returncode != 0:
-                error_msg = result.stderr.strip() if result.stderr else "Failed to get spec context"
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(
                     error_response(
-                        f"Failed to get spec context: {error_msg}",
-                        data={"spec_id": spec_id},
+                        f"Specs directory not found in {ws_path}",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
                     )
                 )
 
-            try:
-                spec_data = json.loads(result.stdout)
-            except json.JSONDecodeError:
-                spec_data = {}
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(
+                    error_response(
+                        f"Spec '{spec_id}' not found",
+                        data={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+                    )
+                )
 
-            context = {
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
+
+            # Build context response
+            context: Dict[str, Any] = {
                 "spec_id": spec_id,
+                "title": spec_data.get("metadata", {}).get("title", ""),
             }
 
+            # Get progress information
             if include_progress:
+                progress_data = get_progress_summary(spec_data)
                 context["progress"] = {
-                    "total_tasks": spec_data.get("total_tasks", 0),
-                    "completed_tasks": spec_data.get("completed_tasks", 0),
-                    "percentage": spec_data.get("percentage", 0),
-                    "current_phase": spec_data.get("current_phase"),
+                    "total_tasks": progress_data.get("total_tasks", 0),
+                    "completed_tasks": progress_data.get("completed_tasks", 0),
+                    "percentage": progress_data.get("percentage", 0),
+                    "current_phase": progress_data.get("current_phase"),
                 }
+
+            # Get completed tasks if requested
+            if include_tasks:
+                hierarchy = spec_data.get("hierarchy", {})
+                completed_tasks = []
+                for node_id, node in hierarchy.items():
+                    if node.get("type") in ("task", "subtask") and node.get("status") == "completed":
+                        completed_tasks.append({
+                            "task_id": node_id,
+                            "title": node.get("title", ""),
+                            "completed_at": node.get("metadata", {}).get("completed_at", ""),
+                        })
+                context["tasks"] = completed_tasks
 
             # Get journal entries if requested
             if include_journals:
-                journal_cmd = ["foundry-cli", "get-journal", spec_id, "--json"]
-                if path:
-                    journal_cmd.extend(["--path", path])
-
-                try:
-                    journal_result = subprocess.run(
-                        journal_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=30.0,
-                    )
-                    if journal_result.returncode == 0:
-                        try:
-                            journal_data = json.loads(journal_result.stdout)
-                            # Get last 5 entries
-                            entries = journal_data.get("entries", [])[-5:]
-                            context["journals"] = entries
-                        except json.JSONDecodeError:
-                            context["journals"] = []
-                except Exception:
-                    context["journals"] = []
+                journal_entries = get_journal_entries(spec_data, limit=5)
+                context["journals"] = [
+                    {
+                        "timestamp": entry.timestamp,
+                        "entry_type": entry.entry_type,
+                        "title": entry.title,
+                        "task_id": entry.task_id,
+                    }
+                    for entry in journal_entries
+                ]
 
             duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer("pr_workflow.pr_get_spec_context.duration_ms", duration_ms)
 
             return asdict(
                 success_response(
@@ -388,10 +228,6 @@ def register_pr_workflow_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 )
             )
 
-        except CircuitBreakerError as e:
-            return asdict(
-                error_response(str(e), data={"spec_id": spec_id})
-            )
         except Exception as e:
             logger.exception(f"Error getting spec context for {spec_id}")
             return asdict(

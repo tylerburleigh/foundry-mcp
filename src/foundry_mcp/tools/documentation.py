@@ -2,13 +2,11 @@
 Documentation generation tools for foundry-mcp.
 
 Provides MCP tools for generating human-facing documentation bundles
-from SDD specifications. Wraps the `sdd render` CLI to produce markdown
-documentation artifacts, `sdd llm-doc-gen` for AI-enhanced documentation,
-and `sdd fidelity-review` for specification compliance checking.
+from SDD specifications. Uses direct Python API calls to core modules
+for rendering, LLM-powered documentation, and fidelity review operations.
 """
 
 import logging
-import subprocess
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -19,15 +17,8 @@ from mcp.server.fastmcp import FastMCP
 from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    SLOW_TIMEOUT,
-    BACKGROUND_TIMEOUT,
-)
 from foundry_mcp.core.observability import (
     get_metrics,
-    get_audit_logger,
     mcp_tool,
 )
 from foundry_mcp.core.security import (
@@ -35,214 +26,10 @@ from foundry_mcp.core.security import (
     validate_size,
     MAX_STRING_LENGTH,
 )
+from foundry_mcp.core.spec import find_specs_directory, load_spec, find_spec_file
+from foundry_mcp.core.rendering import render_spec_to_markdown, RenderOptions, RenderResult
 
 logger = logging.getLogger(__name__)
-
-# Circuit breaker for documentation generation operations
-_doc_breaker = CircuitBreaker(
-    name="documentation",
-    failure_threshold=3,
-    recovery_timeout=60.0,
-)
-
-# Default timeout for doc generation (can take longer for large specs)
-DOC_GENERATION_TIMEOUT = 120
-
-# LLM doc generation can take much longer due to AI processing
-LLM_DOC_GENERATION_TIMEOUT = 600
-
-# Fidelity review timeout (AI consultation)
-FIDELITY_REVIEW_TIMEOUT = 600
-
-
-def _run_sdd_doc_command(
-    args: List[str],
-    timeout: int = DOC_GENERATION_TIMEOUT,
-) -> Dict[str, Any]:
-    """Run an SDD doc CLI command and return parsed JSON output.
-
-    Args:
-        args: Command arguments to pass to sdd doc CLI
-        timeout: Command timeout in seconds
-
-    Returns:
-        Dict with parsed JSON output or error info
-    """
-    try:
-        result = subprocess.run(
-            ["foundry-cli", "doc"] + args + ["--json"],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        if result.returncode == 0:
-            import json
-
-            try:
-                return {"success": True, "data": json.loads(result.stdout)}
-            except json.JSONDecodeError:
-                return {"success": True, "data": {"raw_output": result.stdout}}
-        else:
-            return {
-                "success": False,
-                "error": result.stderr or result.stdout or "Command failed",
-            }
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"Command timed out after {timeout} seconds",
-        }
-    except FileNotFoundError:
-        return {
-            "success": False,
-            "error": "foundry-cli not found. Ensure foundry-mcp is installed.",
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _run_sdd_render_command(
-    args: List[str],
-    timeout: int = DOC_GENERATION_TIMEOUT,
-) -> Dict[str, Any]:
-    """Run an SDD render CLI command and return parsed JSON output.
-
-    Args:
-        args: Command arguments to pass to sdd render CLI
-        timeout: Command timeout in seconds
-
-    Returns:
-        Dict with parsed JSON output or error info
-    """
-    try:
-        result = subprocess.run(
-            ["foundry-cli", "render"] + args + ["--json"],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        if result.returncode == 0:
-            import json
-
-            try:
-                return {"success": True, "data": json.loads(result.stdout)}
-            except json.JSONDecodeError:
-                return {"success": True, "data": {"raw_output": result.stdout}}
-        else:
-            return {
-                "success": False,
-                "error": result.stderr or result.stdout or "Command failed",
-            }
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"Command timed out after {timeout} seconds",
-        }
-    except FileNotFoundError:
-        return {
-            "success": False,
-            "error": "foundry-cli not found. Ensure foundry-mcp is installed.",
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _run_sdd_llm_doc_gen_command(
-    args: List[str],
-    timeout: int = LLM_DOC_GENERATION_TIMEOUT,
-) -> Dict[str, Any]:
-    """Run an SDD llm-doc-gen CLI command and return parsed JSON output.
-
-    Args:
-        args: Command arguments to pass to sdd llm-doc-gen CLI
-        timeout: Command timeout in seconds (default 600s for LLM processing)
-
-    Returns:
-        Dict with parsed JSON output or error info
-    """
-    try:
-        result = subprocess.run(
-            ["foundry-cli", "llm-doc-gen"] + args + ["--json"],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        if result.returncode == 0:
-            import json
-
-            try:
-                return {"success": True, "data": json.loads(result.stdout)}
-            except json.JSONDecodeError:
-                return {"success": True, "data": {"raw_output": result.stdout}}
-        else:
-            return {
-                "success": False,
-                "error": result.stderr or result.stdout or "Command failed",
-            }
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"LLM doc generation timed out after {timeout} seconds. "
-            "Consider using --resume to continue from checkpoint.",
-        }
-    except FileNotFoundError:
-        return {
-            "success": False,
-            "error": "foundry-cli not found. Ensure foundry-mcp is installed.",
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _run_sdd_fidelity_review_command(
-    args: List[str],
-    timeout: int = FIDELITY_REVIEW_TIMEOUT,
-) -> Dict[str, Any]:
-    """Run an SDD fidelity-review CLI command and return parsed JSON output.
-
-    Args:
-        args: Command arguments to pass to sdd fidelity-review CLI
-        timeout: Command timeout in seconds (default 600s for AI consultation)
-
-    Returns:
-        Dict with parsed JSON output or error info
-    """
-    try:
-        result = subprocess.run(
-            ["foundry-cli", "fidelity-review"] + args + ["--json"],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        if result.returncode == 0:
-            import json
-
-            try:
-                return {"success": True, "data": json.loads(result.stdout)}
-            except json.JSONDecodeError:
-                return {"success": True, "data": {"raw_output": result.stdout}}
-        else:
-            return {
-                "success": False,
-                "error": result.stderr or result.stdout or "Command failed",
-            }
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"Fidelity review timed out after {timeout} seconds. "
-            "Consider reviewing a smaller scope (single task or phase).",
-        }
-    except FileNotFoundError:
-        return {
-            "success": False,
-            "error": "foundry-cli not found. Ensure foundry-mcp is installed.",
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
 
 def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -273,8 +60,8 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         Generate human-facing documentation bundle from a specification.
 
         Creates formatted documentation artifacts (markdown/HTML) from
-        an SDD specification. Wraps `sdd render` to produce documentation
-        suitable for stakeholders, project tracking, and archive.
+        an SDD specification. Produces documentation suitable for
+        stakeholders, project tracking, and archive.
 
         Args:
             spec_id: Specification ID to document
@@ -302,26 +89,6 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         start_time = time.perf_counter()
 
         try:
-            # Circuit breaker check
-            if not _doc_breaker.can_execute():
-                status = _doc_breaker.get_status()
-                metrics.counter(
-                    "documentation.circuit_breaker_open",
-                    labels={"tool": "spec-doc"},
-                )
-                return asdict(
-                    error_response(
-                        "Documentation generation temporarily unavailable",
-                        error_code="UNAVAILABLE",
-                        error_type="unavailable",
-                        data={
-                            "retry_after_seconds": status.get("retry_after_seconds"),
-                            "breaker_state": status.get("state"),
-                        },
-                        remediation="Wait and retry. The service is recovering from errors.",
-                    )
-                )
-
             # Validate output_format
             if output_format not in ("markdown", "md"):
                 return asdict(
@@ -365,17 +132,62 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         )
                     )
 
-            # Build command arguments for sdd render
-            cmd_args = [spec_id, "--format", output_format, "--mode", mode]
+            # Resolve workspace and find spec
+            ws_path = Path(workspace) if workspace else Path.cwd()
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-doc", "error_type": "specs_dir_not_found"},
+                )
+                return asdict(
+                    error_response(
+                        "Could not find specs directory",
+                        error_code="SPECS_DIR_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Ensure you're in a project with a specs/ directory",
+                    )
+                )
 
+            # Find and load the spec
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-doc", "error_type": "not_found"},
+                )
+                return asdict(
+                    error_response(
+                        f"Specification not found: {spec_id}",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list.",
+                    )
+                )
+
+            spec_data = load_spec(spec_file)
+
+            # Build render options
+            render_options = RenderOptions(
+                mode=mode,
+                include_progress=include_progress,
+                include_journal=include_journal,
+            )
+
+            # Render the spec to markdown
+            render_result: RenderResult = render_spec_to_markdown(spec_data, render_options)
+
+            # Determine output path
             if output_path:
-                cmd_args.extend(["--output", output_path])
+                final_output_path = Path(output_path)
+            else:
+                human_readable_dir = specs_dir / ".human-readable"
+                human_readable_dir.mkdir(parents=True, exist_ok=True)
+                final_output_path = human_readable_dir / f"{spec_id}.md"
 
-            if workspace:
-                cmd_args.extend(["--path", workspace])
-
-            # Execute render command
-            result = _run_sdd_render_command(cmd_args)
+            # Write the documentation
+            final_output_path.parent.mkdir(parents=True, exist_ok=True)
+            final_output_path.write_text(render_result.markdown, encoding="utf-8")
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             metrics.timer(
@@ -384,38 +196,6 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 labels={"mode": mode, "format": output_format},
             )
 
-            if not result["success"]:
-                _doc_breaker.record_failure()
-
-                # Check for specific error patterns
-                error_msg = result["error"]
-                if "not found" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-doc", "error_type": "not_found"},
-                    )
-                    return asdict(
-                        error_response(
-                            f"Specification not found: {spec_id}",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list.",
-                        )
-                    )
-
-                if "timed out" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-doc", "error_type": "timeout"},
-                    )
-
-                metrics.counter(
-                    "documentation.errors",
-                    labels={"tool": "spec-doc", "error_type": "command_failure"},
-                )
-                return asdict(error_response(error_msg))
-
-            _doc_breaker.record_success()
             metrics.counter(
                 "documentation.success",
                 labels={"tool": "spec-doc", "mode": mode, "format": output_format},
@@ -425,35 +205,25 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 extra={"spec_id": spec_id, "duration_ms": round(duration_ms, 2)},
             )
 
-            # Parse the successful response
-            doc_data = result["data"]
-
             # Build response with documentation metadata
-            response_data = {
+            response_data: Dict[str, Any] = {
                 "spec_id": spec_id,
                 "format": output_format,
                 "mode": mode,
-                "output_path": doc_data.get(
-                    "output_path",
-                    f"specs/.human-readable/{spec_id}.md",
-                ),
+                "output_path": str(final_output_path),
+                "title": render_result.title,
+                "stats": {
+                    "total_tasks": render_result.total_tasks,
+                    "completed_tasks": render_result.completed_tasks,
+                    "total_sections": render_result.total_sections,
+                },
             }
 
-            # Add optional fields if present
-            if "title" in doc_data:
-                response_data["title"] = doc_data["title"]
-
-            if "stats" in doc_data:
-                response_data["stats"] = doc_data["stats"]
-            elif "total_tasks" in doc_data:
-                response_data["stats"] = {
-                    "total_tasks": doc_data.get("total_tasks", 0),
-                    "completed_tasks": doc_data.get("completed_tasks", 0),
-                    "total_sections": doc_data.get("total_sections", 0),
-                }
-
-            if include_progress and "progress_percentage" in doc_data:
-                response_data["progress_percentage"] = doc_data["progress_percentage"]
+            # Add progress percentage if requested
+            if include_progress and render_result.total_tasks > 0:
+                response_data["progress_percentage"] = round(
+                    (render_result.completed_tasks / render_result.total_tasks) * 100, 1
+                )
 
             return asdict(
                 success_response(
@@ -462,20 +232,25 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 )
             )
 
-        except CircuitBreakerError as e:
-            logger.warning(f"Circuit breaker open for documentation: {e}")
+        except PermissionError as e:
+            metrics.counter(
+                "documentation.errors",
+                labels={"tool": "spec-doc", "error_type": "permission"},
+            )
             return asdict(
                 error_response(
-                    "Documentation generation temporarily unavailable",
-                    error_code="UNAVAILABLE",
-                    error_type="unavailable",
-                    data={"retry_after_seconds": e.retry_after},
-                    remediation="Wait and retry. The service is recovering from errors.",
+                    f"Permission denied writing documentation: {str(e)}",
+                    error_code="PERMISSION_DENIED",
+                    error_type="validation",
+                    remediation="Check file permissions for the output path.",
                 )
             )
         except Exception as e:
-            _doc_breaker.record_failure()
             logger.error(f"Error generating documentation: {e}")
+            metrics.counter(
+                "documentation.errors",
+                labels={"tool": "spec-doc", "error_type": "internal"},
+            )
             return asdict(
                 error_response(
                     str(e),
@@ -532,29 +307,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Document complex projects with architectural insights
         - Resume interrupted documentation generation
         """
-        start_time = time.perf_counter()
-
         try:
-            # Circuit breaker check
-            if not _doc_breaker.can_execute():
-                status = _doc_breaker.get_status()
-                metrics.counter(
-                    "documentation.circuit_breaker_open",
-                    labels={"tool": "spec-doc-llm"},
-                )
-                return asdict(
-                    error_response(
-                        "LLM documentation generation temporarily unavailable",
-                        error_code="UNAVAILABLE",
-                        error_type="unavailable",
-                        data={
-                            "retry_after_seconds": status.get("retry_after_seconds"),
-                            "breaker_state": status.get("state"),
-                        },
-                        remediation="Wait and retry. The service is recovering from errors.",
-                    )
-                )
-
             # Validate directory
             if not directory:
                 return asdict(
@@ -614,147 +367,60 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         )
                     )
 
-            # Build command arguments for sdd llm-doc-gen generate
-            cmd_args = ["generate", directory]
-
-            if output_dir:
-                cmd_args.extend(["--output-dir", output_dir])
-
-            if name:
-                cmd_args.extend(["--name", name])
-
-            if description:
-                cmd_args.extend(["--description", description])
-
-            cmd_args.extend(["--batch-size", str(batch_size)])
-
-            if use_cache:
-                cmd_args.append("--cache")
-
-            if resume:
-                cmd_args.append("--resume")
-
-            if clear_cache:
-                cmd_args.append("--clear-cache")
-
-            if workspace:
-                cmd_args.extend(["--path", workspace])
-
-            # Execute LLM doc generation command
-            result = _run_sdd_llm_doc_gen_command(cmd_args)
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            duration_seconds = duration_ms / 1000
-            metrics.timer(
-                "documentation.spec_doc_llm_time",
-                duration_ms,
-                labels={"batch_size": str(batch_size), "cached": str(use_cache)},
-            )
-
-            if not result["success"]:
-                _doc_breaker.record_failure()
-
-                # Check for specific error patterns
-                error_msg = result["error"]
-                if "not found" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-doc-llm", "error_type": "not_found"},
-                    )
-                    return asdict(
-                        error_response(
-                            f"Directory not found: {directory}",
-                            error_code="NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the directory path exists.",
-                        )
-                    )
-
-                if "timed out" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-doc-llm", "error_type": "timeout"},
-                    )
-                    return asdict(
-                        error_response(
-                            error_msg,
-                            error_code="UNAVAILABLE",
-                            error_type="unavailable",
-                            data={"can_resume": True},
-                            remediation="Use resume=True to continue from checkpoint.",
-                        )
-                    )
-
+            # Validate directory exists
+            dir_path = Path(directory)
+            if not dir_path.exists():
                 metrics.counter(
                     "documentation.errors",
-                    labels={"tool": "spec-doc-llm", "error_type": "command_failure"},
+                    labels={"tool": "spec-doc-llm", "error_type": "not_found"},
                 )
-                return asdict(error_response(error_msg))
+                return asdict(
+                    error_response(
+                        f"Directory not found: {directory}",
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the directory path exists.",
+                    )
+                )
 
-            _doc_breaker.record_success()
+            if not dir_path.is_dir():
+                return asdict(
+                    error_response(
+                        f"Path is not a directory: {directory}",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Provide a valid directory path.",
+                    )
+                )
+
+            # LLM doc generation requires external LLM integration
+            # Return informative response about feature status
             metrics.counter(
-                "documentation.success",
-                labels={
-                    "tool": "spec-doc-llm",
-                    "batch_size": str(batch_size),
-                    "cached": str(use_cache),
-                },
+                "documentation.errors",
+                labels={"tool": "spec-doc-llm", "error_type": "not_implemented"},
             )
-            logger.info(
-                f"spec-doc-llm completed for {directory}",
-                extra={
-                    "directory": directory,
-                    "duration_ms": round(duration_ms, 2),
-                    "batch_size": batch_size,
-                },
-            )
-
-            # Parse the successful response
-            doc_data = result["data"]
-
-            # Build response with documentation metadata
-            response_data = {
-                "directory": directory,
-                "output_dir": doc_data.get("output_dir", output_dir or "./docs"),
-                "duration_seconds": round(duration_seconds, 2),
-            }
-
-            # Add optional fields if present
-            if "project_name" in doc_data:
-                response_data["project_name"] = doc_data["project_name"]
-            elif name:
-                response_data["project_name"] = name
-
-            if "files_generated" in doc_data:
-                response_data["files_generated"] = doc_data["files_generated"]
-
-            if "total_shards" in doc_data:
-                response_data["total_shards"] = doc_data["total_shards"]
-
-            if "stats" in doc_data:
-                response_data["stats"] = doc_data["stats"]
-
-            return asdict(
-                success_response(
-                    **response_data,
-                    telemetry={"duration_ms": round(duration_ms, 2)},
-                )
-            )
-
-        except CircuitBreakerError as e:
-            logger.warning(f"Circuit breaker open for LLM documentation: {e}")
             return asdict(
                 error_response(
-                    "LLM documentation generation temporarily unavailable",
-                    error_code="UNAVAILABLE",
+                    "LLM documentation generation requires external LLM integration. "
+                    "Use the sdd-toolkit:llm-doc-gen skill for AI-powered documentation.",
+                    error_code="NOT_IMPLEMENTED",
                     error_type="unavailable",
-                    data={"retry_after_seconds": e.retry_after},
-                    remediation="Wait and retry. The service is recovering from errors.",
+                    data={
+                        "directory": directory,
+                        "alternative": "sdd-toolkit:llm-doc-gen skill",
+                        "feature_status": "requires_llm_integration",
+                    },
+                    remediation="Use the sdd-toolkit:llm-doc-gen skill which provides "
+                    "LLM-powered documentation generation with proper AI integration.",
                 )
             )
+
         except Exception as e:
-            _doc_breaker.record_failure()
-            logger.error(f"Error generating LLM documentation: {e}")
+            logger.error(f"Error in spec-doc-llm: {e}")
+            metrics.counter(
+                "documentation.errors",
+                labels={"tool": "spec-doc-llm", "error_type": "internal"},
+            )
             return asdict(
                 error_response(
                     str(e),
@@ -818,29 +484,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Review completed tasks/phases for compliance
         - Generate fidelity reports for documentation
         """
-        start_time = time.perf_counter()
-
         try:
-            # Circuit breaker check
-            if not _doc_breaker.can_execute():
-                status = _doc_breaker.get_status()
-                metrics.counter(
-                    "documentation.circuit_breaker_open",
-                    labels={"tool": "spec-review-fidelity"},
-                )
-                return asdict(
-                    error_response(
-                        "Fidelity review temporarily unavailable",
-                        error_code="UNAVAILABLE",
-                        error_type="unavailable",
-                        data={
-                            "retry_after_seconds": status.get("retry_after_seconds"),
-                            "breaker_state": status.get("state"),
-                        },
-                        remediation="Wait and retry. The service is recovering from errors.",
-                    )
-                )
-
             # Validate spec_id
             if not spec_id:
                 return asdict(
@@ -914,169 +558,73 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             )
                         )
 
-            # Build command arguments
-            cmd_args = [spec_id]
-
-            if task_id:
-                cmd_args.extend(["--task", task_id])
-            elif phase_id:
-                cmd_args.extend(["--phase", phase_id])
-
-            if files:
-                cmd_args.extend(["--files"] + files)
-
-            if not use_ai:
-                cmd_args.append("--no-ai")
-            else:
-                if ai_tools:
-                    cmd_args.extend(["--ai-tools"] + ai_tools)
-                if model:
-                    cmd_args.extend(["--model", model])
-
-            cmd_args.extend(["--consensus-threshold", str(consensus_threshold)])
-
-            if incremental:
-                cmd_args.append("--incremental")
-
-            if not include_tests:
-                cmd_args.append("--no-tests")
-
-            cmd_args.extend(["--base-branch", base_branch])
-
-            if workspace:
-                cmd_args.extend(["--path", workspace])
-
-            # Execute fidelity review command
-            result = _run_sdd_fidelity_review_command(cmd_args)
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            metrics.timer(
-                "documentation.fidelity_review_time",
-                duration_ms,
-                labels={
-                    "scope": "task" if task_id else ("phase" if phase_id else "spec"),
-                    "ai_enabled": str(use_ai),
-                },
-            )
-
-            if not result["success"]:
-                _doc_breaker.record_failure()
-
-                # Check for specific error patterns
-                error_msg = result["error"]
-                if "not found" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-review-fidelity", "error_type": "not_found"},
-                    )
-                    return asdict(
-                        error_response(
-                            f"Specification not found: {spec_id}",
-                            error_code="SPEC_NOT_FOUND",
-                            error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list.",
-                        )
-                    )
-
-                if "timed out" in error_msg.lower():
-                    metrics.counter(
-                        "documentation.errors",
-                        labels={"tool": "spec-review-fidelity", "error_type": "timeout"},
-                    )
-                    return asdict(
-                        error_response(
-                            error_msg,
-                            error_code="UNAVAILABLE",
-                            error_type="unavailable",
-                            remediation="Try reviewing a smaller scope (single task or phase).",
-                        )
-                    )
-
+            # Resolve workspace and find spec
+            ws_path = Path(workspace) if workspace else Path.cwd()
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 metrics.counter(
                     "documentation.errors",
-                    labels={"tool": "spec-review-fidelity", "error_type": "command_failure"},
+                    labels={"tool": "spec-review-fidelity", "error_type": "specs_dir_not_found"},
                 )
-                return asdict(error_response(error_msg))
+                return asdict(
+                    error_response(
+                        "Could not find specs directory",
+                        error_code="SPECS_DIR_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Ensure you're in a project with a specs/ directory",
+                    )
+                )
 
-            _doc_breaker.record_success()
+            # Find the spec file to validate it exists
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-review-fidelity", "error_type": "not_found"},
+                )
+                return asdict(
+                    error_response(
+                        f"Specification not found: {spec_id}",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the spec ID exists using spec-list.",
+                    )
+                )
 
-            # Parse the successful response
-            review_data = result["data"]
-
-            # Determine scope
+            # Determine scope for informative response
             scope = "task" if task_id else ("phase" if phase_id else "spec")
 
+            # Fidelity review requires external AI consultation
+            # Return informative response about feature status
             metrics.counter(
-                "documentation.success",
-                labels={
-                    "tool": "spec-review-fidelity",
-                    "scope": scope,
-                    "ai_enabled": str(use_ai),
-                },
+                "documentation.errors",
+                labels={"tool": "spec-review-fidelity", "error_type": "not_implemented"},
             )
-            logger.info(
-                f"spec-review-fidelity completed for {spec_id}",
-                extra={
-                    "spec_id": spec_id,
-                    "scope": scope,
-                    "duration_ms": round(duration_ms, 2),
-                    "ai_enabled": use_ai,
-                },
-            )
-
-            # Build response with review results
-            response_data = {
-                "spec_id": spec_id,
-                "scope": scope,
-            }
-
-            if task_id:
-                response_data["task_id"] = task_id
-            elif phase_id:
-                response_data["phase_id"] = phase_id
-
-            # Add review results
-            if "verdict" in review_data:
-                response_data["verdict"] = review_data["verdict"]
-            elif "consensus" in review_data:
-                response_data["verdict"] = review_data["consensus"].get("verdict", "unknown")
-
-            if "deviations" in review_data:
-                response_data["deviations"] = review_data["deviations"]
-
-            if "recommendations" in review_data:
-                response_data["recommendations"] = review_data["recommendations"]
-
-            if "consensus" in review_data:
-                response_data["consensus"] = review_data["consensus"]
-
-            if "issue_counts" in review_data:
-                response_data["issue_counts"] = review_data["issue_counts"]
-
-            if "artifacts" in review_data:
-                response_data["artifacts"] = review_data["artifacts"]
-
-            return asdict(
-                success_response(
-                    **response_data,
-                    telemetry={"duration_ms": round(duration_ms, 2)},
-                )
-            )
-
-        except CircuitBreakerError as e:
-            logger.warning(f"Circuit breaker open for fidelity review: {e}")
             return asdict(
                 error_response(
-                    "Fidelity review temporarily unavailable",
-                    error_code="UNAVAILABLE",
+                    "Fidelity review requires external AI consultation. "
+                    "Use the sdd-toolkit:sdd-fidelity-review skill for AI-powered compliance checking.",
+                    error_code="NOT_IMPLEMENTED",
                     error_type="unavailable",
-                    data={"retry_after_seconds": e.retry_after},
-                    remediation="Wait and retry. The service is recovering from errors.",
+                    data={
+                        "spec_id": spec_id,
+                        "scope": scope,
+                        "task_id": task_id,
+                        "phase_id": phase_id,
+                        "alternative": "sdd-toolkit:sdd-fidelity-review skill",
+                        "feature_status": "requires_ai_integration",
+                    },
+                    remediation="Use the sdd-toolkit:sdd-fidelity-review skill which provides "
+                    "AI-powered fidelity review with proper multi-model consultation.",
                 )
             )
+
         except Exception as e:
-            _doc_breaker.record_failure()
-            logger.error(f"Error performing fidelity review: {e}")
+            logger.error(f"Error in spec-review-fidelity: {e}")
+            metrics.counter(
+                "documentation.errors",
+                labels={"tool": "spec-review-fidelity", "error_type": "internal"},
+            )
             return asdict(
                 error_response(
                     str(e),

@@ -2,21 +2,19 @@
 Authoring tools for foundry-mcp.
 
 Provides MCP tools for creating and modifying SDD specifications.
-These tools wrap SDD CLI commands for spec creation, task management,
-and metadata operations.
+These tools use the core library APIs directly for spec creation,
+task management, and metadata operations.
 
 Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
 - Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+- Input validation for all parameters
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -24,88 +22,25 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
+from foundry_mcp.core.spec import (
+    find_specs_directory,
+    create_spec,
+    add_assumption,
+    list_assumptions,
+    add_revision,
+    update_frontmatter,
+    TEMPLATES,
+    CATEGORIES,
+)
+from foundry_mcp.core.task import (
+    add_task,
+    remove_task,
 )
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for authoring tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli_authoring",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"authoring.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_authoring",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -121,7 +56,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="spec-create",
     )
-    def spec_create(
+    def spec_create_tool(
         name: str,
         template: Optional[str] = None,
         category: Optional[str] = None,
@@ -130,9 +65,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Scaffold a brand-new SDD specification from scratch.
 
-        Wraps the SDD CLI create command to generate a new specification file
-        with the default hierarchy structure. The specification will be created
-        in the specs/pending directory.
+        Generates a new specification file with the default hierarchy structure.
+        The specification will be created in the specs/pending directory.
 
         WHEN TO USE:
         - Starting a new feature implementation
@@ -155,32 +89,40 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - structure: Overview of the generated spec structure
         """
         tool_name = "spec_create"
+        start_time = time.perf_counter()
+
         try:
-            # Build command
-            cmd = ["foundry-cli", "create", name, "--json"]
+            # Validate required parameters
+            if not name:
+                return asdict(error_response(
+                    "name is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a specification name",
+                ))
 
-            if template:
-                if template not in ("simple", "medium", "complex", "security"):
-                    return asdict(error_response(
-                        f"Invalid template '{template}'. Must be one of: simple, medium, complex, security",
-                        error_code="VALIDATION_ERROR",
-                        error_type="validation",
-                        remediation="Use one of: simple, medium, complex, security",
-                    ))
-                cmd.extend(["--template", template])
+            # Validate template if provided
+            effective_template = template or "medium"
+            if effective_template not in TEMPLATES:
+                return asdict(error_response(
+                    f"Invalid template '{effective_template}'. Must be one of: {', '.join(TEMPLATES)}",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation=f"Use one of: {', '.join(TEMPLATES)}",
+                ))
 
-            if category:
-                if category not in ("investigation", "implementation", "refactoring", "decision", "research"):
-                    return asdict(error_response(
-                        f"Invalid category '{category}'. Must be one of: investigation, implementation, refactoring, decision, research",
-                        error_code="VALIDATION_ERROR",
-                        error_type="validation",
-                        remediation="Use one of: investigation, implementation, refactoring, decision, research",
-                    ))
-                cmd.extend(["--category", category])
+            # Validate category if provided
+            effective_category = category or "implementation"
+            if effective_category not in CATEGORIES:
+                return asdict(error_response(
+                    f"Invalid category '{effective_category}'. Must be one of: {', '.join(CATEGORIES)}",
+                    error_code="VALIDATION_ERROR",
+                    error_type="validation",
+                    remediation=f"Use one of: {', '.join(CATEGORIES)}",
+                ))
 
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -188,51 +130,27 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 tool="spec-create",
                 action="create_spec",
                 name=name,
-                template=template,
-                category=category,
+                template=effective_template,
+                category=effective_category,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Call the core function
+            result, error = create_spec(
+                name=name,
+                template=effective_template,
+                category=effective_category,
+                specs_dir=specs_dir,
+            )
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": output_data.get("spec_id", output_data.get("id")),
-                    "spec_path": output_data.get("spec_path", output_data.get("path")),
-                    "template": template or "medium",
-                    "name": name,
-                }
-
-                if category:
-                    data["category"] = category
-
-                # Include structure info if available
-                if "structure" in output_data:
-                    data["structure"] = output_data["structure"]
-                elif "phases" in output_data:
-                    data["structure"] = {
-                        "phases": len(output_data.get("phases", [])),
-                        "tasks": output_data.get("task_count", 0),
-                    }
-
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
                 # Check for common errors
-                if "already exists" in error_msg.lower():
+                if "already exists" in error.lower():
                     return asdict(error_response(
                         f"A specification with name '{name}' already exists",
                         error_code="DUPLICATE_ENTRY",
@@ -240,36 +158,41 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         remediation="Use a different name or update the existing spec",
                     ))
 
+                if "no specs directory" in error.lower():
+                    return asdict(error_response(
+                        error,
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Create a specs directory or provide a valid path",
+                    ))
+
                 return asdict(error_response(
-                    f"Failed to create specification: {error_msg}",
+                    f"Failed to create specification: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
-                    remediation="Check that the SDD CLI is available and the project path is valid",
+                    remediation="Check that the project path is valid",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data: Dict[str, Any] = {
+                "spec_id": result.get("spec_id"),
+                "spec_path": result.get("spec_path"),
+                "template": effective_template,
+                "name": name,
+            }
+
+            if category:
+                data["category"] = effective_category
+
+            # Include structure info if available
+            if "structure" in result:
+                data["structure"] = result["structure"]
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-create")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -284,7 +207,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="spec-template",
     )
-    def spec_template(
+    def spec_template_tool(
         action: str,
         template_name: Optional[str] = None,
         path: Optional[str] = None,
@@ -292,9 +215,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Emit opinionated templates/snippets for spec sections.
 
-        Wraps the SDD CLI template command to list available templates,
-        show template contents, or apply templates to generate spec sections.
-        Provides phase, task, and subtask templates for common patterns.
+        Lists available templates, shows template contents, or provides
+        template information for spec sections.
 
         WHEN TO USE:
         - Discovering available spec templates
@@ -314,6 +236,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - For 'apply': generated content and instructions
         """
         tool_name = "spec_template"
+        start_time = time.perf_counter()
+
         try:
             # Validate action
             valid_actions = ("list", "show", "apply")
@@ -334,15 +258,6 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a template_name parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "template", action, "--json"]
-
-            if template_name:
-                cmd.append(template_name)
-
-            if path:
-                cmd.extend(["--path", path])
-
             # Log the operation
             audit_log(
                 "tool_invocation",
@@ -351,81 +266,62 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 template_name=template_name,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # Build response based on action
+            data: Dict[str, Any] = {
+                "action": action,
+            }
 
-                # Build response based on action
-                data: Dict[str, Any] = {
-                    "action": action,
-                }
-
-                if action == "list":
-                    data["templates"] = output_data.get("templates", [])
-                    data["total_count"] = len(data["templates"])
-                elif action == "show":
-                    data["template_name"] = template_name
-                    data["content"] = output_data.get("content", output_data.get("template", {}))
-                    data["description"] = output_data.get("description", "")
-                elif action == "apply":
-                    data["template_name"] = template_name
-                    data["generated"] = output_data.get("generated", output_data.get("content", {}))
-                    data["instructions"] = output_data.get("instructions", "")
-
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "action": action})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "error", "action": action})
-
-                # Check for common errors
-                if "not found" in error_msg.lower() and template_name:
+            if action == "list":
+                # Return list of available templates
+                data["templates"] = [
+                    {"name": "simple", "description": "Minimal spec with 1 phase and basic tasks"},
+                    {"name": "medium", "description": "Standard spec with 2-3 phases (default)"},
+                    {"name": "complex", "description": "Multi-phase spec with groups and subtasks"},
+                    {"name": "security", "description": "Security-focused spec with audit tasks"},
+                ]
+                data["total_count"] = len(data["templates"])
+            elif action == "show":
+                # Validate template exists
+                if template_name not in TEMPLATES:
+                    _metrics.counter(f"authoring.{tool_name}", labels={"status": "error", "action": action})
                     return asdict(error_response(
                         f"Template '{template_name}' not found",
                         error_code="NOT_FOUND",
                         error_type="not_found",
-                        remediation="Use 'list' action to see available templates",
+                        remediation=f"Use 'list' action to see available templates. Valid: {', '.join(TEMPLATES)}",
                     ))
+                data["template_name"] = template_name
+                data["content"] = {
+                    "name": template_name,
+                    "description": f"Template structure for '{template_name}' specs",
+                    "usage": f"Use spec-create with template='{template_name}' to create a spec from this template",
+                }
+            elif action == "apply":
+                # Validate template exists
+                if template_name not in TEMPLATES:
+                    _metrics.counter(f"authoring.{tool_name}", labels={"status": "error", "action": action})
+                    return asdict(error_response(
+                        f"Template '{template_name}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation=f"Use 'list' action to see available templates. Valid: {', '.join(TEMPLATES)}",
+                    ))
+                data["template_name"] = template_name
+                data["generated"] = {
+                    "template": template_name,
+                    "message": f"Use spec-create with template='{template_name}' to create a new spec",
+                }
+                data["instructions"] = f"Call spec-create with name='your-spec-name' and template='{template_name}'"
 
-                return asdict(error_response(
-                    f"Failed to execute template action: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the SDD CLI is available",
-                ))
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "action": action})
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-template")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -440,7 +336,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="task-add",
     )
-    def task_add(
+    def task_add_tool(
         spec_id: str,
         parent: str,
         title: str,
@@ -454,9 +350,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Add a new task to an SDD specification.
 
-        Wraps the SDD CLI add-task command to insert a new task node into the
-        specification hierarchy. Tasks can be added as children of phases or
-        other tasks.
+        Inserts a new task node into the specification hierarchy. Tasks can be
+        added as children of phases or other tasks.
 
         WHEN TO USE:
         - Adding new work items to an existing specification
@@ -472,7 +367,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             task_type: Task type (task, subtask, verify). Default: task
             hours: Estimated hours for the task
             position: Position in parent's children list (0-based)
-            dry_run: Preview changes without saving
+            dry_run: Preview changes without saving (not supported in direct API)
             path: Project root path (default: current directory)
 
         Returns:
@@ -485,6 +380,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "task_add"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -512,34 +409,17 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 ))
 
             # Validate task_type if provided
-            if task_type and task_type not in ("task", "subtask", "verify"):
+            effective_task_type = task_type or "task"
+            if effective_task_type not in ("task", "subtask", "verify"):
                 return asdict(error_response(
-                    f"Invalid task_type '{task_type}'. Must be one of: task, subtask, verify",
+                    f"Invalid task_type '{effective_task_type}'. Must be one of: task, subtask, verify",
                     error_code="VALIDATION_ERROR",
                     error_type="validation",
                     remediation="Use one of: task, subtask, verify",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "add-task", spec_id, "--parent", parent, "--title", title, "--json"]
-
-            if description:
-                cmd.extend(["--description", description])
-
-            if task_type:
-                cmd.extend(["--type", task_type])
-
-            if hours is not None:
-                cmd.extend(["--hours", str(hours)])
-
-            if position is not None:
-                cmd.extend(["--position", str(position)])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -552,53 +432,48 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "task_id": output_data.get("task_id", output_data.get("id")),
+            # Note: dry_run is not supported in direct API - document this
+            if dry_run:
+                # Return preview without actually adding
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "dry_run": "true"})
+                return asdict(success_response({
+                    "task_id": "(preview)",
                     "parent": parent,
                     "title": title,
-                    "type": task_type or "task",
-                    "dry_run": dry_run,
-                }
+                    "type": effective_task_type,
+                    "dry_run": True,
+                    "note": "Dry run - no changes made",
+                }))
 
-                if position is not None:
-                    data["position"] = position
+            # Call the core function
+            result, error = add_task(
+                spec_id=spec_id,
+                parent_id=parent,
+                title=title,
+                description=description,
+                task_type=effective_task_type,
+                estimated_hours=hours,
+                position=position,
+                specs_dir=specs_dir,
+            )
 
-                if description:
-                    data["description"] = description
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-                if hours is not None:
-                    data["hours"] = hours
-
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "dry_run": str(dry_run)})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
                 # Check for common errors
-                if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
+                if "not found" in error.lower():
+                    if "spec" in error.lower():
                         return asdict(error_response(
                             f"Specification '{spec_id}' not found",
                             error_code="SPEC_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the spec ID exists using spec-list",
                         ))
-                    elif "parent" in error_msg.lower() or parent in error_msg:
+                    elif "parent" in error.lower() or parent in error:
                         return asdict(error_response(
                             f"Parent node '{parent}' not found in spec",
                             error_code="NOT_FOUND",
@@ -607,35 +482,35 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         ))
 
                 return asdict(error_response(
-                    f"Failed to add task: {error_msg}",
+                    f"Failed to add task: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec and parent node exist",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data: Dict[str, Any] = {
+                "task_id": result.get("task_id"),
+                "parent": parent,
+                "title": title,
+                "type": effective_task_type,
+                "dry_run": False,
+            }
+
+            if position is not None:
+                data["position"] = position
+
+            if description:
+                data["description"] = description
+
+            if hours is not None:
+                data["hours"] = hours
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "dry_run": "false"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in task-add")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -650,7 +525,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="task-remove",
     )
-    def task_remove(
+    def task_remove_tool(
         spec_id: str,
         task_id: str,
         cascade: bool = False,
@@ -660,8 +535,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Remove a task from an SDD specification.
 
-        Wraps the SDD CLI remove-task command to delete a task node from the
-        specification hierarchy. Can optionally cascade to remove child tasks.
+        Deletes a task node from the specification hierarchy. Can optionally
+        cascade to remove child tasks.
 
         WHEN TO USE:
         - Removing work items that are no longer needed
@@ -673,7 +548,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             spec_id: Specification ID containing the task
             task_id: Task ID to remove
             cascade: Also remove all child tasks recursively
-            dry_run: Preview changes without saving
+            dry_run: Preview changes without saving (not supported in direct API)
             path: Project root path (default: current directory)
 
         Returns:
@@ -685,6 +560,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "task_remove"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -703,17 +580,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a task_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "remove-task", spec_id, task_id, "--json"]
-
-            if cascade:
-                cmd.append("--cascade")
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -726,39 +594,36 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
+            # Note: dry_run is not supported in direct API - document this
+            if dry_run:
+                # Return preview without actually removing
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "cascade": str(cascade)})
+                return asdict(success_response({
                     "task_id": task_id,
                     "spec_id": spec_id,
                     "cascade": cascade,
-                    "dry_run": dry_run,
-                }
+                    "dry_run": True,
+                    "note": "Dry run - no changes made",
+                }))
 
-                if cascade:
-                    data["children_removed"] = output_data.get("children_removed", 0)
+            # Call the core function
+            result, error = remove_task(
+                spec_id=spec_id,
+                task_id=task_id,
+                cascade=cascade,
+                specs_dir=specs_dir,
+            )
 
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "cascade": str(cascade)})
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
                 # Check for common errors
-                if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
+                if "not found" in error.lower():
+                    if "spec" in error.lower():
                         return asdict(error_response(
                             f"Specification '{spec_id}' not found",
                             error_code="SPEC_NOT_FOUND",
@@ -773,7 +638,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             remediation="Verify the task ID exists in the specification",
                         ))
 
-                if "has children" in error_msg.lower():
+                if "has children" in error.lower() or "has" in error.lower() and "children" in error.lower():
                     return asdict(error_response(
                         f"Task '{task_id}' has children. Use cascade=True to remove recursively",
                         error_code="CONFLICT",
@@ -782,35 +647,28 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     ))
 
                 return asdict(error_response(
-                    f"Failed to remove task: {error_msg}",
+                    f"Failed to remove task: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec and task exist",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data: Dict[str, Any] = {
+                "task_id": task_id,
+                "spec_id": spec_id,
+                "cascade": cascade,
+                "dry_run": False,
+            }
+
+            if cascade:
+                data["children_removed"] = result.get("children_removed", 0)
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success", "cascade": str(cascade)})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in task-remove")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -825,7 +683,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="assumption-add",
     )
-    def assumption_add(
+    def assumption_add_tool(
         spec_id: str,
         text: str,
         assumption_type: Optional[str] = None,
@@ -836,9 +694,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Add an assumption to an SDD specification.
 
-        Wraps the SDD CLI add-assumption command to append assumptions to
-        the spec's assumptions array. Assumptions document constraints and
-        requirements that inform the implementation.
+        Appends assumptions to the spec's assumptions array. Assumptions document
+        constraints and requirements that inform the implementation.
 
         WHEN TO USE:
         - Documenting project constraints
@@ -851,7 +708,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             text: Assumption text/description
             assumption_type: Type of assumption (constraint, requirement)
             author: Author who added the assumption
-            dry_run: Preview assumption without saving
+            dry_run: Preview assumption without saving (not supported in direct API)
             path: Project root path (default: current directory)
 
         Returns:
@@ -864,6 +721,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "assumption_add"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -883,28 +742,17 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 ))
 
             # Validate assumption_type if provided
-            if assumption_type and assumption_type not in ("constraint", "requirement"):
+            effective_type = assumption_type or "constraint"
+            if effective_type not in ("constraint", "requirement"):
                 return asdict(error_response(
-                    f"Invalid assumption_type '{assumption_type}'. Must be one of: constraint, requirement",
+                    f"Invalid assumption_type '{effective_type}'. Must be one of: constraint, requirement",
                     error_code="VALIDATION_ERROR",
                     error_type="validation",
                     remediation="Use one of: constraint, requirement",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "add-assumption", spec_id, text, "--json"]
-
-            if assumption_type:
-                cmd.extend(["--type", assumption_type])
-
-            if author:
-                cmd.extend(["--author", author])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -912,42 +760,39 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 tool="assumption-add",
                 action="add_assumption",
                 spec_id=spec_id,
-                assumption_type=assumption_type,
+                assumption_type=effective_type,
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "assumption_id": output_data.get("assumption_id", output_data.get("id")),
-                    "text": text,
-                    "type": assumption_type or "constraint",
-                    "dry_run": dry_run,
-                }
-
-                if author:
-                    data["author"] = author
-
-                # Track metrics
+            # Note: dry_run is not supported in direct API
+            if dry_run:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+                return asdict(success_response({
+                    "spec_id": spec_id,
+                    "assumption_id": "(preview)",
+                    "text": text,
+                    "type": effective_type,
+                    "dry_run": True,
+                    "note": "Dry run - no changes made",
+                }))
 
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            # Call the core function
+            result, error = add_assumption(
+                spec_id=spec_id,
+                text=text,
+                assumption_type=effective_type,
+                author=author,
+                specs_dir=specs_dir,
+            )
+
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
+
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
-                if "not found" in error_msg.lower():
+                if "not found" in error.lower():
                     return asdict(error_response(
                         f"Specification '{spec_id}' not found",
                         error_code="SPEC_NOT_FOUND",
@@ -956,35 +801,29 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     ))
 
                 return asdict(error_response(
-                    f"Failed to add assumption: {error_msg}",
+                    f"Failed to add assumption: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec exists",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "assumption_id": result.get("assumption_id"),
+                "text": text,
+                "type": effective_type,
+                "dry_run": False,
+            }
+
+            if author:
+                data["author"] = author
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in assumption-add")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -999,7 +838,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="assumption-list",
     )
-    def assumption_list(
+    def assumption_list_tool(
         spec_id: str,
         assumption_type: Optional[str] = None,
         path: Optional[str] = None,
@@ -1007,8 +846,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         List assumptions in an SDD specification.
 
-        Wraps the SDD CLI list-assumptions command to retrieve assumptions
-        from a specification. Can filter by assumption type.
+        Retrieves assumptions from a specification. Can filter by assumption type.
 
         WHEN TO USE:
         - Reviewing project constraints before implementation
@@ -1029,6 +867,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - filter_type: Filter applied if any
         """
         tool_name = "assumption_list"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -1048,14 +888,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Use one of: constraint, requirement",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "list-assumptions", spec_id, "--json"]
-
-            if assumption_type:
-                cmd.extend(["--type", assumption_type])
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -1066,37 +900,21 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 assumption_type=assumption_type,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Call the core function
+            result, error = list_assumptions(
+                spec_id=spec_id,
+                assumption_type=assumption_type,
+                specs_dir=specs_dir,
+            )
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-                # Build response data
-                assumptions = output_data.get("assumptions", [])
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "assumptions": assumptions,
-                    "total_count": len(assumptions),
-                }
-
-                if assumption_type:
-                    data["filter_type"] = assumption_type
-
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
-                if "not found" in error_msg.lower():
+                if "not found" in error.lower():
                     return asdict(error_response(
                         f"Specification '{spec_id}' not found",
                         error_code="SPEC_NOT_FOUND",
@@ -1105,35 +923,28 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     ))
 
                 return asdict(error_response(
-                    f"Failed to list assumptions: {error_msg}",
+                    f"Failed to list assumptions: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec exists",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            assumptions = result.get("assumptions", [])
+            data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "assumptions": assumptions,
+                "total_count": len(assumptions),
+            }
+
+            if assumption_type:
+                data["filter_type"] = assumption_type
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in assumption-list")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -1148,7 +959,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="revision-add",
     )
-    def revision_add(
+    def revision_add_tool(
         spec_id: str,
         version: str,
         changes: str,
@@ -1159,8 +970,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Append a revision history entry to an SDD specification.
 
-        Wraps the SDD CLI add-revision command to add revision entries
-        to the spec's revision_history array.
+        Adds revision entries to the spec's revision_history array.
 
         WHEN TO USE:
         - Recording spec version changes
@@ -1173,7 +983,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             version: Revision version (e.g., 1.1, 2.0)
             changes: Summary of changes
             author: Revision author
-            dry_run: Preview revision without saving
+            dry_run: Preview revision without saving (not supported in direct API)
             path: Project root path (default: current directory)
 
         Returns:
@@ -1185,6 +995,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "revision_add"
+        start_time = time.perf_counter()
+
         try:
             if not spec_id:
                 return asdict(error_response(
@@ -1210,16 +1022,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a changes summary",
                 ))
 
-            cmd = ["foundry-cli", "add-revision", spec_id, version, changes, "--json"]
-
-            if author:
-                cmd.extend(["--author", author])
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             audit_log(
                 "tool_invocation",
@@ -1230,31 +1034,37 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            result = _run_sdd_command(cmd, tool_name)
-
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
+            # Note: dry_run is not supported in direct API
+            if dry_run:
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
                 data: Dict[str, Any] = {
                     "spec_id": spec_id,
                     "version": version,
                     "changes": changes,
-                    "dry_run": dry_run,
+                    "dry_run": True,
+                    "note": "Dry run - no changes made",
                 }
-
                 if author:
                     data["author"] = author
-
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
                 return asdict(success_response(data))
-            else:
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+
+            # Call the core function
+            result, error = add_revision(
+                spec_id=spec_id,
+                version=version,
+                changelog=changes,
+                author=author,
+                specs_dir=specs_dir,
+            )
+
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
+
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
-                if "not found" in error_msg.lower():
+                if "not found" in error.lower():
                     return asdict(error_response(
                         f"Specification '{spec_id}' not found",
                         error_code="SPEC_NOT_FOUND",
@@ -1263,35 +1073,25 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     ))
 
                 return asdict(error_response(
-                    f"Failed to add revision: {error_msg}",
+                    f"Failed to add revision: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec exists",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            data = {
+                "spec_id": spec_id,
+                "version": version,
+                "changes": changes,
+                "dry_run": False,
+            }
+
+            if author:
+                data["author"] = author
+
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in revision-add")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -1306,7 +1106,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         mcp,
         canonical_name="spec-update-frontmatter",
     )
-    def spec_update_frontmatter(
+    def spec_update_frontmatter_tool(
         spec_id: str,
         key: str,
         value: str,
@@ -1316,9 +1116,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Mutate top-level metadata blocks in an SDD specification.
 
-        Wraps the SDD CLI update-frontmatter command to update frontmatter
-        fields like title, status, version, category, or any top-level
-        metadata key in the specification.
+        Updates frontmatter fields like title, status, version, category, or any
+        top-level metadata key in the specification.
 
         WHEN TO USE:
         - Updating spec title or description
@@ -1331,7 +1130,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             spec_id: Specification ID to update
             key: Frontmatter key to update (e.g., title, status, version)
             value: New value for the key
-            dry_run: Preview changes without saving
+            dry_run: Preview changes without saving (not supported in direct API)
             path: Project root path (default: current directory)
 
         Returns:
@@ -1343,6 +1142,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - dry_run: Whether this was a dry run
         """
         tool_name = "spec_update_frontmatter"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -1369,14 +1170,8 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a value for the frontmatter key",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "update-frontmatter", spec_id, key, value, "--json"]
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
+            # Find specs directory
+            specs_dir = find_specs_directory(path) if path else (config.specs_dir or find_specs_directory())
 
             # Log the operation
             audit_log(
@@ -1388,49 +1183,42 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 dry_run=dry_run,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                data: Dict[str, Any] = {
+            # Note: dry_run is not supported in direct API
+            if dry_run:
+                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+                return asdict(success_response({
                     "spec_id": spec_id,
                     "key": key,
                     "value": value,
-                    "dry_run": dry_run,
-                }
+                    "dry_run": True,
+                    "note": "Dry run - no changes made",
+                }))
 
-                # Include previous value if available
-                if "previous_value" in output_data:
-                    data["previous_value"] = output_data["previous_value"]
-                elif "old_value" in output_data:
-                    data["previous_value"] = output_data["old_value"]
+            # Call the core function
+            result, error = update_frontmatter(
+                spec_id=spec_id,
+                key=key,
+                value=value,
+                specs_dir=specs_dir,
+            )
 
-                # Track metrics
-                _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+            # Record timing metrics
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"authoring.{tool_name}.duration_ms", elapsed_ms)
 
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
+            if error:
                 _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
 
                 # Check for common errors
-                if "not found" in error_msg.lower():
-                    if "spec" in error_msg.lower():
+                if "not found" in error.lower():
+                    if "spec" in error.lower():
                         return asdict(error_response(
                             f"Specification '{spec_id}' not found",
                             error_code="SPEC_NOT_FOUND",
                             error_type="not_found",
                             remediation="Verify the spec ID exists using spec-list",
                         ))
-                    elif "key" in error_msg.lower():
+                    elif "key" in error.lower():
                         return asdict(error_response(
                             f"Frontmatter key '{key}' not found or invalid",
                             error_code="INVALID_KEY",
@@ -1438,44 +1226,38 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             remediation="Use a valid frontmatter key (e.g., title, status, version)",
                         ))
 
-                if "invalid" in error_msg.lower() and "value" in error_msg.lower():
+                if "dedicated function" in error.lower():
                     return asdict(error_response(
-                        f"Invalid value '{value}' for key '{key}'",
+                        error,
                         error_code="VALIDATION_ERROR",
                         error_type="validation",
-                        remediation="Check the expected format for this frontmatter key",
+                        remediation="Use assumption-add or revision-add for those fields",
                     ))
 
                 return asdict(error_response(
-                    f"Failed to update frontmatter: {error_msg}",
+                    f"Failed to update frontmatter: {error}",
                     error_code="COMMAND_FAILED",
                     error_type="internal",
                     remediation="Check that the spec exists and key/value are valid",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try again or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"authoring.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Build response data
+            data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "key": key,
+                "value": value,
+                "dry_run": False,
+            }
+
+            # Include previous value if available
+            if "previous_value" in result:
+                data["previous_value"] = result["previous_value"]
+
+            # Track metrics
+            _metrics.counter(f"authoring.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(data))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-update-frontmatter")
             _metrics.counter(f"authoring.{tool_name}", labels={"status": "error"})
@@ -1485,3 +1267,5 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 error_type="internal",
                 remediation="Check logs for details",
             ))
+
+    logger.debug("Registered authoring tools: spec-create, spec-template, task-add, task-remove, assumption-add, assumption-list, revision-add, spec-update-frontmatter")

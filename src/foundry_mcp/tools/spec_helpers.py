@@ -2,21 +2,17 @@
 Spec helper tools for foundry-mcp.
 
 Provides MCP tools for spec discovery, validation, and analysis.
-These tools wrap SDD CLI commands to provide file relationship discovery,
-pattern matching, dependency cycle detection, and path validation.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+These tools provide file relationship discovery, pattern matching,
+dependency cycle detection, and path validation using direct Python
+API calls to core modules.
 """
 
-import json
+import glob as glob_module
 import logging
-import subprocess
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 from mcp.server.fastmcp import FastMCP
 
@@ -24,88 +20,12 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-)
+from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for spec helper tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: List[str],
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -129,9 +49,8 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Locate files referenced by a spec node or related to a source file.
 
-        Wraps the SDD CLI find-related-files command to discover relationships
-        between source files and specification nodes. Returns file paths that
-        are referenced in spec metadata or structurally related.
+        Discovers relationships between source files and specification nodes
+        by searching spec metadata for file path references.
 
         WHEN TO USE:
         - Finding files associated with a spec task
@@ -152,12 +71,17 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - total_count: Number of related files found
         """
         tool_name = "find_related_files"
-        try:
-            # Build command
-            cmd = ["foundry-cli", "find-related-files", file_path, "--json"]
+        start_time = time.perf_counter()
 
-            if spec_id:
-                cmd.extend(["--spec-id", spec_id])
+        try:
+            # Validate required parameters
+            if not file_path:
+                return asdict(error_response(
+                    "file_path is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a file_path parameter",
+                ))
 
             # Log the operation
             audit_log(
@@ -168,72 +92,86 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 spec_id=spec_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Resolve workspace path
+            ws_path = Path.cwd()
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                related_files: List[Dict[str, Any]] = output_data.get("related_files", [])
-                spec_references: List[Dict[str, Any]] = output_data.get("spec_references", [])
-
-                data: Dict[str, Any] = {
-                    "file_path": file_path,
-                    "related_files": related_files,
-                    "spec_references": spec_references,
-                    "total_count": len(related_files),
-                }
-
-                if include_metadata:
-                    data["metadata"] = {
-                        "command": " ".join(cmd),
-                        "exit_code": result.returncode,
-                    }
-
-                # Track metrics
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-
+            # Find specs directory
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    f"Failed to find related files: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the file path exists and SDD CLI is available",
+                    f"Specs directory not found in {ws_path}",
+                    data={"file_path": file_path, "workspace": str(ws_path)},
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            # Normalize the file path for comparison
+            normalized_file_path = str(Path(file_path).resolve())
+
+            related_files: List[Dict[str, Any]] = []
+            spec_references: List[Dict[str, Any]] = []
+
+            # Determine which specs to search
+            if spec_id:
+                # Search only the specified spec
+                spec_file = find_spec_file(spec_id, specs_dir)
+                if spec_file:
+                    spec_files = [spec_file]
+                else:
+                    spec_files = []
+            else:
+                # Search all specs
+                spec_files = []
+                for folder in ["active", "pending", "completed", "archived"]:
+                    folder_path = specs_dir / folder
+                    if folder_path.exists():
+                        spec_files.extend(folder_path.glob("*.json"))
+
+            # Search each spec for file references
+            for spec_file in spec_files:
+                spec_data = load_spec(spec_file)
+                if not spec_data:
+                    continue
+
+                current_spec_id = spec_data.get("spec_id", spec_file.stem)
+                hierarchy = spec_data.get("hierarchy", {})
+
+                # Search hierarchy for file_path references
+                for node_id, node in hierarchy.items():
+                    metadata = node.get("metadata", {})
+                    node_file_path = metadata.get("file_path", "")
+
+                    # Check if this node references the target file
+                    if node_file_path:
+                        node_path_resolved = str(Path(node_file_path).resolve()) if not Path(node_file_path).is_absolute() else node_file_path
+
+                        if normalized_file_path == node_path_resolved or file_path in node_file_path:
+                            spec_references.append({
+                                "spec_id": current_spec_id,
+                                "node_id": node_id,
+                                "title": node.get("title", ""),
+                                "relationship": "references",
+                            })
+
+                        # Also track related files from the same spec
+                        if node_file_path not in [f.get("path") for f in related_files]:
+                            related_files.append({
+                                "path": node_file_path,
+                                "spec_id": current_spec_id,
+                                "node_id": node_id,
+                                "relationship": "sibling" if spec_references else "same_spec",
+                            })
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
+
+            return asdict(success_response(
+                file_path=file_path,
+                related_files=related_files,
+                spec_references=spec_references,
+                total_count=len(related_files),
+                duration_ms=round(duration_ms, 2),
             ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try with a smaller scope or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-find-related-files")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
@@ -256,8 +194,8 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Search specs and codebase for structural or code patterns.
 
-        Wraps the SDD CLI find-pattern command to search across spec contents
-        and source files using glob patterns. Returns matching files and locations.
+        Searches across spec contents and source files using glob patterns.
+        Returns matching files and locations.
 
         WHEN TO USE:
         - Finding files matching a specific pattern (e.g., "*.spec.ts")
@@ -277,12 +215,17 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - total_count: Number of matches found
         """
         tool_name = "find_patterns"
-        try:
-            # Build command
-            cmd = ["foundry-cli", "find-pattern", pattern, "--json"]
+        start_time = time.perf_counter()
 
-            if directory:
-                cmd.extend(["--directory", directory])
+        try:
+            # Validate required parameters
+            if not pattern:
+                return asdict(error_response(
+                    "pattern is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a glob pattern (e.g., '*.ts', 'src/**/*.py')",
+                ))
 
             # Log the operation
             audit_log(
@@ -293,73 +236,58 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 directory=directory,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                matches: List[str] = output_data.get("matches", output_data.get("files", []))
-
-                data: Dict[str, Any] = {
-                    "pattern": pattern,
-                    "matches": matches,
-                    "total_count": len(matches),
-                }
-
-                if directory:
-                    data["directory"] = directory
-
-                if include_metadata:
-                    data["metadata"] = {
-                        "command": " ".join(cmd),
-                        "exit_code": result.returncode,
-                    }
-
-                # Track metrics
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-
+            # Resolve search directory
+            search_dir = Path(directory) if directory else Path.cwd()
+            if not search_dir.exists():
                 return asdict(error_response(
-                    f"Failed to find patterns: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the pattern is valid and SDD CLI is available",
+                    f"Directory does not exist: {search_dir}",
+                    error_code="NOT_FOUND",
+                    error_type="validation",
+                    data={"directory": str(search_dir)},
+                    remediation="Provide a valid directory path",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try with a more specific pattern or smaller scope",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+            # Use glob to find matching files
+            # Handle both relative and absolute patterns
+            if pattern.startswith("/"):
+                # Absolute pattern
+                glob_pattern = pattern
+            else:
+                # Relative pattern - combine with directory
+                glob_pattern = str(search_dir / pattern)
+
+            # Use recursive glob
+            matches: List[str] = []
+            for match in glob_module.glob(glob_pattern, recursive=True):
+                match_path = Path(match)
+                if match_path.is_file():
+                    # Return relative paths for cleaner output
+                    try:
+                        rel_path = match_path.relative_to(search_dir)
+                        matches.append(str(rel_path))
+                    except ValueError:
+                        # Path is not relative to search_dir
+                        matches.append(str(match_path))
+
+            # Sort matches for consistent output
+            matches.sort()
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
+
+            response_data: Dict[str, Any] = {
+                "pattern": pattern,
+                "matches": matches,
+                "total_count": len(matches),
+                "duration_ms": round(duration_ms, 2),
+            }
+
+            if directory:
+                response_data["directory"] = str(search_dir)
+
+            return asdict(success_response(**response_data))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-find-patterns")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
@@ -381,8 +309,8 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Detect cyclic dependencies in a specification's task dependency graph.
 
-        Wraps the SDD CLI find-circular-deps command to analyze task dependencies
-        and identify any circular references that would prevent task completion.
+        Analyzes task dependencies using DFS to identify any circular references
+        that would prevent task completion.
 
         WHEN TO USE:
         - Validating a specification before starting implementation
@@ -403,9 +331,17 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - affected_tasks: List of task IDs involved in cycles
         """
         tool_name = "detect_cycles"
+        start_time = time.perf_counter()
+
         try:
-            # Build command
-            cmd = ["foundry-cli", "find-circular-deps", spec_id, "--json"]
+            # Validate required parameters
+            if not spec_id:
+                return asdict(error_response(
+                    "spec_id is required",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a spec_id parameter",
+                ))
 
             # Log the operation
             audit_log(
@@ -415,80 +351,106 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 spec_id=spec_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Resolve workspace path
+            ws_path = Path.cwd()
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                cycles: List[List[str]] = output_data.get("cycles", [])
-                affected_tasks: List[str] = output_data.get("affected_tasks", [])
-
-                # If affected_tasks not provided, derive from cycles
-                if not affected_tasks and cycles:
-                    seen = set()
-                    for cycle in cycles:
-                        seen.update(cycle)
-                    affected_tasks = list(seen)
-
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "has_cycles": len(cycles) > 0,
-                    "cycles": cycles,
-                    "cycle_count": len(cycles),
-                    "affected_tasks": affected_tasks,
-                }
-
-                if include_metadata:
-                    data["metadata"] = {
-                        "command": " ".join(cmd),
-                        "exit_code": result.returncode,
-                    }
-
-                # Track metrics
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-
+            # Find specs directory
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    f"Failed to detect cycles: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that the spec_id exists and SDD CLI is available",
+                    f"Specs directory not found in {ws_path}",
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
+            # Find and load spec
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="SPEC_NOT_FOUND",
+                    error_type="not_found",
+                    data={"spec_id": spec_id},
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
+
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
+
+            hierarchy = spec_data.get("hierarchy", {})
+
+            # Build dependency graph from blocked_by relationships
+            # node_id -> list of nodes it depends on (blocked_by)
+            dep_graph: Dict[str, List[str]] = {}
+            for node_id, node in hierarchy.items():
+                deps = node.get("dependencies", {})
+                blocked_by = deps.get("blocked_by", [])
+                dep_graph[node_id] = blocked_by
+
+            # Detect cycles using DFS with path tracking
+            cycles: List[List[str]] = []
+            visited: Set[str] = set()
+            rec_stack: Set[str] = set()
+
+            def find_cycles_from(node_id: str, path: List[str]) -> None:
+                """DFS to find all cycles starting from node_id."""
+                if node_id in rec_stack:
+                    # Found a cycle - extract it from path
+                    cycle_start = path.index(node_id)
+                    cycle = path[cycle_start:] + [node_id]
+                    cycles.append(cycle)
+                    return
+
+                if node_id in visited:
+                    return
+
+                visited.add(node_id)
+                rec_stack.add(node_id)
+
+                for dep_id in dep_graph.get(node_id, []):
+                    find_cycles_from(dep_id, path + [node_id])
+
+                rec_stack.remove(node_id)
+
+            # Run DFS from all nodes
+            for node_id in dep_graph:
+                if node_id not in visited:
+                    find_cycles_from(node_id, [])
+
+            # Deduplicate cycles (same cycle can be found from different starting points)
+            unique_cycles: List[List[str]] = []
+            seen_cycle_sets: List[Set[str]] = []
+            for cycle in cycles:
+                cycle_set = set(cycle)
+                if cycle_set not in seen_cycle_sets:
+                    seen_cycle_sets.append(cycle_set)
+                    unique_cycles.append(cycle)
+
+            # Extract affected tasks
+            affected_tasks: List[str] = []
+            seen_affected: Set[str] = set()
+            for cycle in unique_cycles:
+                for task_id in cycle:
+                    if task_id not in seen_affected:
+                        seen_affected.add(task_id)
+                        affected_tasks.append(task_id)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                has_cycles=len(unique_cycles) > 0,
+                cycles=unique_cycles,
+                cycle_count=len(unique_cycles),
+                affected_tasks=affected_tasks,
+                duration_ms=round(duration_ms, 2),
             ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try with a smaller specification or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
+
         except Exception as e:
             logger.exception("Unexpected error in spec-detect-cycles")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
@@ -511,8 +473,8 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Validate that file paths exist on disk.
 
-        Wraps the SDD CLI validate-paths command to check that file references
-        in specifications or code actually exist in the filesystem.
+        Checks that file references in specifications or code actually
+        exist in the filesystem using pathlib.
 
         WHEN TO USE:
         - Validating spec file references before implementation
@@ -535,12 +497,17 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - invalid_count: Number of invalid paths
         """
         tool_name = "validate_paths"
-        try:
-            # Build command
-            cmd = ["foundry-cli", "validate-paths", "--json"] + paths
+        start_time = time.perf_counter()
 
-            if base_directory:
-                cmd.extend(["--base-directory", base_directory])
+        try:
+            # Validate required parameters
+            if not paths:
+                return asdict(error_response(
+                    "paths is required and must be a non-empty list",
+                    error_code="MISSING_REQUIRED",
+                    error_type="validation",
+                    remediation="Provide a list of file paths to validate",
+                ))
 
             # Log the operation
             audit_log(
@@ -551,77 +518,45 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 base_directory=base_directory,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
+            # Resolve base directory
+            base_dir = Path(base_directory) if base_directory else Path.cwd()
 
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
+            valid_paths: List[str] = []
+            invalid_paths: List[str] = []
 
-                # Build response data
-                valid_paths: List[str] = output_data.get("valid_paths", output_data.get("valid", []))
-                invalid_paths: List[str] = output_data.get("invalid_paths", output_data.get("invalid", []))
+            # Check each path
+            for path_str in paths:
+                path = Path(path_str)
 
-                data: Dict[str, Any] = {
-                    "paths_checked": len(paths),
-                    "valid_paths": valid_paths,
-                    "invalid_paths": invalid_paths,
-                    "all_valid": len(invalid_paths) == 0,
-                    "valid_count": len(valid_paths),
-                    "invalid_count": len(invalid_paths),
-                }
+                # If path is relative, resolve against base directory
+                if not path.is_absolute():
+                    path = base_dir / path
 
-                if base_directory:
-                    data["base_directory"] = base_directory
+                # Check if path exists
+                if path.exists():
+                    valid_paths.append(path_str)
+                else:
+                    invalid_paths.append(path_str)
 
-                if include_metadata:
-                    data["metadata"] = {
-                        "command": " ".join(cmd),
-                        "exit_code": result.returncode,
-                    }
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
+            _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
 
-                # Track metrics
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
+            response_data: Dict[str, Any] = {
+                "paths_checked": len(paths),
+                "valid_paths": valid_paths,
+                "invalid_paths": invalid_paths,
+                "all_valid": len(invalid_paths) == 0,
+                "valid_count": len(valid_paths),
+                "invalid_count": len(invalid_paths),
+                "duration_ms": round(duration_ms, 2),
+            }
 
-                return asdict(success_response(data))
-            else:
-                # Command failed
-                error_msg = result.stderr.strip() if result.stderr else "Command failed"
-                _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
+            if base_directory:
+                response_data["base_directory"] = str(base_dir)
 
-                return asdict(error_response(
-                    f"Failed to validate paths: {error_msg}",
-                    error_code="COMMAND_FAILED",
-                    error_type="internal",
-                    remediation="Check that paths are valid and SDD CLI is available",
-                ))
+            return asdict(success_response(**response_data))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="unavailable",
-                remediation=f"SDD CLI has failed repeatedly. Wait {e.retry_after:.0f}s before retrying.",
-            ))
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Command timed out after {CLI_TIMEOUT} seconds",
-                error_code="TIMEOUT",
-                error_type="unavailable",
-                remediation="Try with fewer paths or check system resources",
-            ))
-        except FileNotFoundError:
-            _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="internal",
-                remediation="Ensure SDD CLI is installed and available in PATH",
-            ))
         except Exception as e:
             logger.exception("Unexpected error in spec-validate-paths")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})

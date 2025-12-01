@@ -1,565 +1,510 @@
-"""Unit tests for documentation tools."""
+"""
+Unit tests for foundry_mcp.tools.documentation module.
+
+Tests cover:
+- spec-doc tool for generating human-readable documentation
+- spec-doc-llm tool (returns NOT_IMPLEMENTED since it requires LLM integration)
+- spec-review-fidelity tool (returns NOT_IMPLEMENTED since it requires AI consultation)
+- Response contract compliance for all tools
+"""
+
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-import subprocess
-from unittest.mock import patch, MagicMock
 
 
-class TestRunSddDocCommand:
-    """Tests for _run_sdd_doc_command helper."""
-
-    def test_successful_command(self):
-        """Test successful command execution returns parsed JSON."""
-        from foundry_mcp.tools.documentation import _run_sdd_doc_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_path": "specs/.human-readable/test.md", "title": "Test Spec"}',
-                stderr=''
-            )
-
-            result = _run_sdd_doc_command(["generate"])
-
-            assert result["success"] is True
-            assert result["data"]["output_path"] == "specs/.human-readable/test.md"
-            assert result["data"]["title"] == "Test Spec"
-
-    def test_command_failure(self):
-        """Test handling of command failure."""
-        from foundry_mcp.tools.documentation import _run_sdd_doc_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout='',
-                stderr='Error: Spec not found'
-            )
-
-            result = _run_sdd_doc_command(["generate"])
-
-            assert result["success"] is False
-            assert "Spec not found" in result["error"]
-
-    def test_command_timeout(self):
-        """Test handling of command timeout."""
-        from foundry_mcp.tools.documentation import _run_sdd_doc_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="foundry-cli doc", timeout=120)
-
-            result = _run_sdd_doc_command(["generate"])
-
-            assert result["success"] is False
-            assert "timed out" in result["error"]
-
-    def test_sdd_not_found(self):
-        """Test handling when sdd CLI is not found."""
-        from foundry_mcp.tools.documentation import _run_sdd_doc_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = FileNotFoundError()
-
-            result = _run_sdd_doc_command(["generate"])
-
-            assert result["success"] is False
-            assert "foundry-cli not found" in result["error"]
-
-    def test_json_decode_fallback(self):
-        """Test fallback when output is not valid JSON."""
-        from foundry_mcp.tools.documentation import _run_sdd_doc_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='Raw output text',
-                stderr=''
-            )
-
-            result = _run_sdd_doc_command(["generate"])
-
-            assert result["success"] is True
-            assert "raw_output" in result["data"]
-            assert result["data"]["raw_output"] == "Raw output text"
+# =============================================================================
+# Test Fixtures
+# =============================================================================
 
 
-class TestRunSddRenderCommand:
-    """Tests for _run_sdd_render_command helper."""
+@pytest.fixture
+def mock_mcp():
+    """Create a mock FastMCP server instance."""
+    mcp = MagicMock()
+    mcp._tools = {}
 
-    def test_successful_render(self):
-        """Test successful render command."""
-        from foundry_mcp.tools.documentation import _run_sdd_render_command
+    def mock_tool(*args, **kwargs):
+        def decorator(func):
+            tool_name = kwargs.get("name", func.__name__)
+            mcp._tools[tool_name] = func
+            return func
+        return decorator
 
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_path": "specs/.human-readable/spec.md", "title": "My Spec", "total_tasks": 10}',
-                stderr=''
-            )
+    mcp.tool = mock_tool
+    return mcp
 
-            result = _run_sdd_render_command(["my-spec", "--format", "markdown"])
 
-            assert result["success"] is True
-            assert result["data"]["output_path"] == "specs/.human-readable/spec.md"
+@pytest.fixture
+def mock_config():
+    """Create a mock ServerConfig."""
+    config = MagicMock()
+    config.project_root = "/test/project"
+    config.specs_dir = None
+    return config
 
-    def test_render_command_timeout(self):
-        """Test render command timeout."""
-        from foundry_mcp.tools.documentation import _run_sdd_render_command
 
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="foundry-cli render", timeout=120)
+@pytest.fixture
+def temp_project(tmp_path):
+    """Create a temporary project with specs."""
+    # Create specs directory structure
+    specs_dir = tmp_path / "specs"
+    specs_dir.mkdir()
+    (specs_dir / "active").mkdir()
+    (specs_dir / "pending").mkdir()
+    (specs_dir / "completed").mkdir()
+    (specs_dir / ".human-readable").mkdir()
 
-            result = _run_sdd_render_command(["my-spec"])
+    # Create a sample spec
+    spec_data = {
+        "spec_id": "test-spec-001",
+        "title": "Test Specification",
+        "version": "1.0.0",
+        "hierarchy": {
+            "spec-root": {
+                "type": "spec",
+                "title": "Test Specification",
+                "status": "in_progress",
+                "children": ["phase-1"],
+                "parent": None,
+            },
+            "phase-1": {
+                "type": "phase",
+                "title": "Phase 1",
+                "status": "in_progress",
+                "children": ["task-1-1", "task-1-2"],
+                "parent": "spec-root",
+            },
+            "task-1-1": {
+                "type": "task",
+                "title": "Task 1",
+                "status": "completed",
+                "children": [],
+                "parent": "phase-1",
+            },
+            "task-1-2": {
+                "type": "task",
+                "title": "Task 2",
+                "status": "pending",
+                "children": [],
+                "parent": "phase-1",
+            },
+        },
+    }
 
-            assert result["success"] is False
-            assert "timed out" in result["error"]
+    spec_file = specs_dir / "active" / "test-spec-001.json"
+    with open(spec_file, "w") as f:
+        json.dump(spec_data, f)
+
+    return tmp_path, spec_data
+
+
+# =============================================================================
+# spec-doc Tool Tests
+# =============================================================================
+
+
+class TestSpecDoc:
+    """Tests for spec-doc tool."""
+
+    def test_invalid_output_format_returns_error(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return validation error for invalid output_format."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec", output_format="invalid")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "VALIDATION_ERROR"
+        assert result["data"].get("error_type") == "validation"
+
+    def test_invalid_mode_returns_error(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return validation error for invalid mode."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec", mode="invalid")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "VALIDATION_ERROR"
+
+    def test_specs_dir_not_found(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should handle missing specs directory."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        # Use an empty directory without specs
+        monkeypatch.chdir(tmp_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "SPECS_DIR_NOT_FOUND"
+
+    def test_spec_not_found(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should handle spec not found."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="nonexistent-spec")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "SPEC_NOT_FOUND"
+
+    def test_successful_documentation_generation(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should generate documentation successfully."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec-001")
+
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["spec_id"] == "test-spec-001"
+        assert result["data"]["format"] == "markdown"
+        assert "output_path" in result["data"]
+        assert "stats" in result["data"]
+
+    def test_custom_output_path(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should use custom output path when provided."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        custom_path = str(project_path / "custom_output.md")
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec-001", output_path=custom_path)
+
+        assert_response_contract(result)
+        assert result["success"] is True
+        assert result["data"]["output_path"] == custom_path
+
+
+# =============================================================================
+# spec-doc-llm Tool Tests
+# =============================================================================
+
+
+class TestSpecDocLlm:
+    """Tests for spec-doc-llm tool."""
+
+    def test_returns_not_implemented(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should return NOT_IMPLEMENTED since it requires LLM integration."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        monkeypatch.chdir(tmp_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
+        result = spec_doc_llm(directory=str(tmp_path))
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
+        assert result["data"].get("error_type") == "unavailable"
+
+    def test_includes_remediation(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should include remediation guidance."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        monkeypatch.chdir(tmp_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
+        result = spec_doc_llm(directory=str(tmp_path))
+
+        assert_response_contract(result)
+        assert "remediation" in result["data"]
+        assert "sdd-toolkit:llm-doc-gen" in result["data"]["remediation"]
+
+    def test_missing_directory_validation(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return error for missing directory."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
+        result = spec_doc_llm(directory="")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "MISSING_REQUIRED"
+
+    def test_invalid_batch_size_validation(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should return error for invalid batch_size."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        monkeypatch.chdir(tmp_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
+        result = spec_doc_llm(directory=str(tmp_path), batch_size=20)
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "VALIDATION_ERROR"
+
+    def test_directory_not_found(self, mock_mcp, mock_config, assert_response_contract):
+        """Should handle directory not found."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
+        result = spec_doc_llm(directory="/nonexistent/path")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "NOT_FOUND"
+
+
+# =============================================================================
+# spec-review-fidelity Tool Tests
+# =============================================================================
+
+
+class TestSpecReviewFidelity:
+    """Tests for spec-review-fidelity tool."""
+
+    def test_returns_not_implemented(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should return NOT_IMPLEMENTED since it requires AI consultation."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(spec_id="test-spec-001")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
+        assert result["data"].get("error_type") == "unavailable"
+
+    def test_includes_remediation(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should include remediation guidance."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(spec_id="test-spec-001")
+
+        assert_response_contract(result)
+        assert "remediation" in result["data"]
+        assert "sdd-toolkit:sdd-fidelity-review" in result["data"]["remediation"]
+
+    def test_missing_spec_id_validation(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return error for missing spec_id."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(spec_id="")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "MISSING_REQUIRED"
+
+    def test_mutual_exclusivity_validation(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return error when both task_id and phase_id are provided."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(
+            spec_id="test-spec",
+            task_id="task-1-1",
+            phase_id="phase-1",
+        )
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "VALIDATION_ERROR"
+
+    def test_invalid_consensus_threshold_validation(self, mock_mcp, mock_config, assert_response_contract):
+        """Should return error for invalid consensus_threshold."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(
+            spec_id="test-spec",
+            consensus_threshold=10,
+        )
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "VALIDATION_ERROR"
+
+    def test_spec_not_found(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should handle spec not found."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(spec_id="nonexistent-spec")
+
+        assert_response_contract(result)
+        assert result["success"] is False
+        assert result["data"].get("error_code") == "SPEC_NOT_FOUND"
+
+
+# =============================================================================
+# Tool Registration Tests
+# =============================================================================
 
 
 class TestDocumentationToolRegistration:
     """Tests for documentation tool registration."""
 
-    @pytest.fixture
-    def mock_mcp(self):
-        """Create a mock FastMCP instance."""
-        mock = MagicMock()
-        mock.tool = MagicMock(return_value=lambda f: f)
-        return mock
-
-    @pytest.fixture
-    def mock_config(self):
-        """Create a mock server config."""
-        config = MagicMock()
-        config.specs_dir = None
-        return config
-
-    def test_registration_succeeds(self, mock_mcp, mock_config):
-        """Test that documentation tools register without error."""
+    def test_all_tools_registered(self, mock_mcp, mock_config):
+        """All documentation tools should be registered."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
-        # Should not raise any exceptions
         register_documentation_tools(mock_mcp, mock_config)
 
+        expected_tools = [
+            "spec-doc",
+            "spec-doc-llm",
+            "spec-review-fidelity",
+        ]
 
-class TestSpecDocTool:
-    """Tests for spec-doc tool functionality."""
+        for tool_name in expected_tools:
+            assert tool_name in mock_mcp._tools, f"Tool {tool_name} not registered"
 
-    @pytest.fixture
-    def mock_mcp(self):
-        """Create a mock FastMCP instance."""
-        mock = MagicMock()
-        mock.tool = MagicMock(return_value=lambda f: f)
-        return mock
-
-    @pytest.fixture
-    def mock_config(self):
-        """Create a mock server config."""
-        config = MagicMock()
-        config.specs_dir = None
-        return config
-
-    def test_invalid_output_format_returns_error(self, mock_mcp, mock_config):
-        """Test that invalid output_format returns validation error."""
-        from foundry_mcp.tools.documentation import register_documentation_tools
-        register_documentation_tools(mock_mcp, mock_config)
-
-        # Find the registered spec_doc function
-        # The tool is registered via decorator, get it from mock calls
-        tool_calls = [call for call in mock_mcp.mock_calls if 'tool' in str(call)]
-        assert len(tool_calls) > 0  # Ensure tool was registered
-
-    def test_invalid_mode_returns_error(self, mock_mcp, mock_config):
-        """Test that invalid mode returns validation error."""
-        from foundry_mcp.tools.documentation import register_documentation_tools
-        register_documentation_tools(mock_mcp, mock_config)
-
-        # Verify tool was registered
-        tool_calls = [call for call in mock_mcp.mock_calls if 'tool' in str(call)]
-        assert len(tool_calls) > 0
-
-    def test_spec_doc_returns_formatted_response(self):
-        """Test that spec_doc returns properly formatted response."""
-        from foundry_mcp.tools.documentation import _run_sdd_render_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_path": "specs/.human-readable/test-spec.md", "title": "Test", "total_tasks": 5, "completed_tasks": 2}',
-                stderr=''
-            )
-
-            result = _run_sdd_render_command(["test-spec", "--format", "markdown"])
-
-            assert result["success"] is True
-            assert "output_path" in result["data"]
-
-
-class TestCircuitBreaker:
-    """Tests for circuit breaker integration."""
-
-    def test_circuit_breaker_exists(self):
-        """Test that circuit breaker is properly configured."""
-        from foundry_mcp.tools.documentation import _doc_breaker
-
-        assert _doc_breaker is not None
-        assert _doc_breaker.name == "documentation"
-        assert _doc_breaker.failure_threshold == 3
-        assert _doc_breaker.recovery_timeout == 60.0
-
-    def test_circuit_breaker_open_returns_error(self):
-        """Test that open circuit breaker returns error response."""
-        from foundry_mcp.tools.documentation import _doc_breaker
-
-        # Record failures to open the breaker
-        for _ in range(5):
-            _doc_breaker.record_failure()
-
-        # Check breaker state
-        status = _doc_breaker.get_status()
-        # Should be open after multiple failures
-        assert status is not None
-
-
-class TestRunSddLlmDocGenCommand:
-    """Tests for _run_sdd_llm_doc_gen_command helper."""
-
-    def test_successful_llm_generation(self):
-        """Test successful LLM doc generation returns parsed JSON."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_dir": "./docs", "files_generated": 10, "project_name": "Test"}',
-                stderr=''
-            )
-
-            result = _run_sdd_llm_doc_gen_command(["generate", "."])
-
-            assert result["success"] is True
-            assert result["data"]["output_dir"] == "./docs"
-            assert result["data"]["files_generated"] == 10
-
-    def test_llm_command_failure(self):
-        """Test handling of LLM command failure."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout='',
-                stderr='Error: No files to process'
-            )
-
-            result = _run_sdd_llm_doc_gen_command(["generate", "."])
-
-            assert result["success"] is False
-            assert "No files to process" in result["error"]
-
-    def test_llm_command_timeout(self):
-        """Test handling of LLM command timeout."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="foundry-cli llm-doc-gen", timeout=600)
-
-            result = _run_sdd_llm_doc_gen_command(["generate", "."])
-
-            assert result["success"] is False
-            assert "timed out" in result["error"]
-            assert "resume" in result["error"].lower()
-
-    def test_llm_sdd_not_found(self):
-        """Test handling when sdd CLI is not found."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = FileNotFoundError()
-
-            result = _run_sdd_llm_doc_gen_command(["generate", "."])
-
-            assert result["success"] is False
-            assert "foundry-cli not found" in result["error"]
-
-
-class TestSpecDocLlmTool:
-    """Tests for spec-doc-llm tool functionality."""
-
-    @pytest.fixture
-    def mock_mcp(self):
-        """Create a mock FastMCP instance."""
-        mock = MagicMock()
-        mock.tool = MagicMock(return_value=lambda f: f)
-        return mock
-
-    @pytest.fixture
-    def mock_config(self):
-        """Create a mock server config."""
-        config = MagicMock()
-        config.specs_dir = None
-        return config
-
-    def test_tool_registration(self, mock_mcp, mock_config):
-        """Test that spec-doc-llm tool registers without error."""
+    def test_tools_are_callable(self, mock_mcp, mock_config):
+        """All registered tools should be callable functions."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
-        # Should not raise any exceptions
         register_documentation_tools(mock_mcp, mock_config)
 
-        # Verify tool was registered (canonical_tool was called)
-        assert mock_mcp.tool.called
-
-    def test_llm_doc_gen_returns_formatted_response(self):
-        """Test that llm doc gen returns properly formatted response."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_dir": "./docs", "files_generated": 5, "total_shards": 20}',
-                stderr=''
-            )
-
-            result = _run_sdd_llm_doc_gen_command(["generate", ".", "--cache"])
-
-            assert result["success"] is True
-            assert "output_dir" in result["data"]
-            assert "files_generated" in result["data"]
+        for tool_name, tool_func in mock_mcp._tools.items():
+            assert callable(tool_func), f"Tool {tool_name} is not callable"
 
 
-class TestLlmDocGenTimeout:
-    """Tests for LLM doc gen timeout handling."""
-
-    def test_timeout_constant_is_defined(self):
-        """Test that LLM timeout constant is defined correctly."""
-        from foundry_mcp.tools.documentation import LLM_DOC_GENERATION_TIMEOUT
-
-        assert LLM_DOC_GENERATION_TIMEOUT == 600
-
-    def test_custom_timeout_works(self):
-        """Test that custom timeout is passed to subprocess."""
-        from foundry_mcp.tools.documentation import _run_sdd_llm_doc_gen_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{}',
-                stderr=''
-            )
-
-            _run_sdd_llm_doc_gen_command(["generate", "."], timeout=300)
-
-            # Verify timeout was passed
-            call_kwargs = mock_run.call_args[1]
-            assert call_kwargs["timeout"] == 300
+# =============================================================================
+# Response Contract Compliance Tests
+# =============================================================================
 
 
-class TestRunSddFidelityReviewCommand:
-    """Tests for _run_sdd_fidelity_review_command helper."""
+class TestResponseContractCompliance:
+    """Test that all responses comply with the response-v2 contract."""
 
-    def test_successful_fidelity_review(self):
-        """Test successful fidelity review returns parsed JSON."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"verdict": "pass", "consensus": {"agreement_rate": 1.0}}',
-                stderr=''
-            )
-
-            result = _run_sdd_fidelity_review_command(["my-spec-001"])
-
-            assert result["success"] is True
-            assert result["data"]["verdict"] == "pass"
-
-    def test_fidelity_review_with_phase(self):
-        """Test fidelity review with phase scope."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"verdict": "partial", "deviations": []}',
-                stderr=''
-            )
-
-            result = _run_sdd_fidelity_review_command(["my-spec", "--phase", "phase-1"])
-
-            assert result["success"] is True
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args[0][0]
-            assert "--phase" in call_args
-            assert "phase-1" in call_args
-
-    def test_fidelity_review_failure(self):
-        """Test handling of fidelity review failure."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout='',
-                stderr='Error: Spec not found'
-            )
-
-            result = _run_sdd_fidelity_review_command(["nonexistent-spec"])
-
-            assert result["success"] is False
-            assert "not found" in result["error"]
-
-    def test_fidelity_review_timeout(self):
-        """Test handling of fidelity review timeout."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="foundry-cli fidelity-review", timeout=600)
-
-            result = _run_sdd_fidelity_review_command(["my-spec"])
-
-            assert result["success"] is False
-            assert "timed out" in result["error"]
-            assert "smaller scope" in result["error"].lower()
-
-    def test_fidelity_review_sdd_not_found(self):
-        """Test handling when sdd CLI is not found."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = FileNotFoundError()
-
-            result = _run_sdd_fidelity_review_command(["my-spec"])
-
-            assert result["success"] is False
-            assert "foundry-cli not found" in result["error"]
-
-
-class TestSpecReviewFidelityTool:
-    """Tests for spec-review-fidelity tool functionality."""
-
-    @pytest.fixture
-    def mock_mcp(self):
-        """Create a mock FastMCP instance."""
-        mock = MagicMock()
-        mock.tool = MagicMock(return_value=lambda f: f)
-        return mock
-
-    @pytest.fixture
-    def mock_config(self):
-        """Create a mock server config."""
-        config = MagicMock()
-        config.specs_dir = None
-        return config
-
-    def test_tool_registration(self, mock_mcp, mock_config):
-        """Test that spec-review-fidelity tool registers without error."""
+    def test_validation_error_response_structure(self, mock_mcp, mock_config, assert_response_contract):
+        """Validation error responses should have correct structure."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
-        # Should not raise any exceptions
         register_documentation_tools(mock_mcp, mock_config)
 
-        # Verify tool was registered
-        assert mock_mcp.tool.called
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec", mode="invalid")
 
-    def test_fidelity_review_returns_formatted_response(self):
-        """Test that fidelity review returns properly formatted response."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
+        # Validate structure
+        assert "success" in result
+        assert "data" in result
+        assert "error" in result
+        assert "meta" in result
+        assert result["meta"]["version"] == "response-v2"
 
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"verdict": "pass", "consensus": {"agreement_rate": 0.9, "model_count": 3}}',
-                stderr=''
-            )
+    def test_success_response_has_required_fields(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Success responses should have all required fields."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
 
-            result = _run_sdd_fidelity_review_command(["my-spec", "--task", "task-1-1"])
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
 
-            assert result["success"] is True
-            assert "verdict" in result["data"]
-            assert "consensus" in result["data"]
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_doc = mock_mcp._tools["spec-doc"]
+        result = spec_doc(spec_id="test-spec-001")
+
+        # Validate structure
+        assert result["success"] is True
+        assert result["error"] is None
+        assert result["meta"]["version"] == "response-v2"
+
+    def test_not_implemented_response_structure(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """NOT_IMPLEMENTED responses should have correct structure."""
+        from foundry_mcp.tools.documentation import register_documentation_tools
+
+        project_path, _ = temp_project
+        monkeypatch.chdir(project_path)
+
+        register_documentation_tools(mock_mcp, mock_config)
+
+        spec_review_fidelity = mock_mcp._tools["spec-review-fidelity"]
+        result = spec_review_fidelity(spec_id="test-spec-001")
+
+        # Validate structure
+        assert "success" in result
+        assert "data" in result
+        assert "error" in result
+        assert "meta" in result
+        assert result["meta"]["version"] == "response-v2"
+        assert result["success"] is False
+        assert result["data"]["error_code"] == "NOT_IMPLEMENTED"
 
 
-class TestFidelityReviewTimeout:
-    """Tests for fidelity review timeout handling."""
-
-    def test_timeout_constant_is_defined(self):
-        """Test that fidelity review timeout constant is defined correctly."""
-        from foundry_mcp.tools.documentation import FIDELITY_REVIEW_TIMEOUT
-
-        assert FIDELITY_REVIEW_TIMEOUT == 600
-
-    def test_custom_timeout_works(self):
-        """Test that custom timeout is passed to subprocess."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{}',
-                stderr=''
-            )
-
-            _run_sdd_fidelity_review_command(["my-spec"], timeout=300)
-
-            # Verify timeout was passed
-            call_kwargs = mock_run.call_args[1]
-            assert call_kwargs["timeout"] == 300
+# =============================================================================
+# Telemetry and Metrics Tests
+# =============================================================================
 
 
 class TestTelemetryMetrics:
     """Tests for telemetry and metrics integration."""
 
-    def test_success_metrics_emitted_for_spec_doc(self):
-        """Test that success metrics are emitted when spec-doc succeeds."""
-        from foundry_mcp.tools.documentation import register_documentation_tools
+    def test_metrics_collector_accessible(self):
+        """Metrics collector should be accessible."""
         from foundry_mcp.core.observability import get_metrics
-        from unittest.mock import MagicMock
 
-        mock_mcp = MagicMock()
-        mock_mcp.tool = MagicMock(return_value=lambda f: f)
-        mock_config = MagicMock()
-        mock_config.specs_dir = None
-
-        # Register tools
-        register_documentation_tools(mock_mcp, mock_config)
-
-        # Metrics collector should be accessible
         metrics = get_metrics()
         assert metrics is not None
-        assert hasattr(metrics, 'counter')
-        assert hasattr(metrics, 'timer')
+        assert hasattr(metrics, "counter")
+        assert hasattr(metrics, "timer")
 
-    def test_error_metrics_emitted_for_not_found(self):
-        """Test that error metrics are emitted for not_found errors."""
-        from foundry_mcp.tools.documentation import _run_sdd_render_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout='',
-                stderr='Error: Spec not found: test-spec'
-            )
-
-            result = _run_sdd_render_command(["test-spec"])
-
-            # Should return error with not_found pattern
-            assert result["success"] is False
-            assert "not found" in result["error"].lower()
-
-    def test_error_metrics_emitted_for_timeout(self):
-        """Test that error metrics are emitted for timeout errors."""
-        from foundry_mcp.tools.documentation import _run_sdd_fidelity_review_command
-
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="foundry-cli fidelity-review", timeout=600)
-
-            result = _run_sdd_fidelity_review_command(["my-spec"])
-
-            # Should return error with timeout pattern
-            assert result["success"] is False
-            assert "timed out" in result["error"]
-
-    def test_metrics_labels_include_tool_name(self):
-        """Test that metrics labels include tool-specific information."""
+    def test_metrics_collector_accepts_labels(self):
+        """Metrics collector should accept labels."""
         from foundry_mcp.core.observability import MetricsCollector
 
         metrics = MetricsCollector()
@@ -572,33 +517,29 @@ class TestTelemetryMetrics:
         metrics.timer("documentation.spec_doc_time", 100.5, labels={"mode": "basic"})
 
 
+# =============================================================================
+# Response Envelope Compliance Tests
+# =============================================================================
+
+
 class TestResponseEnvelopeCompliance:
     """Tests for response envelope compliance."""
 
     def test_success_response_has_required_fields(self):
         """Test success response includes required envelope fields."""
-        from foundry_mcp.tools.documentation import _run_sdd_render_command
         from foundry_mcp.core.responses import success_response
         from dataclasses import asdict
 
-        with patch('foundry_mcp.tools.documentation.subprocess.run') as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout='{"output_path": "test.md"}',
-                stderr=''
-            )
+        response = asdict(success_response(
+            spec_id="test-spec",
+            format="markdown",
+            output_path="test.md",
+        ))
 
-            # Test that success_response helper produces compliant envelope
-            response = asdict(success_response(
-                spec_id="test-spec",
-                format="markdown",
-                output_path="test.md",
-            ))
-
-            assert "success" in response
-            assert response["success"] is True
-            assert "meta" in response
-            assert response["meta"]["version"] == "response-v2"
+        assert "success" in response
+        assert response["success"] is True
+        assert "meta" in response
+        assert response["meta"]["version"] == "response-v2"
 
     def test_error_response_has_required_fields(self):
         """Test error response includes required envelope fields."""

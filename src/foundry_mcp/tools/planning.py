@@ -3,20 +3,14 @@ Planning tools for foundry-mcp.
 
 Provides MCP tools for task planning and execution utilities,
 including plan formatting, phase management, time reporting,
-and spec state reconciliation.
-
-Resilience features:
-- Circuit breaker for SDD CLI calls (opens after 5 consecutive failures)
-- Timing metrics for all tool invocations
-- Configurable timeout (default 30s per operation)
+and spec state reconciliation. Uses direct Python API calls to core modules.
 """
 
-import json
 import logging
-import subprocess
 import time
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -24,88 +18,13 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.resilience import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    MEDIUM_TIMEOUT,
-)
+from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec
+from foundry_mcp.core.progress import get_progress_summary, list_phases
 
 logger = logging.getLogger(__name__)
 
 # Metrics singleton for planning tools
 _metrics = get_metrics()
-
-# Circuit breaker for SDD CLI operations
-# Opens after 5 consecutive failures, recovers after 30 seconds
-_sdd_cli_breaker = CircuitBreaker(
-    name="sdd_cli_planning",
-    failure_threshold=5,
-    recovery_timeout=30.0,
-    half_open_max_calls=3,
-)
-
-# Default timeout for CLI operations (30 seconds)
-CLI_TIMEOUT: float = MEDIUM_TIMEOUT
-
-
-def _run_sdd_command(
-    cmd: list,
-    tool_name: str,
-    timeout: float = CLI_TIMEOUT,
-) -> subprocess.CompletedProcess:
-    """
-    Execute an SDD CLI command with circuit breaker protection and timing.
-
-    Args:
-        cmd: Command list to execute
-        tool_name: Name of the calling tool (for metrics)
-        timeout: Timeout in seconds
-
-    Returns:
-        CompletedProcess result from subprocess.run
-
-    Raises:
-        CircuitBreakerError: If circuit breaker is open
-        subprocess.TimeoutExpired: If command times out
-        FileNotFoundError: If SDD CLI is not found
-    """
-    # Check circuit breaker
-    if not _sdd_cli_breaker.can_execute():
-        status = _sdd_cli_breaker.get_status()
-        _metrics.counter(f"planning.{tool_name}", labels={"status": "circuit_open"})
-        raise CircuitBreakerError(
-            f"SDD CLI circuit breaker is open (retry after {status.get('retry_after_seconds', 0):.1f}s)",
-            breaker_name="sdd_cli_planning",
-            state=_sdd_cli_breaker.state,
-            retry_after=status.get("retry_after_seconds"),
-        )
-
-    start_time = time.perf_counter()
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Record success or failure based on return code
-        if result.returncode == 0:
-            _sdd_cli_breaker.record_success()
-        else:
-            # Non-zero return code counts as a failure for circuit breaker
-            _sdd_cli_breaker.record_failure()
-
-        return result
-
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        # These are infrastructure failures that should trip the circuit breaker
-        _sdd_cli_breaker.record_failure()
-        raise
-    finally:
-        # Record timing metrics
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        _metrics.timer(f"planning.{tool_name}.duration_ms", elapsed_ms)
 
 
 def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
@@ -129,9 +48,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Pretty-print a task plan for sharing and review.
 
-        Wraps the SDD CLI format-plan command to generate a human-readable
-        formatted output of a task plan, suitable for sharing with team
-        members or including in documentation.
+        Generates a human-readable formatted output of a task plan,
+        suitable for sharing with team members or including in documentation.
 
         WHEN TO USE:
         - Sharing task plans with team members
@@ -151,6 +69,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - spec_id: The specification ID
         """
         tool_name = "plan_format"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -169,11 +89,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a task_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "format-plan", spec_id, task_id, "--json"]
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -184,80 +101,90 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 task_id=task_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {"formatted": result.stdout}
-
-                # Build response data
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "task_id": task_id,
-                    "formatted": output_data.get("formatted", output_data.get("plan", result.stdout)),
-                }
-
-                # Include additional fields if available
-                if "title" in output_data:
-                    data["title"] = output_data["title"]
-                if "status" in output_data:
-                    data["status"] = output_data["status"]
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=data,
-                    message="Plan formatted successfully",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec and task IDs exist"
-                else:
-                    error_code = "FORMAT_FAILED"
-                    remediation = "Check the spec_id and task_id"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Plan formatting failed",
-                    error_code=error_code,
+                    f"Specs directory not found in {ws_path}",
+                    error_code="NOT_FOUND",
                     error_type="planning",
-                    remediation=remediation,
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    remediation="Ensure specs/ directory exists in workspace",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Plan formatting timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    error_code="LOAD_ERROR",
+                    error_type="planning",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            # Get task from hierarchy
+            hierarchy = spec_data.get("hierarchy", {})
+            task = hierarchy.get(task_id)
+            if not task:
+                return asdict(error_response(
+                    f"Task '{task_id}' not found in spec '{spec_id}'",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                    remediation="Verify the task ID exists in the spec",
+                ))
+
+            # Format the task plan directly from task data
+            task_title = task.get("title", "Untitled Task")
+            task_status = task.get("status", "pending")
+            task_description = task.get("description", "")
+            metadata = task.get("metadata", {})
+
+            # Build formatted output
+            lines = [
+                f"# Task: {task_title}",
+                f"**ID:** {task_id}",
+                f"**Status:** {task_status}",
+            ]
+            if task_description:
+                lines.append(f"**Description:** {task_description}")
+            if metadata.get("estimated_hours"):
+                lines.append(f"**Estimated Hours:** {metadata['estimated_hours']}")
+            if metadata.get("actual_hours"):
+                lines.append(f"**Actual Hours:** {metadata['actual_hours']}")
+            if metadata.get("file_path"):
+                lines.append(f"**File:** {metadata['file_path']}")
+
+            # Include children if any
+            children = task.get("children", [])
+            if children:
+                lines.append("\n## Subtasks:")
+                for child_id in children:
+                    child = hierarchy.get(child_id, {})
+                    child_title = child.get("title", child_id)
+                    child_status = child.get("status", "pending")
+                    lines.append(f"- [{child_status}] {child_title} ({child_id})")
+
+            formatted = "\n".join(lines)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                task_id=task_id,
+                title=task_title,
+                status=task_status,
+                formatted=formatted,
+                duration_ms=round(duration_ms, 2),
             ))
 
         except Exception as e:
@@ -281,8 +208,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Enumerate all phases in a specification.
 
-        Wraps the SDD CLI list-phases command to return all phases
-        in a specification with their completion status and progress.
+        Returns all phases in a specification with their completion status
+        and progress.
 
         WHEN TO USE:
         - Getting an overview of spec structure
@@ -301,6 +228,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - completed_phases: Number of completed phases
         """
         tool_name = "phase_list"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -311,11 +240,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a spec_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "list-phases", spec_id, "--json"]
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -325,76 +251,49 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 spec_id=spec_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                phases = output_data.get("phases", [])
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "phases": phases,
-                    "total_phases": len(phases),
-                    "completed_phases": sum(1 for p in phases if p.get("status") == "completed"),
-                }
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=data,
-                    message=f"Found {len(phases)} phases",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id exists in specs/active or specs/pending"
-                else:
-                    error_code = "LIST_FAILED"
-                    remediation = "Check the spec_id and try again"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Failed to list phases",
-                    error_code=error_code,
+                    f"Specs directory not found in {ws_path}",
+                    error_code="NOT_FOUND",
                     error_type="planning",
-                    remediation=remediation,
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    remediation="Ensure specs/ directory exists in workspace",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Phase listing timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    error_code="LOAD_ERROR",
+                    error_type="planning",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            # Use list_phases from core
+            phases = list_phases(spec_data)
+            completed_count = sum(1 for p in phases if p.get("status") == "completed")
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                phases=phases,
+                total_phases=len(phases),
+                completed_phases=completed_count,
+                duration_ms=round(duration_ms, 2),
             ))
 
         except Exception as e:
@@ -420,9 +319,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Verify completion readiness for a phase or spec.
 
-        Wraps the SDD CLI check-complete command to verify whether
-        all tasks in a phase or the entire spec are completed and
-        ready for sign-off.
+        Checks whether all tasks in a phase or the entire spec are completed
+        and ready for sign-off.
 
         WHEN TO USE:
         - Verifying phase completion before moving to next phase
@@ -446,6 +344,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - blocked_tasks: Array of blocked task IDs (if any)
         """
         tool_name = "phase_check_complete"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -465,16 +365,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide either phase_id or task_id, not both",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "check-complete", spec_id, "--json"]
-
-            if phase_id:
-                cmd.extend(["--phase", phase_id])
-            elif task_id:
-                cmd.extend(["--task", task_id])
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Determine scope for logging
             scope = "spec"
@@ -496,95 +388,92 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 scope_id=scope_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                total = output_data.get("total_tasks", 0)
-                completed = output_data.get("completed_tasks", 0)
-                pending = output_data.get("pending_tasks", [])
-                blocked = output_data.get("blocked_tasks", [])
-
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "scope": scope,
-                    "is_complete": output_data.get("is_complete", total > 0 and total == completed),
-                    "total_tasks": total,
-                    "completed_tasks": completed,
-                    "pending_tasks": pending,
-                    "blocked_tasks": blocked,
-                }
-
-                if phase_id:
-                    data["phase_id"] = phase_id
-                elif task_id:
-                    data["task_id"] = task_id
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "success", "scope": scope})
-
-                # Craft appropriate message
-                if data["is_complete"]:
-                    message = f"{scope.title()} is complete ({completed}/{total} tasks)"
-                else:
-                    remaining = total - completed
-                    message = f"{scope.title()} incomplete: {remaining} tasks remaining"
-
-                return asdict(success_response(
-                    data=data,
-                    message=message,
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id (and phase_id/task_id if provided) exists"
-                else:
-                    error_code = "CHECK_FAILED"
-                    remediation = "Check the spec_id and try again"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Failed to check completion",
-                    error_code=error_code,
+                    f"Specs directory not found in {ws_path}",
+                    error_code="NOT_FOUND",
                     error_type="planning",
-                    remediation=remediation,
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    remediation="Ensure specs/ directory exists in workspace",
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                    remediation="Verify the spec ID exists using spec-list",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Completion check timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    error_code="LOAD_ERROR",
+                    error_type="planning",
+                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            # Get progress for scope using get_progress_summary
+            root_id = phase_id or task_id or "spec-root"
+            progress = get_progress_summary(spec_data, node_id=root_id)
+
+            total = progress.get("total_tasks", 0)
+            completed = progress.get("completed_tasks", 0)
+            is_complete = total > 0 and total == completed
+
+            # Find pending and blocked tasks
+            hierarchy = spec_data.get("hierarchy", {})
+            pending_tasks: List[str] = []
+            blocked_tasks: List[str] = []
+
+            def collect_task_status(node_id: str) -> None:
+                node = hierarchy.get(node_id, {})
+                node_type = node.get("type", "")
+                if node_type in ("task", "subtask"):
+                    status = node.get("status", "")
+                    if status == "pending":
+                        pending_tasks.append(node_id)
+                    elif status == "blocked":
+                        blocked_tasks.append(node_id)
+                for child_id in node.get("children", []):
+                    collect_task_status(child_id)
+
+            collect_task_status(root_id)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "success", "scope": scope})
+
+            # Craft appropriate message
+            if is_complete:
+                message = f"{scope.title()} is complete ({completed}/{total} tasks)"
+            else:
+                remaining = total - completed
+                message = f"{scope.title()} incomplete: {remaining} tasks remaining"
+
+            result_data: Dict[str, Any] = {
+                "spec_id": spec_id,
+                "scope": scope,
+                "is_complete": is_complete,
+                "total_tasks": total,
+                "completed_tasks": completed,
+                "pending_tasks": pending_tasks,
+                "blocked_tasks": blocked_tasks,
+                "duration_ms": round(duration_ms, 2),
+            }
+
+            if phase_id:
+                result_data["phase_id"] = phase_id
+            elif task_id:
+                result_data["task_id"] = task_id
+
+            return asdict(success_response(
+                message=message,
+                **result_data,
             ))
 
         except Exception as e:
@@ -609,8 +498,7 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Summarize time tracking metrics for a phase.
 
-        Wraps the SDD CLI phase-time command to aggregate estimated
-        and actual hours for all tasks in a phase.
+        Aggregates estimated and actual hours for all tasks in a phase.
 
         WHEN TO USE:
         - Reviewing time spent on a phase
@@ -633,6 +521,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - completed_count: Number of completed tasks
         """
         tool_name = "phase_report_time"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -651,11 +541,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a phase_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "phase-time", spec_id, phase_id, "--json"]
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -666,88 +553,82 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 phase_id=phase_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                estimated = output_data.get("estimated_hours", 0)
-                actual = output_data.get("actual_hours", 0)
-                variance = actual - estimated
-                variance_pct = (variance / estimated * 100) if estimated > 0 else 0
-
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "phase_id": phase_id,
-                    "estimated_hours": estimated,
-                    "actual_hours": actual,
-                    "variance_hours": round(variance, 2),
-                    "variance_percent": round(variance_pct, 1),
-                    "task_count": output_data.get("task_count", 0),
-                    "completed_count": output_data.get("completed_count", 0),
-                }
-
-                # Include phase title if available
-                if "phase_title" in output_data:
-                    data["phase_title"] = output_data["phase_title"]
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=data,
-                    message=f"Phase time: {actual:.1f}h actual / {estimated:.1f}h estimated",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id and phase_id exist"
-                else:
-                    error_code = "REPORT_FAILED"
-                    remediation = "Check the spec_id and phase_id"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Failed to report phase time",
-                    error_code=error_code,
+                    f"Specs directory not found in {ws_path}",
+                    error_code="NOT_FOUND",
                     error_type="planning",
-                    remediation=remediation,
+                    data={"spec_id": spec_id, "workspace": str(ws_path)},
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Phase time report timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    error_code="LOAD_ERROR",
+                    error_type="planning",
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            # Get phase data
+            hierarchy = spec_data.get("hierarchy", {})
+            phase = hierarchy.get(phase_id)
+            if not phase:
+                return asdict(error_response(
+                    f"Phase '{phase_id}' not found in spec '{spec_id}'",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                ))
+
+            # Calculate time metrics by traversing phase tasks
+            estimated_hours = 0.0
+            actual_hours = 0.0
+            task_count = 0
+            completed_count = 0
+
+            def collect_task_times(node_id: str) -> None:
+                nonlocal estimated_hours, actual_hours, task_count, completed_count
+                node = hierarchy.get(node_id, {})
+                node_type = node.get("type", "")
+                if node_type in ("task", "subtask"):
+                    task_count += 1
+                    metadata = node.get("metadata", {})
+                    estimated_hours += float(metadata.get("estimated_hours", 0))
+                    actual_hours += float(metadata.get("actual_hours", 0))
+                    if node.get("status") == "completed":
+                        completed_count += 1
+                for child_id in node.get("children", []):
+                    collect_task_times(child_id)
+
+            collect_task_times(phase_id)
+
+            variance = actual_hours - estimated_hours
+            variance_pct = (variance / estimated_hours * 100) if estimated_hours > 0 else 0
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                phase_id=phase_id,
+                phase_title=phase.get("title", ""),
+                estimated_hours=round(estimated_hours, 2),
+                actual_hours=round(actual_hours, 2),
+                variance_hours=round(variance, 2),
+                variance_percent=round(variance_pct, 1),
+                task_count=task_count,
+                completed_count=completed_count,
+                duration_ms=round(duration_ms, 2),
             ))
 
         except Exception as e:
@@ -772,9 +653,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Compare filesystem state against spec state to detect drift.
 
-        Wraps the SDD CLI reconcile-state command to detect file changes
-        that are not reflected in the specification, helping identify
-        when implementations have drifted from the planned work.
+        Detects file changes that are not reflected in the specification,
+        helping identify when implementations have drifted from the planned work.
 
         WHEN TO USE:
         - Before resuming work on a spec after a break
@@ -795,136 +675,25 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - missing_files: Files in spec but not on filesystem
             - recommendations: Suggested actions to resolve drift
         """
-        tool_name = "spec_reconcile_state"
-        try:
-            # Validate required parameters
-            if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
-
-            # Build command
-            cmd = ["foundry-cli", "reconcile-state", spec_id, "--json"]
-
-            if dry_run:
-                cmd.append("--dry-run")
-
-            if path:
-                cmd.extend(["--path", path])
-
-            # Log the operation
-            audit_log(
-                "tool_invocation",
-                tool="spec-reconcile-state",
-                action="reconcile_state",
-                spec_id=spec_id,
-                dry_run=dry_run,
-            )
-
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                modified = output_data.get("modified_files", [])
-                new_files = output_data.get("new_files", [])
-                missing = output_data.get("missing_files", [])
-                has_drift = bool(modified or new_files or missing)
-
-                data: Dict[str, Any] = {
+        # State reconciliation requires filesystem diff analysis and git integration.
+        # This functionality is not available as a direct core API.
+        # Use the sdd-toolkit:sdd-fidelity-review skill for drift detection.
+        return asdict(
+            error_response(
+                "State reconciliation requires filesystem diff analysis and git integration. "
+                "Use the sdd-toolkit:sdd-fidelity-review skill for drift detection.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
                     "spec_id": spec_id,
-                    "has_drift": has_drift,
                     "dry_run": dry_run,
-                    "modified_files": modified,
-                    "new_files": new_files,
-                    "missing_files": missing,
-                    "drift_count": len(modified) + len(new_files) + len(missing),
-                }
-
-                # Include recommendations if available
-                if "recommendations" in output_data:
-                    data["recommendations"] = output_data["recommendations"]
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={
-                    "status": "success",
-                    "has_drift": str(has_drift).lower(),
-                })
-
-                # Craft appropriate message
-                if has_drift:
-                    message = f"Drift detected: {data['drift_count']} file(s) out of sync"
-                else:
-                    message = "No drift detected - spec is in sync with filesystem"
-
-                return asdict(success_response(
-                    data=data,
-                    message=message,
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id exists"
-                else:
-                    error_code = "RECONCILE_FAILED"
-                    remediation = "Check the spec_id and try again"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
-                return asdict(error_response(
-                    stderr or "Failed to reconcile state",
-                    error_code=error_code,
-                    error_type="planning",
-                    remediation=remediation,
-                ))
-
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
-
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"State reconciliation timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
-
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
-            ))
-
-        except Exception as e:
-            logger.exception(f"Unexpected error in {tool_name}")
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                f"Unexpected error: {str(e)}",
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+                    "alternative": "sdd-toolkit:sdd-fidelity-review skill",
+                    "feature_status": "requires_git_integration",
+                },
+                remediation="Use the sdd-toolkit:sdd-fidelity-review skill which provides "
+                "comprehensive drift detection with AI-powered analysis.",
+            )
+        )
 
     @canonical_tool(
         mcp,
@@ -937,8 +706,7 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Generate a comprehensive time tracking summary for a spec.
 
-        Wraps the SDD CLI time-report command to aggregate time metrics
-        across all phases and tasks in a specification.
+        Aggregates time metrics across all phases and tasks in a specification.
 
         WHEN TO USE:
         - Generating project status reports
@@ -960,6 +728,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - completion_rate: Percentage of tasks completed
         """
         tool_name = "plan_report_time"
+        start_time = time.perf_counter()
+
         try:
             # Validate required parameters
             if not spec_id:
@@ -970,11 +740,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     remediation="Provide a spec_id parameter",
                 ))
 
-            # Build command
-            cmd = ["foundry-cli", "time-report", spec_id, "--json"]
-
-            if path:
-                cmd.extend(["--path", path])
+            # Resolve workspace path
+            ws_path = Path(path) if path else Path.cwd()
 
             # Log the operation
             audit_log(
@@ -984,96 +751,103 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 spec_id=spec_id,
             )
 
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                estimated = output_data.get("total_estimated_hours", 0)
-                actual = output_data.get("total_actual_hours", 0)
-                variance = actual - estimated
-                variance_pct = (variance / estimated * 100) if estimated > 0 else 0
-
-                data: Dict[str, Any] = {
-                    "spec_id": spec_id,
-                    "total_estimated_hours": estimated,
-                    "total_actual_hours": actual,
-                    "total_variance_hours": round(variance, 2),
-                    "total_variance_percent": round(variance_pct, 1),
-                    "phases": output_data.get("phases", []),
-                    "total_tasks": output_data.get("total_tasks", 0),
-                    "completed_tasks": output_data.get("completed_tasks", 0),
-                }
-
-                # Calculate completion rate
-                if data["total_tasks"] > 0:
-                    data["completion_rate"] = round(
-                        data["completed_tasks"] / data["total_tasks"] * 100, 1
-                    )
-                else:
-                    data["completion_rate"] = 0
-
-                # Include spec title if available
-                if "spec_title" in output_data:
-                    data["spec_title"] = output_data["spec_title"]
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
-
-                return asdict(success_response(
-                    data=data,
-                    message=f"Time report: {actual:.1f}h actual / {estimated:.1f}h estimated ({data['completion_rate']}% complete)",
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id exists"
-                else:
-                    error_code = "REPORT_FAILED"
-                    remediation = "Check the spec_id and try again"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
+            # Find and load spec
+            specs_dir = find_specs_directory(ws_path)
+            if not specs_dir:
                 return asdict(error_response(
-                    stderr or "Failed to generate time report",
-                    error_code=error_code,
+                    f"Specs directory not found in {ws_path}",
+                    error_code="NOT_FOUND",
                     error_type="planning",
-                    remediation=remediation,
                 ))
 
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
+            spec_file = find_spec_file(spec_id, specs_dir)
+            if not spec_file:
+                return asdict(error_response(
+                    f"Specification '{spec_id}' not found",
+                    error_code="NOT_FOUND",
+                    error_type="planning",
+                ))
 
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Time report timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
+            spec_data = load_spec(spec_file)
+            if not spec_data:
+                return asdict(error_response(
+                    f"Failed to load spec '{spec_id}'",
+                    error_code="LOAD_ERROR",
+                    error_type="planning",
+                ))
 
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
+            hierarchy = spec_data.get("hierarchy", {})
+
+            # Calculate time metrics across all phases
+            total_estimated = 0.0
+            total_actual = 0.0
+            total_tasks = 0
+            completed_tasks = 0
+            phase_summaries: List[Dict[str, Any]] = []
+
+            # Get phases using list_phases
+            phases = list_phases(spec_data)
+
+            for phase_info in phases:
+                phase_id = phase_info.get("id", "")
+                phase = hierarchy.get(phase_id, {})
+
+                # Calculate phase time metrics
+                phase_estimated = 0.0
+                phase_actual = 0.0
+                phase_task_count = 0
+                phase_completed = 0
+
+                def collect_phase_times(node_id: str) -> None:
+                    nonlocal phase_estimated, phase_actual, phase_task_count, phase_completed
+                    node = hierarchy.get(node_id, {})
+                    node_type = node.get("type", "")
+                    if node_type in ("task", "subtask"):
+                        phase_task_count += 1
+                        metadata = node.get("metadata", {})
+                        phase_estimated += float(metadata.get("estimated_hours", 0))
+                        phase_actual += float(metadata.get("actual_hours", 0))
+                        if node.get("status") == "completed":
+                            phase_completed += 1
+                    for child_id in node.get("children", []):
+                        collect_phase_times(child_id)
+
+                collect_phase_times(phase_id)
+
+                phase_summaries.append({
+                    "phase_id": phase_id,
+                    "title": phase.get("title", ""),
+                    "estimated_hours": round(phase_estimated, 2),
+                    "actual_hours": round(phase_actual, 2),
+                    "task_count": phase_task_count,
+                    "completed_count": phase_completed,
+                })
+
+                total_estimated += phase_estimated
+                total_actual += phase_actual
+                total_tasks += phase_task_count
+                completed_tasks += phase_completed
+
+            variance = total_actual - total_estimated
+            variance_pct = (variance / total_estimated * 100) if total_estimated > 0 else 0
+            completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
+            _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
+
+            return asdict(success_response(
+                spec_id=spec_id,
+                spec_title=spec_data.get("metadata", {}).get("title", ""),
+                total_estimated_hours=round(total_estimated, 2),
+                total_actual_hours=round(total_actual, 2),
+                total_variance_hours=round(variance, 2),
+                total_variance_percent=round(variance_pct, 1),
+                phases=phase_summaries,
+                total_tasks=total_tasks,
+                completed_tasks=completed_tasks,
+                completion_rate=round(completion_rate, 1),
+                duration_ms=round(duration_ms, 2),
             ))
 
         except Exception as e:
@@ -1097,9 +871,8 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         """
         Run comprehensive quality audits on a specification.
 
-        Wraps the SDD CLI audit-spec command to perform higher-level
-        quality checks beyond basic validation, including best practice
-        adherence, completeness, and consistency checks.
+        Performs higher-level quality checks beyond basic validation,
+        including best practice adherence, completeness, and consistency checks.
 
         WHEN TO USE:
         - Before marking a spec as ready for review
@@ -1119,128 +892,22 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             - recommendations: Suggested improvements
             - categories: Breakdown by audit category
         """
-        tool_name = "spec_audit"
-        try:
-            # Validate required parameters
-            if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
-
-            # Build command
-            cmd = ["foundry-cli", "audit-spec", spec_id, "--json"]
-
-            if path:
-                cmd.extend(["--path", path])
-
-            # Log the operation
-            audit_log(
-                "tool_invocation",
-                tool="spec-audit",
-                action="audit_spec",
-                spec_id=spec_id,
-            )
-
-            # Execute the command with resilience
-            result = _run_sdd_command(cmd, tool_name)
-
-            # Parse the JSON output
-            if result.returncode == 0:
-                try:
-                    output_data = json.loads(result.stdout) if result.stdout.strip() else {}
-                except json.JSONDecodeError:
-                    output_data = {}
-
-                # Build response data
-                findings = output_data.get("findings", [])
-                errors = [f for f in findings if f.get("severity") == "error"]
-                warnings = [f for f in findings if f.get("severity") == "warning"]
-
-                data: Dict[str, Any] = {
+        # Comprehensive spec auditing requires complex quality checks
+        # including best practice analysis and AI-powered recommendations.
+        # Use the sdd-toolkit:sdd-plan-review skill for comprehensive audits.
+        return asdict(
+            error_response(
+                "Comprehensive spec auditing requires complex quality checks "
+                "and AI-powered analysis. Use the sdd-toolkit:sdd-plan-review skill.",
+                error_code="NOT_IMPLEMENTED",
+                error_type="unavailable",
+                data={
                     "spec_id": spec_id,
-                    "passed": output_data.get("passed", len(errors) == 0),
-                    "score": output_data.get("score", 100 if not findings else 0),
-                    "findings": findings,
-                    "error_count": len(errors),
-                    "warning_count": len(warnings),
-                    "recommendations": output_data.get("recommendations", []),
-                }
-
-                # Include categories if available
-                if "categories" in output_data:
-                    data["categories"] = output_data["categories"]
-
-                # Track metrics
-                _metrics.counter(f"planning.{tool_name}", labels={
-                    "status": "success",
-                    "passed": str(data["passed"]).lower(),
-                })
-
-                # Craft appropriate message
-                if data["passed"]:
-                    message = f"Audit passed with score {data['score']}"
-                else:
-                    message = f"Audit failed: {data['error_count']} error(s), {data['warning_count']} warning(s)"
-
-                return asdict(success_response(
-                    data=data,
-                    message=message,
-                ))
-            else:
-                # Handle specific error cases
-                stderr = result.stderr.strip()
-
-                if "not found" in stderr.lower():
-                    error_code = "NOT_FOUND"
-                    remediation = "Ensure the spec_id exists"
-                else:
-                    error_code = "AUDIT_FAILED"
-                    remediation = "Check the spec_id and try again"
-
-                _metrics.counter(f"planning.{tool_name}", labels={"status": "error", "code": error_code})
-
-                return asdict(error_response(
-                    stderr or "Failed to audit spec",
-                    error_code=error_code,
-                    error_type="planning",
-                    remediation=remediation,
-                ))
-
-        except CircuitBreakerError as e:
-            return asdict(error_response(
-                str(e),
-                error_code="CIRCUIT_OPEN",
-                error_type="resilience",
-                remediation="Wait for circuit breaker recovery, then retry",
-            ))
-
-        except subprocess.TimeoutExpired:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "timeout"})
-            return asdict(error_response(
-                f"Spec audit timed out after {CLI_TIMEOUT}s",
-                error_code="TIMEOUT",
-                error_type="timeout",
-                remediation="Try again or check system resources",
-            ))
-
-        except FileNotFoundError:
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "cli_not_found"})
-            return asdict(error_response(
-                "SDD CLI not found. Ensure 'sdd' is installed and in PATH",
-                error_code="CLI_NOT_FOUND",
-                error_type="configuration",
-                remediation="Install SDD toolkit: pip install claude-sdd-toolkit",
-            ))
-
-        except Exception as e:
-            logger.exception(f"Unexpected error in {tool_name}")
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                f"Unexpected error: {str(e)}",
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+                    "alternative": "sdd-toolkit:sdd-plan-review skill",
+                    "feature_status": "requires_ai_analysis",
+                },
+                remediation="Use the sdd-toolkit:sdd-plan-review skill which provides "
+                "multi-model AI consultation and comprehensive quality analysis. "
+                "For basic validation, use the spec-validate MCP tool.",
+            )
+        )
