@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T22:28:47.151739Z",
+  "last_updated": "2025-12-01T22:31:42.202321Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 59,
+      "completed_tasks": 60,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1904,7 +1904,7 @@
     "phase-6": {
       "type": "phase",
       "title": "Testing & Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-6-files",
@@ -1918,7 +1918,7 @@
         "depends": []
       },
       "total_tasks": 8,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Comprehensive testing for all new components",
         "risk_level": "low",
@@ -1933,7 +1933,7 @@
     "phase-6-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-6",
       "children": [
         "task-6-1",
@@ -1944,7 +1944,7 @@
         "task-6-6"
       ],
       "total_tasks": 6,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1957,7 +1957,7 @@
     "task-6-1": {
       "type": "task",
       "title": "tests/unit/test_providers_base.py",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-6-files",
       "children": [],
       "dependencies": {
@@ -1968,12 +1968,18 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "tests/unit/test_providers_base.py",
         "task_category": "implementation",
         "estimated_hours": 1,
-        "description": "Test ProviderStatus.is_retryable(), to_error_type(), dataclass creation"
+        "description": "Test ProviderStatus.is_retryable(), to_error_type(), dataclass creation",
+        "started_at": "2025-12-01T22:29:29.025128Z",
+        "status_note": "Creating unit tests for providers base module",
+        "completed_at": "2025-12-01T22:31:42.194930Z",
+        "needs_journaling": false,
+        "actual_hours": 0.037,
+        "journaled_at": "2025-12-01T22:31:42.200197Z"
       }
     },
     "task-6-2": {
@@ -2142,8 +2148,8 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 88,
-    "current_phase": "phase-5"
+    "progress_percentage": 89,
+    "current_phase": "phase-6"
   },
   "journal": [
     {
@@ -2686,6 +2692,15 @@
       "content": "All child tasks in phase phase-5 have been completed.",
       "metadata": {},
       "task_id": "phase-5"
+    },
+    {
+      "timestamp": "2025-12-01T22:31:42.200192Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: tests/unit/test_providers_base.py",
+      "author": "claude-code",
+      "content": "Created tests/unit/test_providers_base.py with 48 unit tests covering: ProviderStatus.is_retryable() (7 tests verifying retry semantics), ProviderStatus.to_error_type() (7 tests verifying ErrorType mapping), ProviderCapability enum (6 tests), TokenUsage dataclass (3 tests), ProviderRequest dataclass (3 tests), ProviderResult dataclass (3 tests), ModelDescriptor dataclass (2 tests), ProviderMetadata dataclass (2 tests), StreamChunk dataclass (2 tests), ProviderHooks lifecycle callbacks (7 tests), ProviderError hierarchy (6 tests). All 48 tests passing in 3.31s.",
+      "metadata": {},
+      "task_id": "task-6-1"
     }
   ]
 }
