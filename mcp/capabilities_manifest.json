@@ -699,6 +699,46 @@
         ]
       }
     ],
+    "provider_tools": [
+      {
+        "name": "provider-list",
+        "description": "List all registered LLM providers with availability status. Returns providers sorted by priority with availability indicators.",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "provider_tools",
+        "parameters": [
+          {"name": "include_unavailable", "type": "boolean", "required": false, "default": false, "description": "Include providers that fail availability check"}
+        ]
+      },
+      {
+        "name": "provider-status",
+        "description": "Get detailed status for a specific provider including availability, metadata, capabilities, and health status.",
+        "auth_required": false,
+        "rate_limit": null,
+        "feature_flag": "provider_tools",
+        "parameters": [
+          {"name": "provider_id", "type": "string", "required": true, "description": "Provider identifier (gemini, codex, cursor-agent, claude, opencode)"}
+        ]
+      },
+      {
+        "name": "provider-execute",
+        "description": "Execute a prompt through a specified LLM provider. Returns complete result without streaming.",
+        "auth_required": false,
+        "rate_limit": {
+          "requests_per_minute": 20,
+          "reason": "External AI provider invocation"
+        },
+        "feature_flag": "provider_tools",
+        "parameters": [
+          {"name": "provider_id", "type": "string", "required": true, "description": "Provider identifier"},
+          {"name": "prompt", "type": "string", "required": true, "description": "Prompt text to send to the provider"},
+          {"name": "model", "type": "string", "required": false, "description": "Model override (uses provider default if not specified)"},
+          {"name": "max_tokens", "type": "integer", "required": false, "description": "Maximum tokens in response"},
+          {"name": "temperature", "type": "number", "required": false, "min": 0.0, "max": 2.0, "description": "Sampling temperature"},
+          {"name": "timeout", "type": "integer", "required": false, "default": 300, "description": "Request timeout in seconds"}
+        ]
+      }
+    ],
     "discovery_tools": [
       {
         "name": "tool_list",
@@ -978,6 +1018,16 @@
         "dependencies": ["native_cli"],
         "created_at": "2025-11-28T00:00:00Z",
         "expires_at": null
+      },
+      "provider_tools": {
+        "description": "LLM provider management tools for discovering, checking, and invoking AI providers (provider-list, provider-status, provider-execute)",
+        "state": "beta",
+        "default_enabled": true,
+        "percentage_rollout": 100,
+        "owner": "platform-team",
+        "dependencies": [],
+        "created_at": "2025-12-01T00:00:00Z",
+        "expires_at": null
       }
     },
     "lifecycle_states": {
@@ -1069,12 +1119,17 @@
         "supported": true,
         "description": "LLM-powered documentation tools for spec rendering, code documentation, and fidelity reviews",
         "tools": ["spec-doc", "spec-doc-llm", "spec-review-fidelity"]
+      },
+      "provider_tools": {
+        "supported": true,
+        "description": "LLM provider management tools for discovering, checking, and invoking AI providers",
+        "tools": ["provider-list", "provider-status", "provider-execute"]
       }
     },
     "api_version": "2024-11-01"
   },
   "metadata": {
-    "generated_at": "2025-11-27T14:37:00Z",
+    "generated_at": "2025-12-01T21:40:00Z",
     "generator": "foundry-mcp",
     "documentation_url": "https://github.com/foundry-mcp/foundry-mcp"
   }
