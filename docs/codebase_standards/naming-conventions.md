@@ -14,6 +14,7 @@ Consistent naming shortens discovery time, improves LLM selection accuracy, and 
    - `task-` for task-scoped mutation or inspection
    - `plan-` / `phase-` for planning utilities
    - `review-` for review workflows
+   - `provider-` for LLM provider management (listing, status, execution)
    - `verification-`, `assumption-`, `revision-`, `journal-` for lifecycle domains
    - `sdd-` for environment-wide helpers (bootstrap, cache, config)
 3. **Hyphen Separators** – Prefer `kebab-case` so MCP tool registries remain readable and avoid camelCase drift across adapters.
@@ -29,6 +30,7 @@ Consistent naming shortens discovery time, improves LLM selection accuracy, and 
 | Task lifecycle | `task-` | `task-add`, `task-update-metadata`, `task-create-commit` |
 | Planning & phasing | `plan-` / `phase-` | `plan-format`, `plan-report-time`, `phase-check-complete` |
 | Review / PR flows | `review-` / `pr-` | `review-list-tools`, `review-parse-feedback`, `pr-create-with-spec` |
+| LLM provider management | `provider-` | `provider-list`, `provider-status`, `provider-execute` |
 | Lifecycle extras | domain noun | `assumption-list`, `verification-add`, `journal-bulk-add` |
 
 ## CLI Naming Plan
@@ -51,6 +53,7 @@ All binaries import `foundry_mcp.sdd_cli.__main__` so the same parser/runtime st
 | `validate` | Validation, fix, reporting | `spec-validate-*`, `spec-report-*` |
 | `render` | AI-assisted rendering | `spec-render-*`, `review-*` |
 | `doc` | Code documentation + queries | `code-*`, `doc-*` |
+| `provider` | LLM provider management | `provider-*` |
 | `test` | Test discovery/execution | `test-*` |
 | `spec-mod` | Bulk spec modifications | `spec-apply-*`, `verification-*` |
 | `plan-review` / `pr` | Reviews and PR helpers | `review-*`, `pr-*` |
@@ -93,6 +96,7 @@ All binaries import `foundry_mcp.sdd_cli.__main__` so the same parser/runtime st
 | `lifecycle.py` | `spec-lifecycle-move`, `spec-lifecycle-activate`, `spec-lifecycle-complete`, `spec-lifecycle-archive`, `spec-lifecycle-state`, `spec-list-by-folder` | ✅ live | All lifecycle transitions aligned to `spec-lifecycle-*` verbs.
 | `tasks.py` | `task-prepare`, `task-next`, `task-info`, `task-check-deps`, `task-update-status`, `task-complete`, `task-start`, `task-progress` | ✅ live | Task operations standardized under canonical prefixes.
 | `testing.py` | `test-run`, `test-discover`, `test-presets`, `test-run-quick`, `test-run-unit` | ✅ live | Testing adapters advertise canonical names for preset + runner variants.
+| `providers.py` | `provider-list`, `provider-status`, `provider-execute` | ✅ live | LLM provider management tools for discovery, status, and execution; see [§11 AI/LLM Integration](../mcp_best_practices/11-ai-llm-integration.md).
 
 ## Related Documents
 

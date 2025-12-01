@@ -7,6 +7,7 @@ A comprehensive guide for configuring and using LLM-powered features in foundry-
 - [Overview](#overview)
 - [Configuration](#configuration)
 - [LLM Providers](#llm-providers)
+- [Provider Management Tools](#provider-management-tools)
 - [LLM-Powered Tools](#llm-powered-tools)
 - [Graceful Degradation](#graceful-degradation)
 - [Multi-Provider Support](#multi-provider-support)
@@ -161,6 +162,143 @@ ollama serve
 - Function/tool calling (model-dependent)
 - Streaming responses
 - No API key required
+
+---
+
+## Provider Management Tools
+
+foundry-mcp exposes MCP tools for discovering, checking, and invoking LLM providers:
+
+### provider-list
+
+List all registered providers with availability status.
+
+```json
+{
+  "tool": "provider-list",
+  "include_unavailable": false
+}
+```
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `include_unavailable` | boolean | No | Include providers that fail availability check (default: `false`) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "data": {
+    "providers": [
+      {
+        "id": "gemini",
+        "description": "Google Gemini AI",
+        "priority": 100,
+        "tags": ["ai", "google"],
+        "available": true
+      }
+    ],
+    "available_count": 3,
+    "total_count": 5
+  }
+}
+```
+
+### provider-status
+
+Get detailed status for a specific provider.
+
+```json
+{
+  "tool": "provider-status",
+  "provider_id": "gemini"
+}
+```
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | string | Yes | Provider identifier (e.g., `gemini`, `codex`, `cursor-agent`, `claude`, `opencode`) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "data": {
+    "provider_id": "gemini",
+    "available": true,
+    "metadata": {
+      "name": "Gemini",
+      "version": "2.0",
+      "default_model": "gemini-2.0-flash",
+      "supported_models": [...],
+      "documentation_url": "https://ai.google.dev/",
+      "tags": ["ai", "google"]
+    },
+    "capabilities": ["chat", "code_generation", "analysis"],
+    "health": {
+      "status": "available",
+      "reason": null,
+      "checked_at": "2025-12-01T12:00:00Z"
+    }
+  }
+}
+```
+
+### provider-execute
+
+Execute a prompt through a specified LLM provider.
+
+```json
+{
+  "tool": "provider-execute",
+  "provider_id": "gemini",
+  "prompt": "Explain the concept of dependency injection",
+  "model": "gemini-2.0-flash",
+  "max_tokens": 1000,
+  "temperature": 0.7,
+  "timeout": 300
+}
+```
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | string | Yes | Provider identifier |
+| `prompt` | string | Yes | Prompt text to send to the provider |
+| `model` | string | No | Model override (uses provider default if not specified) |
+| `max_tokens` | integer | No | Maximum tokens in response |
+| `temperature` | float | No | Sampling temperature 0.0-2.0 |
+| `timeout` | integer | No | Request timeout in seconds (default: 300) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "data": {
+    "provider_id": "gemini",
+    "model": "gemini-2.0-flash",
+    "content": "Dependency injection is a design pattern...",
+    "finish_reason": "stop",
+    "token_usage": {
+      "prompt_tokens": 10,
+      "completion_tokens": 150,
+      "total_tokens": 160
+    }
+  }
+}
+```
+
+**Error Handling:**
+- `UNAVAILABLE`: Provider not configured or available
+- `TIMEOUT`: Request exceeded timeout
+- `EXECUTION_ERROR`: Provider returned an error
+
+**Safety Notes:**
+- Providers validate availability before execution
+- Streaming is not supported through MCP tools (returns complete result)
+- API keys must be configured per provider requirements
 
 ---
 
