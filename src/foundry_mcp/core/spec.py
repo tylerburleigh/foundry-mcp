@@ -4,11 +4,16 @@ Provides loading, saving, finding, and listing specs with atomic writes and back
 """
 
 import json
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
+
+# Valid templates and categories for spec creation
+TEMPLATES = ("simple", "medium", "complex", "security")
+CATEGORIES = ("investigation", "implementation", "refactoring", "decision", "research")
 
 
 def find_git_root() -> Optional[Path]:
@@ -400,3 +405,349 @@ def update_node(spec_data: Dict[str, Any], node_id: str, updates: Dict[str, Any]
 
     node.update(updates)
     return True
+
+
+# =============================================================================
+# Spec Creation Functions
+# =============================================================================
+
+
+def generate_spec_id(name: str) -> str:
+    """
+    Generate a spec ID from a human-readable name.
+
+    Args:
+        name: Human-readable spec name.
+
+    Returns:
+        URL-safe spec ID with date suffix (e.g., "my-feature-2025-01-15-001").
+    """
+    # Normalize: lowercase, replace spaces/special chars with hyphens
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    # Add date suffix
+    date_suffix = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Add sequence number (001 for new specs)
+    return f"{slug}-{date_suffix}-001"
+
+
+def get_template_structure(template: str, category: str) -> Dict[str, Any]:
+    """
+    Get the hierarchical structure for a spec template.
+
+    Args:
+        template: Template type (simple, medium, complex, security).
+        category: Default task category.
+
+    Returns:
+        Hierarchy dict for the spec.
+    """
+    base_hierarchy = {
+        "spec-root": {
+            "type": "spec",
+            "title": "",  # Filled in later
+            "status": "pending",
+            "parent": None,
+            "children": ["phase-1"],
+            "total_tasks": 0,
+            "completed_tasks": 0,
+            "metadata": {
+                "purpose": "",
+                "category": category,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        },
+        "phase-1": {
+            "type": "phase",
+            "title": "Planning & Discovery",
+            "status": "pending",
+            "parent": "spec-root",
+            "children": ["task-1-1"],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "purpose": "Initial planning and requirements gathering",
+                "estimated_hours": 2,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        },
+        "task-1-1": {
+            "type": "task",
+            "title": "Define requirements",
+            "status": "pending",
+            "parent": "phase-1",
+            "children": [],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "details": "Document the requirements and acceptance criteria",
+                "category": category,
+                "estimated_hours": 1,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        },
+    }
+
+    if template == "simple":
+        return base_hierarchy
+
+    # Medium template adds implementation phase
+    if template in ("medium", "complex", "security"):
+        base_hierarchy["spec-root"]["children"].append("phase-2")
+        base_hierarchy["phase-1"]["dependencies"]["blocks"].append("phase-2")
+        base_hierarchy["phase-2"] = {
+            "type": "phase",
+            "title": "Implementation",
+            "status": "pending",
+            "parent": "spec-root",
+            "children": ["task-2-1"],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "purpose": "Core implementation work",
+                "estimated_hours": 8,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": ["phase-1"],
+                "depends": [],
+            },
+        }
+        base_hierarchy["task-2-1"] = {
+            "type": "task",
+            "title": "Implement core functionality",
+            "status": "pending",
+            "parent": "phase-2",
+            "children": [],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "details": "Implement the main features",
+                "category": category,
+                "estimated_hours": 4,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        }
+        base_hierarchy["spec-root"]["total_tasks"] = 2
+        base_hierarchy["phase-1"]["total_tasks"] = 1
+
+    # Complex template adds verification phase
+    if template in ("complex", "security"):
+        base_hierarchy["spec-root"]["children"].append("phase-3")
+        base_hierarchy["phase-2"]["dependencies"]["blocks"].append("phase-3")
+        base_hierarchy["phase-3"] = {
+            "type": "phase",
+            "title": "Verification & Testing",
+            "status": "pending",
+            "parent": "spec-root",
+            "children": ["verify-3-1"],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "purpose": "Verify implementation meets requirements",
+                "estimated_hours": 4,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": ["phase-2"],
+                "depends": [],
+            },
+        }
+        base_hierarchy["verify-3-1"] = {
+            "type": "verify",
+            "title": "Run test suite",
+            "status": "pending",
+            "parent": "phase-3",
+            "children": [],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "verification_type": "auto",
+                "command": "pytest",
+                "expected": "All tests pass",
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        }
+        base_hierarchy["spec-root"]["total_tasks"] = 3
+
+    # Security template adds security review phase
+    if template == "security":
+        base_hierarchy["spec-root"]["children"].append("phase-4")
+        base_hierarchy["phase-3"]["dependencies"]["blocks"].append("phase-4")
+        base_hierarchy["phase-4"] = {
+            "type": "phase",
+            "title": "Security Review",
+            "status": "pending",
+            "parent": "spec-root",
+            "children": ["task-4-1"],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "purpose": "Security audit and hardening",
+                "estimated_hours": 4,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": ["phase-3"],
+                "depends": [],
+            },
+        }
+        base_hierarchy["task-4-1"] = {
+            "type": "task",
+            "title": "Security audit",
+            "status": "pending",
+            "parent": "phase-4",
+            "children": [],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": {
+                "details": "Review for security vulnerabilities",
+                "category": "investigation",
+                "estimated_hours": 2,
+            },
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        }
+        base_hierarchy["spec-root"]["total_tasks"] = 4
+
+    return base_hierarchy
+
+
+def create_spec(
+    name: str,
+    template: str = "medium",
+    category: str = "implementation",
+    specs_dir: Optional[Path] = None,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Create a new specification file from a template.
+
+    Args:
+        name: Human-readable name for the specification.
+        template: Template type (simple, medium, complex, security). Default: medium.
+        category: Default task category. Default: implementation.
+        specs_dir: Path to specs directory (auto-detected if not provided).
+
+    Returns:
+        Tuple of (result_dict, error_message).
+        On success: ({"spec_id": ..., "spec_path": ..., ...}, None)
+        On failure: (None, "error message")
+    """
+    # Validate template
+    if template not in TEMPLATES:
+        return None, f"Invalid template '{template}'. Must be one of: {', '.join(TEMPLATES)}"
+
+    # Validate category
+    if category not in CATEGORIES:
+        return None, f"Invalid category '{category}'. Must be one of: {', '.join(CATEGORIES)}"
+
+    # Find specs directory
+    if specs_dir is None:
+        specs_dir = find_specs_directory()
+
+    if specs_dir is None:
+        return None, "No specs directory found. Use specs_dir parameter or set SDD_SPECS_DIR."
+
+    # Ensure pending directory exists
+    pending_dir = specs_dir / "pending"
+    pending_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate spec ID
+    spec_id = generate_spec_id(name)
+
+    # Check if spec already exists
+    spec_path = pending_dir / f"{spec_id}.json"
+    if spec_path.exists():
+        return None, f"Specification already exists: {spec_id}"
+
+    # Generate spec structure
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    hierarchy = get_template_structure(template, category)
+
+    # Fill in the title
+    hierarchy["spec-root"]["title"] = name
+
+    # Calculate estimated hours from hierarchy
+    estimated_hours = sum(
+        node.get("metadata", {}).get("estimated_hours", 0)
+        for node in hierarchy.values()
+        if isinstance(node, dict)
+    )
+
+    spec_data = {
+        "spec_id": spec_id,
+        "title": name,
+        "generated": now,
+        "last_updated": now,
+        "metadata": {
+            "description": "",
+            "objectives": [],
+            "complexity": "medium" if template in ("medium", "complex") else "low",
+            "estimated_hours": estimated_hours,
+            "assumptions": [],
+            "status": "pending",
+            "owner": "",
+            "progress_percentage": 0,
+            "current_phase": "phase-1",
+            "category": category,
+            "template": template,
+        },
+        "progress_percentage": 0,
+        "status": "pending",
+        "current_phase": "phase-1",
+        "hierarchy": hierarchy,
+        "journal": [],
+    }
+
+    # Write the spec file
+    try:
+        with open(spec_path, "w") as f:
+            json.dump(spec_data, f, indent=2)
+    except (IOError, OSError) as e:
+        return None, f"Failed to write spec file: {e}"
+
+    # Count tasks and phases
+    task_count = sum(
+        1
+        for node in hierarchy.values()
+        if isinstance(node, dict) and node.get("type") in ("task", "subtask", "verify")
+    )
+    phase_count = sum(
+        1
+        for node in hierarchy.values()
+        if isinstance(node, dict) and node.get("type") == "phase"
+    )
+
+    return {
+        "spec_id": spec_id,
+        "spec_path": str(spec_path),
+        "template": template,
+        "category": category,
+        "name": name,
+        "structure": {
+            "phases": phase_count,
+            "tasks": task_count,
+        },
+    }, None

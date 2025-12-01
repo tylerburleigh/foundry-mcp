@@ -1,12 +1,12 @@
 {
   "spec_id": "internal-cli-elimination-2025-12-01-001",
   "generated": "2025-12-01T12:00:00Z",
-  "last_updated": "2025-12-01T12:00:00Z",
+  "last_updated": "2025-12-01T16:54:15.444497Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Internal CLI Subprocess Elimination",
-      "status": "pending",
+      "status": "in_progress",
       "parent": null,
       "children": [
         "phase-1",
@@ -14,7 +14,7 @@
         "phase-3"
       ],
       "total_tasks": 31,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "description": "Remove foundry-cli subprocess calls from MCP tools by using direct Python APIs. This eliminates process overhead, PATH dependencies, fragile CLI output parsing, and simplifies testing.",
         "objectives": [
@@ -59,14 +59,14 @@
     "phase-1": {
       "type": "phase",
       "title": "Core API Extensions",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-1-files",
         "phase-1-verify"
       ],
       "total_tasks": 16,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Extend existing core modules to support operations currently only available in CLI",
         "risk_level": "medium",
@@ -91,7 +91,7 @@
     "phase-1-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-1",
       "children": [
         "task-1-1",
@@ -101,7 +101,7 @@
         "task-1-5"
       ],
       "total_tasks": 14,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -114,7 +114,7 @@
     "task-1-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/spec.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-1-files",
       "children": [
         "task-1-1-1",
@@ -124,7 +124,7 @@
         "task-1-1-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/spec.py",
         "task_category": "implementation",
@@ -148,13 +148,19 @@
     "task-1-1-1": {
       "type": "subtask",
       "title": "Add create_spec() function",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Create new spec from template with generated spec_id"
+        "description": "Create new spec from template with generated spec_id",
+        "started_at": "2025-12-01T16:50:28.284367Z",
+        "status_note": "Starting implementation of create_spec() function",
+        "completed_at": "2025-12-01T16:54:15.440669Z",
+        "needs_journaling": false,
+        "actual_hours": 0.063,
+        "journaled_at": "2025-12-01T16:54:15.443361Z"
       }
     },
     "task-1-1-2": {
@@ -964,5 +970,22 @@
       }
     }
   },
-  "title": "Internal CLI Subprocess Elimination"
+  "title": "Internal CLI Subprocess Elimination",
+  "metadata": {
+    "status": "active",
+    "activated_date": "2025-12-01T16:49:50.825182Z",
+    "progress_percentage": 3,
+    "current_phase": "phase-1"
+  },
+  "journal": [
+    {
+      "timestamp": "2025-12-01T16:54:15.443357Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add create_spec() function",
+      "author": "claude-code",
+      "content": "Added create_spec() function to src/foundry_mcp/core/spec.py. Extracted and refactored generate_spec_id() and get_template_structure() from cli/commands/specs.py into the core module. The function creates new specs from templates (simple/medium/complex/security) with generated spec_id, writes to specs/pending/, and returns result dict or error. Also added TEMPLATES and CATEGORIES constants. All tests pass.",
+      "metadata": {},
+      "task_id": "task-1-1-1"
+    }
+  ]
 }
