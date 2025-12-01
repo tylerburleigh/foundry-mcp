@@ -182,32 +182,19 @@ def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             if use_provider_integration:
                 # Get provider statuses from the provider abstraction layer
+                # Note: get_provider_statuses() returns Dict[str, bool]
                 provider_statuses = get_provider_statuses()
 
                 # Build tools info from provider statuses
                 tools_info = []
-                for provider_id, status in provider_statuses.items():
+                for provider_id, is_available in provider_statuses.items():
                     tools_info.append({
                         "name": provider_id,
-                        "available": status.status.value == "available",
-                        "status": status.status.value,
-                        "reason": status.reason,
-                        "checked_at": (
-                            status.checked_at.isoformat() if status.checked_at else None
-                        ),
+                        "available": is_available,
+                        "status": "available" if is_available else "unavailable",
+                        "reason": None,  # Simple API doesn't provide reason
+                        "checked_at": None,  # Simple API doesn't provide timestamp
                     })
-
-                # Also include providers that are registered but not checked
-                all_providers = available_providers()
-                for provider_id in all_providers:
-                    if provider_id not in provider_statuses:
-                        tools_info.append({
-                            "name": provider_id,
-                            "available": None,
-                            "status": "unknown",
-                            "reason": "Not yet checked",
-                            "checked_at": None,
-                        })
             else:
                 # Legacy fallback: return static tool list with placeholder availability
                 tools_info = [
