@@ -155,3 +155,98 @@ class ProviderRequest:
     metadata: Dict[str, Any] = field(default_factory=dict)
     stream: bool = False
     attachments: Sequence[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class TokenUsage:
+    """
+    Token accounting information reported by providers.
+
+    Tracks input, output, and cached tokens for cost estimation
+    and usage monitoring.
+
+    Attributes:
+        input_tokens: Tokens consumed by the prompt
+        output_tokens: Tokens generated in the response
+        cached_input_tokens: Tokens served from cache (if supported)
+        total_tokens: Sum of all token counts
+    """
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_input_tokens: int = 0
+    total_tokens: int = 0
+
+
+@dataclass(frozen=True)
+class ProviderResult:
+    """
+    Normalized provider response.
+
+    This dataclass encapsulates all data returned from a provider execution,
+    providing a consistent interface regardless of the backend used.
+
+    Attributes:
+        content: Final text output (aggregated if streaming was used)
+        provider_id: Canonical provider identifier (e.g., "gemini", "codex")
+        model_used: Fully-qualified model identifier (e.g., "gemini:pro")
+        status: ProviderStatus describing execution outcome
+        tokens: Token usage data (if reported by provider)
+        duration_ms: Execution duration in milliseconds
+        stderr: Captured stderr/log output for debugging
+        raw_payload: Provider-specific metadata (traces, debug info, etc.)
+    """
+
+    content: str
+    provider_id: str
+    model_used: str
+    status: ProviderStatus
+    tokens: TokenUsage = field(default_factory=TokenUsage)
+    duration_ms: Optional[float] = None
+    stderr: Optional[str] = None
+    raw_payload: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ModelDescriptor:
+    """
+    Describes a model supported by a provider.
+
+    Attributes:
+        id: Provider-specific model identifier (e.g., "pro", "flash")
+        display_name: Human-friendly name for UIs/logs
+        capabilities: Feature flags supported by this model
+        routing_hints: Optional metadata for routing (cost, latency, etc.)
+    """
+
+    id: str
+    display_name: Optional[str] = None
+    capabilities: Set[ProviderCapability] = field(default_factory=set)
+    routing_hints: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ProviderMetadata:
+    """
+    Provider-level metadata shared with registries and consumers.
+
+    This dataclass describes a provider's capabilities, supported models,
+    and configuration, enabling informed routing decisions.
+
+    Attributes:
+        provider_id: Canonical provider identifier (e.g., "gemini", "codex")
+        display_name: Human-friendly provider name
+        models: Supported model descriptors
+        default_model: Model ID used when no override supplied
+        capabilities: Aggregate capabilities across all models
+        security_flags: Provider-specific sandbox/safety configuration
+        extra: Arbitrary metadata (version info, auth requirements, etc.)
+    """
+
+    provider_id: str
+    display_name: Optional[str] = None
+    models: Sequence[ModelDescriptor] = field(default_factory=list)
+    default_model: Optional[str] = None
+    capabilities: Set[ProviderCapability] = field(default_factory=set)
+    security_flags: Dict[str, Any] = field(default_factory=dict)
+    extra: Dict[str, Any] = field(default_factory=dict)

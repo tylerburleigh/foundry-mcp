@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T19:30:17.730220Z",
+  "last_updated": "2025-12-01T19:31:22.770284Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -62,7 +62,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 9,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Create foundational dataclasses, enums, and base ProviderContext ABC",
         "risk_level": "low",
@@ -93,7 +93,7 @@
         "task-1-2"
       ],
       "total_tasks": 7,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -156,7 +156,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/base.py",
         "task_category": "implementation",
@@ -221,13 +221,19 @@
     "task-1-1-4": {
       "type": "subtask",
       "title": "Create ProviderResult and ProviderMetadata dataclasses",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "ProviderResult with content, provider_id, model_used, status, tokens, duration. ProviderMetadata with provider_id, display_name, default_model, capabilities, security_flags"
+        "description": "ProviderResult with content, provider_id, model_used, status, tokens, duration. ProviderMetadata with provider_id, display_name, default_model, capabilities, security_flags",
+        "started_at": "2025-12-01T19:30:46.510672Z",
+        "status_note": "Creating ProviderResult and ProviderMetadata dataclasses",
+        "completed_at": "2025-12-01T19:31:22.764092Z",
+        "needs_journaling": false,
+        "actual_hours": 0.01,
+        "journaled_at": "2025-12-01T19:31:22.768741Z"
       }
     },
     "task-1-1-5": {
@@ -1818,7 +1824,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 5,
+    "progress_percentage": 7,
     "current_phase": "phase-1"
   },
   "journal": [
@@ -1857,6 +1863,15 @@
       "content": "Added frozen ProviderRequest dataclass to base.py with fields: prompt (required str), system_prompt (optional str), model (optional str), timeout (optional float), temperature (optional float), max_tokens (optional int), metadata (dict), stream (bool default False), attachments (sequence of str). Includes comprehensive docstring documenting each field's purpose and common values.",
       "metadata": {},
       "task_id": "task-1-1-3"
+    },
+    {
+      "timestamp": "2025-12-01T19:31:22.768736Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create ProviderResult and ProviderMetadata dataclasses",
+      "author": "claude-code",
+      "content": "Added 4 frozen dataclasses to base.py: (1) TokenUsage with input_tokens, output_tokens, cached_input_tokens, total_tokens fields; (2) ProviderResult with content, provider_id, model_used, status, tokens, duration_ms, stderr, raw_payload fields; (3) ModelDescriptor with id, display_name, capabilities, routing_hints fields; (4) ProviderMetadata with provider_id, display_name, models, default_model, capabilities, security_flags, extra fields. All include comprehensive docstrings.",
+      "metadata": {},
+      "task_id": "task-1-1-4"
     }
   ]
 }
