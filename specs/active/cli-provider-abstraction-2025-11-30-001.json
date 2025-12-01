@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T20:23:57.107744Z",
+  "last_updated": "2025-12-01T20:24:22.709407Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 15,
+      "completed_tasks": 16,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -369,7 +369,7 @@
         "depends": []
       },
       "total_tasks": 10,
-      "completed_tasks": 6,
+      "completed_tasks": 7,
       "metadata": {
         "purpose": "Implement CLI availability detection and provider registration",
         "risk_level": "low",
@@ -397,7 +397,7 @@
         "task-2-3"
       ],
       "total_tasks": 8,
-      "completed_tasks": 6,
+      "completed_tasks": 7,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -535,7 +535,7 @@
     "task-2-2": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/registry.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2-files",
       "children": [
         "task-2-2-1",
@@ -552,7 +552,7 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/registry.py",
         "task_category": "implementation",
@@ -566,13 +566,16 @@
     "task-2-2-1": {
       "type": "subtask",
       "title": "Create ProviderRegistration and registry dict",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-2-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "ProviderRegistration dataclass with factory, metadata, availability_check. Global _REGISTRY dict."
+        "description": "ProviderRegistration dataclass with factory, metadata, availability_check. Global _REGISTRY dict.",
+        "completed_at": "2025-12-01T20:24:22.704151Z",
+        "needs_journaling": false,
+        "journaled_at": "2025-12-01T20:24:22.707113Z"
       }
     },
     "task-2-2-2": {
@@ -1888,7 +1891,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 22,
+    "progress_percentage": 23,
     "current_phase": "phase-2"
   },
   "journal": [
@@ -2070,6 +2073,15 @@
       "content": "Already completed as part of task-2-1 (parent task). FOUNDRY_PROVIDER_TEST_MODE env var implemented to bypass real CLI probes for CI safety. When enabled, is_available() returns False unless overridden by provider-specific env var. See commit 68df0d4.",
       "metadata": {},
       "task_id": "task-2-1-4"
+    },
+    {
+      "timestamp": "2025-12-01T20:24:22.707103Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create ProviderRegistration and registry dict",
+      "author": "claude-code",
+      "content": "Already completed as part of task-2-2 (parent task). ProviderRegistration dataclass implemented with factory, lazy_loader, metadata, metadata_resolver, availability_check, priority, description, tags fields. Global _REGISTRY dict created. See commit 342d3b7.",
+      "metadata": {},
+      "task_id": "task-2-2-1"
     }
   ]
 }
