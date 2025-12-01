@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T21:26:35.705646Z",
+  "last_updated": "2025-12-01T21:26:37.298279Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 46,
+      "completed_tasks": 47,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1358,7 +1358,7 @@
         "depends": []
       },
       "total_tasks": 11,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
@@ -1385,7 +1385,7 @@
         "task-4-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1398,7 +1398,7 @@
     "task-4-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/providers.py",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-4-files",
       "children": [
         "task-4-1-1",
@@ -1416,7 +1416,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/providers.py",
         "task_category": "implementation",
@@ -1489,13 +1489,16 @@
     "task-4-1-5": {
       "type": "subtask",
       "title": "Tool metadata & discovery schema",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Annotate provider tools with discovery tags, rate limits, and usage examples aligned with docs/mcp_best_practices/13-tool-discovery.md and docs/codebase_standards/naming-conventions.md."
+        "description": "Annotate provider tools with discovery tags, rate limits, and usage examples aligned with docs/mcp_best_practices/13-tool-discovery.md and docs/codebase_standards/naming-conventions.md.",
+        "completed_at": "2025-12-01T21:26:37.292313Z",
+        "needs_journaling": false,
+        "journaled_at": "2025-12-01T21:26:37.295307Z"
       }
     },
     "task-4-2": {
@@ -2045,7 +2048,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 68,
+    "progress_percentage": 70,
     "current_phase": "phase-4"
   },
   "journal": [
@@ -2418,6 +2421,15 @@
       "content": "Implemented `provider_execute` tool (canonical name: \"provider-execute\") in `src/foundry_mcp/tools/providers.py`. The tool:\n- Executes prompts through a specified LLM provider\n- Required parameters: `provider_id`, `prompt`\n- Optional parameters: `model`, `max_tokens`, `temperature`, `timeout`\n- Validates required parameters and provider availability before execution\n- Creates `ProviderHooks` and resolves provider via `resolve_provider()`\n- Builds `ProviderRequest` and calls `provider.generate()`\n- Returns provider_id, model, content, token_usage, finish_reason\n- Handles `ProviderUnavailableError`, `ProviderTimeoutError`, `ProviderExecutionError` with appropriate error responses\n- Follows foundry-mcp response contract with `success_response`/`error_response`\n- Verified imports successful",
       "metadata": {},
       "task_id": "task-4-1-4"
+    },
+    {
+      "timestamp": "2025-12-01T21:26:37.295299Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Tool metadata & discovery schema",
+      "author": "claude-code",
+      "content": "Added comprehensive tool metadata and discovery schema to src/foundry_mcp/core/discovery.py:\n\n**PROVIDER_TOOL_METADATA dict** with ToolMetadata for each tool:\n- provider-list: Full parameter metadata, examples with input/output\n- provider-status: Required provider_id parameter with examples\n- provider-execute: All 6 parameters documented with constraints (max_tokens min/max, temperature 0.0-2.0, timeout 1-3600), rate_limit=\"60/minute\"\n\n**PROVIDER_FEATURE_FLAGS dict** with FeatureFlagDescriptor:\n- provider_tools: stable, enabled by default\n- provider_multi_model: stable, enabled by default\n- provider_streaming: beta, disabled (not exposed via MCP)\n- provider_rate_limiting: stable, enabled by default\n\n**Helper functions**:\n- register_provider_tools_discovery(): Registers all tools in global registry\n- get_provider_capabilities(): Returns capabilities for negotiation\n- is_provider_tool(): Check if tool name is a provider tool\n- get_provider_tool_metadata(): Get metadata for specific tool\n\nAll imports verified successful.",
+      "metadata": {},
+      "task_id": "task-4-1-5"
     }
   ]
 }
