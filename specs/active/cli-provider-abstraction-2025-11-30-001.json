@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T21:26:01.851104Z",
+  "last_updated": "2025-12-01T21:26:35.098444Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 43,
+      "completed_tasks": 44,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1358,7 +1358,7 @@
         "depends": []
       },
       "total_tasks": 11,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
@@ -1385,7 +1385,7 @@
         "task-4-3"
       ],
       "total_tasks": 9,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1416,7 +1416,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/providers.py",
         "task_category": "implementation",
@@ -1444,13 +1444,16 @@
     "task-4-1-2": {
       "type": "subtask",
       "title": "Implement provider_list tool",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-4-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "List all CLI providers with availability status using success_response() per docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md"
+        "description": "List all CLI providers with availability status using success_response() per docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md",
+        "completed_at": "2025-12-01T21:26:35.092973Z",
+        "needs_journaling": false,
+        "journaled_at": "2025-12-01T21:26:35.096059Z"
       }
     },
     "task-4-1-3": {
@@ -2036,7 +2039,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 64,
+    "progress_percentage": 65,
     "current_phase": "phase-4"
   },
   "journal": [
@@ -2382,6 +2385,15 @@
       "content": "Created src/foundry_mcp/tools/providers.py with register_provider_tools() function following the foundry-mcp tool registration pattern. The function:\n- Imports provider dependencies lazily to avoid circular imports  \n- Uses @canonical_tool decorator for MCP tool registration\n- Registers with the FastMCP server via the standard pattern\n- Added import and registration call in src/foundry_mcp/server.py\n- Exported from src/foundry_mcp/tools/__init__.py\n\nAll imports verified successful.",
       "metadata": {},
       "task_id": "task-4-1-1"
+    },
+    {
+      "timestamp": "2025-12-01T21:26:35.096049Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement provider_list tool",
+      "author": "claude-code",
+      "content": "Implemented `provider_list` tool (canonical name: \"provider-list\") in `src/foundry_mcp/tools/providers.py`. The tool:\n- Lists all registered LLM providers with availability status\n- Accepts `include_unavailable` boolean parameter to include unavailable providers\n- Returns provider summaries (id, description, priority, tags, available)\n- Includes `available_count` and `total_count` statistics\n- Uses `describe_providers()` from the provider registry\n- Follows foundry-mcp response contract with `success_response`/`error_response`\n- Verified imports successful",
+      "metadata": {},
+      "task_id": "task-4-1-2"
     }
   ]
 }
