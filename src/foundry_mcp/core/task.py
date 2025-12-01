@@ -1136,3 +1136,154 @@ def update_estimate(
         result["previous_complexity"] = previous_complexity
 
     return result, None
+
+
+# Valid verification types for update_task_metadata
+VERIFICATION_TYPES = ("auto", "manual", "none")
+
+# Valid task categories
+TASK_CATEGORIES = ("implementation", "testing", "documentation", "investigation", "refactoring", "design")
+
+
+def update_task_metadata(
+    spec_id: str,
+    task_id: str,
+    file_path: Optional[str] = None,
+    description: Optional[str] = None,
+    task_category: Optional[str] = None,
+    actual_hours: Optional[float] = None,
+    status_note: Optional[str] = None,
+    verification_type: Optional[str] = None,
+    command: Optional[str] = None,
+    custom_metadata: Optional[Dict[str, Any]] = None,
+    specs_dir: Optional[Path] = None,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Update arbitrary metadata fields on a task.
+
+    Updates various metadata fields on a task including file path, description,
+    category, hours, notes, verification type, and custom fields.
+    At least one field must be provided.
+
+    Args:
+        spec_id: Specification ID containing the task.
+        task_id: Task ID to update.
+        file_path: Optional file path associated with the task.
+        description: Optional task description.
+        task_category: Optional task category (implementation, testing, etc.).
+        actual_hours: Optional actual hours spent on task (must be >= 0).
+        status_note: Optional status note or completion note.
+        verification_type: Optional verification type (auto, manual, none).
+        command: Optional command executed for the task.
+        custom_metadata: Optional dict of custom metadata fields to merge.
+        specs_dir: Path to specs directory (auto-detected if not provided).
+
+    Returns:
+        Tuple of (result_dict, error_message).
+        On success: ({"task_id": ..., "fields_updated": [...], ...}, None)
+        On failure: (None, "error message")
+    """
+    # Collect all provided fields
+    updates: Dict[str, Any] = {}
+    if file_path is not None:
+        updates["file_path"] = file_path.strip() if file_path else None
+    if description is not None:
+        updates["description"] = description.strip() if description else None
+    if task_category is not None:
+        updates["task_category"] = task_category
+    if actual_hours is not None:
+        updates["actual_hours"] = actual_hours
+    if status_note is not None:
+        updates["status_note"] = status_note.strip() if status_note else None
+    if verification_type is not None:
+        updates["verification_type"] = verification_type
+    if command is not None:
+        updates["command"] = command.strip() if command else None
+
+    # Validate at least one field is provided
+    if not updates and not custom_metadata:
+        return None, "At least one metadata field must be provided"
+
+    # Validate actual_hours
+    if actual_hours is not None:
+        if not isinstance(actual_hours, (int, float)):
+            return None, "actual_hours must be a number"
+        if actual_hours < 0:
+            return None, "actual_hours must be >= 0"
+
+    # Validate task_category
+    if task_category is not None:
+        task_category_lower = task_category.lower().strip()
+        if task_category_lower not in TASK_CATEGORIES:
+            return None, f"Invalid task_category '{task_category}'. Must be one of: {', '.join(TASK_CATEGORIES)}"
+        updates["task_category"] = task_category_lower
+
+    # Validate verification_type
+    if verification_type is not None:
+        verification_type_lower = verification_type.lower().strip()
+        if verification_type_lower not in VERIFICATION_TYPES:
+            return None, f"Invalid verification_type '{verification_type}'. Must be one of: {', '.join(VERIFICATION_TYPES)}"
+        updates["verification_type"] = verification_type_lower
+
+    # Find specs directory
+    if specs_dir is None:
+        specs_dir = find_specs_directory()
+
+    if specs_dir is None:
+        return None, "No specs directory found. Use specs_dir parameter or set SDD_SPECS_DIR."
+
+    # Find and load the spec
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if spec_path is None:
+        return None, f"Specification '{spec_id}' not found"
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        return None, f"Failed to load specification '{spec_id}'"
+
+    hierarchy = spec_data.get("hierarchy", {})
+
+    # Validate task exists
+    task = hierarchy.get(task_id)
+    if task is None:
+        return None, f"Task '{task_id}' not found"
+
+    # Validate task type (can only update task, subtask, verify)
+    task_type = task.get("type")
+    if task_type not in ("task", "subtask", "verify"):
+        return None, f"Cannot update metadata for node type '{task_type}'. Only task, subtask, or verify nodes can be updated."
+
+    # Get or create metadata
+    metadata = task.get("metadata")
+    if metadata is None:
+        metadata = {}
+        task["metadata"] = metadata
+
+    # Track which fields were updated
+    fields_updated = []
+
+    # Apply updates
+    for key, value in updates.items():
+        if value is not None or key in metadata:
+            metadata[key] = value
+            fields_updated.append(key)
+
+    # Apply custom metadata
+    if custom_metadata and isinstance(custom_metadata, dict):
+        for key, value in custom_metadata.items():
+            # Don't allow overwriting core fields via custom_metadata
+            if key not in ("type", "title", "status", "parent", "children", "dependencies"):
+                metadata[key] = value
+                if key not in fields_updated:
+                    fields_updated.append(key)
+
+    # Save the spec
+    success = save_spec(spec_id, spec_data, specs_dir)
+    if not success:
+        return None, "Failed to save specification"
+
+    return {
+        "spec_id": spec_id,
+        "task_id": task_id,
+        "fields_updated": fields_updated,
+    }, None
