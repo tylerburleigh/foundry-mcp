@@ -1,7 +1,7 @@
 {
   "spec_id": "internal-cli-elimination-2025-12-01-001",
   "generated": "2025-12-01T12:00:00Z",
-  "last_updated": "2025-12-01T16:54:15.444497Z",
+  "last_updated": "2025-12-01T16:57:13.219231Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -14,7 +14,7 @@
         "phase-3"
       ],
       "total_tasks": 31,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "description": "Remove foundry-cli subprocess calls from MCP tools by using direct Python APIs. This eliminates process overhead, PATH dependencies, fragile CLI output parsing, and simplifies testing.",
         "objectives": [
@@ -66,7 +66,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 16,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Extend existing core modules to support operations currently only available in CLI",
         "risk_level": "medium",
@@ -101,7 +101,7 @@
         "task-1-5"
       ],
       "total_tasks": 14,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -124,7 +124,7 @@
         "task-1-1-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "file_path": "src/foundry_mcp/core/spec.py",
         "task_category": "implementation",
@@ -166,13 +166,19 @@
     "task-1-1-2": {
       "type": "subtask",
       "title": "Add add_assumption() function",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Add assumption to spec's assumptions array"
+        "description": "Add assumption to spec's assumptions array",
+        "started_at": "2025-12-01T16:54:48.577205Z",
+        "status_note": "Starting implementation of add_assumption() function",
+        "completed_at": "2025-12-01T16:57:13.215502Z",
+        "needs_journaling": false,
+        "actual_hours": 0.04,
+        "journaled_at": "2025-12-01T16:57:13.218241Z"
       }
     },
     "task-1-1-3": {
@@ -974,8 +980,17 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T16:49:50.825182Z",
-    "progress_percentage": 3,
-    "current_phase": "phase-1"
+    "progress_percentage": 6,
+    "current_phase": "phase-1",
+    "assumptions": [
+      {
+        "id": "a-1",
+        "text": "The MCP server will have direct file access to spec JSON files",
+        "type": "constraint",
+        "added": "2025-12-01T16:56:56.779540Z",
+        "author": "Claude"
+      }
+    ]
   },
   "journal": [
     {
@@ -986,6 +1001,15 @@
       "content": "Added create_spec() function to src/foundry_mcp/core/spec.py. Extracted and refactored generate_spec_id() and get_template_structure() from cli/commands/specs.py into the core module. The function creates new specs from templates (simple/medium/complex/security) with generated spec_id, writes to specs/pending/, and returns result dict or error. Also added TEMPLATES and CATEGORIES constants. All tests pass.",
       "metadata": {},
       "task_id": "task-1-1-1"
+    },
+    {
+      "timestamp": "2025-12-01T16:57:13.218236Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add add_assumption() function",
+      "author": "claude-code",
+      "content": "Added add_assumption() function to src/foundry_mcp/core/spec.py. The function adds assumptions to a spec's metadata.assumptions array with auto-generated IDs (a-1, a-2, etc.), supports constraint/requirement types, optional author field, and includes validation. Uses existing save_spec() for atomic writes with backups. All tests pass.",
+      "metadata": {},
+      "task_id": "task-1-1-2"
     }
   ]
 }

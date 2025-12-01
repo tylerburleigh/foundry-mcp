@@ -751,3 +751,106 @@ def create_spec(
             "tasks": task_count,
         },
     }, None
+
+
+# Valid assumption types
+ASSUMPTION_TYPES = ("constraint", "requirement")
+
+
+def add_assumption(
+    spec_id: str,
+    text: str,
+    assumption_type: str = "constraint",
+    author: Optional[str] = None,
+    specs_dir: Optional[Path] = None,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Add an assumption to a specification's assumptions array.
+
+    Args:
+        spec_id: Specification ID to add assumption to.
+        text: Assumption text/description.
+        assumption_type: Type of assumption (constraint, requirement). Default: constraint.
+        author: Optional author who added the assumption.
+        specs_dir: Path to specs directory (auto-detected if not provided).
+
+    Returns:
+        Tuple of (result_dict, error_message).
+        On success: ({"spec_id": ..., "assumption_id": ..., ...}, None)
+        On failure: (None, "error message")
+    """
+    # Validate assumption_type
+    if assumption_type not in ASSUMPTION_TYPES:
+        return None, f"Invalid assumption_type '{assumption_type}'. Must be one of: {', '.join(ASSUMPTION_TYPES)}"
+
+    # Validate text
+    if not text or not text.strip():
+        return None, "Assumption text is required"
+
+    # Find specs directory
+    if specs_dir is None:
+        specs_dir = find_specs_directory()
+
+    if specs_dir is None:
+        return None, "No specs directory found. Use specs_dir parameter or set SDD_SPECS_DIR."
+
+    # Find and load the spec
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if spec_path is None:
+        return None, f"Specification '{spec_id}' not found"
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        return None, f"Failed to load specification '{spec_id}'"
+
+    # Ensure metadata.assumptions exists
+    if "metadata" not in spec_data:
+        spec_data["metadata"] = {}
+    if "assumptions" not in spec_data["metadata"]:
+        spec_data["metadata"]["assumptions"] = []
+
+    assumptions = spec_data["metadata"]["assumptions"]
+
+    # Generate assumption ID (a-1, a-2, etc.)
+    existing_ids = []
+    for a in assumptions:
+        if isinstance(a, dict) and "id" in a:
+            try:
+                # Extract number from "a-N" format
+                num = int(a["id"].split("-")[1])
+                existing_ids.append(num)
+            except (IndexError, ValueError):
+                pass
+    next_num = max(existing_ids, default=0) + 1
+    assumption_id = f"a-{next_num}"
+
+    # Create assumption entry
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    assumption = {
+        "id": assumption_id,
+        "text": text.strip(),
+        "type": assumption_type,
+        "added": now,
+    }
+    if author:
+        assumption["author"] = author
+
+    # Add to assumptions array
+    assumptions.append(assumption)
+
+    # Update last_updated
+    spec_data["last_updated"] = now
+
+    # Save the spec
+    success = save_spec(spec_id, spec_data, specs_dir)
+    if not success:
+        return None, "Failed to save specification"
+
+    return {
+        "spec_id": spec_id,
+        "assumption_id": assumption_id,
+        "text": text.strip(),
+        "type": assumption_type,
+        "author": author,
+        "added": now,
+    }, None
