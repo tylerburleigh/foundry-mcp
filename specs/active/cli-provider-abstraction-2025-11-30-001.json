@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T22:01:49.874154Z",
+  "last_updated": "2025-12-01T22:04:46.263293Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 53,
+      "completed_tasks": 54,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1687,7 +1687,7 @@
     "phase-5": {
       "type": "phase",
       "title": "Review Integration & Refactoring",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "phase-5-files",
@@ -1703,7 +1703,7 @@
         "depends": []
       },
       "total_tasks": 6,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "purpose": "Refactor review.py to use new provider abstraction",
         "risk_level": "medium",
@@ -1719,13 +1719,13 @@
     "phase-5-files": {
       "type": "group",
       "title": "File Modifications",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-5",
       "children": [
         "task-5-1"
       ],
       "total_tasks": 4,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -1738,7 +1738,7 @@
     "task-5-1": {
       "type": "task",
       "title": "src/foundry_mcp/tools/review.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-5-files",
       "children": [
         "task-5-1-1",
@@ -1752,7 +1752,7 @@
         "depends": []
       },
       "total_tasks": 4,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/tools/review.py",
         "task_category": "refactoring",
@@ -1762,13 +1762,19 @@
     "task-5-1-1": {
       "type": "subtask",
       "title": "Replace REVIEW_TOOLS list with provider imports",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-5-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "Import get_provider_statuses, available_providers from core.providers"
+        "description": "Import get_provider_statuses, available_providers from core.providers",
+        "started_at": "2025-12-01T22:02:57.647621Z",
+        "status_note": "Starting replacement of REVIEW_TOOLS list with provider imports",
+        "completed_at": "2025-12-01T22:04:46.246376Z",
+        "needs_journaling": false,
+        "actual_hours": 0.03,
+        "journaled_at": "2025-12-01T22:04:46.260962Z"
       }
     },
     "task-5-1-2": {
@@ -2095,8 +2101,8 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 79,
-    "current_phase": "phase-4"
+    "progress_percentage": 80,
+    "current_phase": "phase-5"
   },
   "journal": [
     {
@@ -2558,6 +2564,15 @@
       "content": "All child tasks in phase phase-4 have been completed.",
       "metadata": {},
       "task_id": "phase-4"
+    },
+    {
+      "timestamp": "2025-12-01T22:04:46.260953Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Replace REVIEW_TOOLS list with provider imports",
+      "author": "claude-code",
+      "content": "Replaced REVIEW_TOOLS list with provider imports in src/foundry_mcp/tools/review.py. Added imports: from foundry_mcp.core.providers import (get_provider_statuses, available_providers) at lines 19-22. Commented out legacy REVIEW_TOOLS list at line 34 with note explaining it's replaced by provider abstraction. The actual function refactoring to use these imports is task-5-1-2.",
+      "metadata": {},
+      "task_id": "task-5-1-1"
     }
   ]
 }

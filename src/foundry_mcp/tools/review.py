@@ -16,6 +16,10 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.responses import success_response, error_response
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import get_metrics, mcp_tool
+from foundry_mcp.core.providers import (
+    get_provider_statuses,
+    available_providers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +29,9 @@ _metrics = get_metrics()
 # Available review types
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
 
-# Available review tools/pipelines
-REVIEW_TOOLS = [
-    "cursor-agent",
-    "gemini",
-    "codex",
-]
+# Legacy list - now replaced by provider abstraction
+# Use available_providers() and get_provider_statuses() instead
+# REVIEW_TOOLS = ["cursor-agent", "gemini", "codex"]
 
 
 def _get_llm_status() -> Dict[str, Any]:
