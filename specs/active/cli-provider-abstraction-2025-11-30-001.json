@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T21:56:28.834572Z",
+  "last_updated": "2025-12-01T21:59:30.624375Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 51,
+      "completed_tasks": 52,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -1358,7 +1358,7 @@
         "depends": []
       },
       "total_tasks": 11,
-      "completed_tasks": 9,
+      "completed_tasks": 10,
       "metadata": {
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
@@ -1621,7 +1621,7 @@
     "phase-4-verify": {
       "type": "group",
       "title": "Verification",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-4",
       "children": [
         "verify-4-1",
@@ -1636,20 +1636,26 @@
         "depends": []
       },
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "verify-4-1": {
       "type": "verify",
       "title": "MCP tools are registered",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-4-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "manual",
-        "description": "Check server exposes provider-list, provider-status, provider-execute tools with discovery metadata per docs/mcp_best_practices/13-tool-discovery.md"
+        "description": "Check server exposes provider-list, provider-status, provider-execute tools with discovery metadata per docs/mcp_best_practices/13-tool-discovery.md",
+        "started_at": "2025-12-01T21:57:57.195519Z",
+        "status_note": "Starting manual verification of MCP tool registration",
+        "completed_at": "2025-12-01T21:59:30.617014Z",
+        "needs_journaling": false,
+        "actual_hours": 0.026,
+        "journaled_at": "2025-12-01T21:59:30.622307Z"
       }
     },
     "verify-4-2": {
@@ -2076,7 +2082,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 76,
+    "progress_percentage": 77,
     "current_phase": "phase-4"
   },
   "journal": [
@@ -2503,6 +2509,15 @@
       "content": "All child tasks in group phase-4-files have been completed.",
       "metadata": {},
       "task_id": "phase-4-files"
+    },
+    {
+      "timestamp": "2025-12-01T21:59:30.622301Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: MCP tools are registered",
+      "author": "claude-code",
+      "content": "Manual verification of MCP tool registration completed. Verified: 1) server.py imports and calls register_provider_tools (lines 65, 115), 2) All three tools registered: provider-list, provider-status, provider-execute, 3) capabilities_manifest.json contains full discovery metadata for all tools including descriptions, parameters with types/constraints, rate limits (20 req/min for execute), and feature flags (provider_tools). All requirements from docs/mcp_best_practices/13-tool-discovery.md satisfied.",
+      "metadata": {},
+      "task_id": "verify-4-1"
     }
   ]
 }
