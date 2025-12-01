@@ -1,7 +1,7 @@
 {
   "spec_id": "cli-provider-abstraction-2025-11-30-001",
   "generated": "2025-11-30T12:00:00Z",
-  "last_updated": "2025-12-01T19:26:07.930299Z",
+  "last_updated": "2025-12-01T19:27:11.855773Z",
   "hierarchy": {
     "spec-root": {
       "type": "spec",
@@ -20,7 +20,7 @@
         "task-3-1-3"
       ],
       "total_tasks": 67,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "description": "Port the unified CLI provider pattern from sdd-toolkit to foundry-mcp, enabling consistent handling of external AI tool CLIs (gemini, codex, cursor-agent, claude, opencode) while adhering to foundry-mcp conventions.",
         "objectives": [
@@ -62,7 +62,7 @@
         "phase-1-verify"
       ],
       "total_tasks": 9,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {
         "purpose": "Create foundational dataclasses, enums, and base ProviderContext ABC",
         "risk_level": "low",
@@ -93,7 +93,7 @@
         "task-1-2"
       ],
       "total_tasks": 7,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -137,7 +137,7 @@
     "task-1-1": {
       "type": "task",
       "title": "src/foundry_mcp/core/providers/base.py",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-1-files",
       "children": [
         "task-1-1-1",
@@ -156,7 +156,7 @@
         "depends": []
       },
       "total_tasks": 5,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/providers/base.py",
         "task_category": "implementation",
@@ -167,13 +167,19 @@
     "task-1-1-1": {
       "type": "subtask",
       "title": "Create ProviderCapability enum",
-      "status": "pending",
+      "status": "completed",
       "parent": "task-1-1",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "description": "TEXT, VISION, FUNCTION_CALLING, STREAMING capabilities"
+        "description": "TEXT, VISION, FUNCTION_CALLING, STREAMING capabilities",
+        "started_at": "2025-12-01T19:26:44.636545Z",
+        "status_note": "Creating ProviderCapability enum",
+        "completed_at": "2025-12-01T19:27:11.849828Z",
+        "needs_journaling": false,
+        "actual_hours": 0.008,
+        "journaled_at": "2025-12-01T19:27:11.854078Z"
       }
     },
     "task-1-1-2": {
@@ -1800,7 +1806,7 @@
   "metadata": {
     "status": "active",
     "activated_date": "2025-12-01T15:49:52.907043Z",
-    "progress_percentage": 1,
+    "progress_percentage": 2,
     "current_phase": "phase-1"
   },
   "journal": [
@@ -1812,6 +1818,15 @@
       "content": "Analyzed sdd-toolkit provider base.py at claude_skills/common/providers/base.py. Key components documented: (1) Enums: ProviderCapability (5 values), ProviderStatus (6 values with is_retryable() method); (2) Error hierarchy: ProviderError base with UnavailableError, ExecutionError, TimeoutError subclasses; (3) Frozen dataclasses: TokenUsage, ModelDescriptor, ProviderMetadata, GenerationRequest, StreamChunk, GenerationResult; (4) Hook system: StreamCallback, BeforeExecuteHook, AfterResultHook types plus ProviderHooks dataclass; (5) ProviderContext ABC with generate(), _execute() abstract method, _prepare_request() hook, and supports() capability check. Adaptations for foundry-mcp noted: place under core/providers/, align with responses.py patterns, integrate error hierarchy with existing patterns.",
       "metadata": {},
       "task_id": "task-1-0"
+    },
+    {
+      "timestamp": "2025-12-01T19:27:11.854070Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create ProviderCapability enum",
+      "author": "claude-code",
+      "content": "Created ProviderCapability enum in src/foundry_mcp/core/providers/base.py with 5 capability values: TEXT (text_generation), VISION, FUNCTION_CALLING, STREAMING, THINKING. File created with module docstring explaining design principles (frozen dataclasses, enum capabilities, status alignment, error hierarchy). Enum includes comprehensive docstring documenting each capability value.",
+      "metadata": {},
+      "task_id": "task-1-1-1"
     }
   ]
 }
