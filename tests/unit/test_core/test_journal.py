@@ -7,6 +7,7 @@ Tests journal entry management, blocker operations, and status updates.
 import pytest
 from foundry_mcp.core.journal import (
     add_journal_entry,
+    bulk_journal,
     get_journal_entries,
     get_latest_journal_entry,
     mark_blocked,
@@ -493,6 +494,118 @@ class TestFindUnjournaled:
         """Test that empty list is returned if no unjournaled tasks."""
         unjournaled = find_unjournaled_tasks(spec_with_task)
         assert unjournaled == []
+
+
+class TestBulkJournal:
+    """Tests for bulk_journal function."""
+
+    def test_adds_multiple_entries(self, spec_with_task):
+        """Test adding multiple entries at once."""
+        entries = [
+            {"title": "Entry 1", "content": "Content 1"},
+            {"title": "Entry 2", "content": "Content 2"},
+            {"title": "Entry 3", "content": "Content 3"},
+        ]
+        results = bulk_journal(spec_with_task, entries)
+        assert len(results) == 3
+        assert len(spec_with_task["journal"]) == 3
+
+    def test_returns_journal_entry_objects(self, spec_with_task):
+        """Test that JournalEntry objects are returned."""
+        entries = [{"title": "Test", "content": "Content"}]
+        results = bulk_journal(spec_with_task, entries)
+        assert all(isinstance(r, JournalEntry) for r in results)
+
+    def test_all_entries_share_timestamp(self, spec_with_task):
+        """Test that all entries in batch have same timestamp."""
+        entries = [
+            {"title": "Entry 1", "content": "Content 1"},
+            {"title": "Entry 2", "content": "Content 2"},
+        ]
+        results = bulk_journal(spec_with_task, entries)
+        assert results[0].timestamp == results[1].timestamp
+
+    def test_handles_task_ids(self, spec_with_task):
+        """Test that task_ids are properly associated."""
+        entries = [
+            {"title": "Entry 1", "content": "Content 1", "task_id": "task-1"},
+            {"title": "Entry 2", "content": "Content 2", "task_id": "task-2"},
+        ]
+        results = bulk_journal(spec_with_task, entries)
+        assert results[0].task_id == "task-1"
+        assert results[1].task_id == "task-2"
+
+    def test_clears_journaling_flags(self, spec_with_task):
+        """Test that needs_journaling flags are cleared for task entries."""
+        update_task_status(spec_with_task, "task-1", "completed")
+        update_task_status(spec_with_task, "task-2", "completed")
+
+        entries = [
+            {"title": "Entry 1", "content": "Content 1", "task_id": "task-1"},
+            {"title": "Entry 2", "content": "Content 2", "task_id": "task-2"},
+        ]
+        bulk_journal(spec_with_task, entries)
+
+        # Both tasks should have journaling flag cleared
+        assert spec_with_task["hierarchy"]["task-1"]["metadata"]["needs_journaling"] is False
+        assert spec_with_task["hierarchy"]["task-2"]["metadata"]["needs_journaling"] is False
+
+    def test_updates_last_updated_once(self, spec_with_task):
+        """Test that last_updated is set once for the batch."""
+        entries = [
+            {"title": "Entry 1", "content": "Content 1"},
+            {"title": "Entry 2", "content": "Content 2"},
+        ]
+        bulk_journal(spec_with_task, entries)
+        # last_updated should be a valid timestamp
+        assert "T" in spec_with_task["last_updated"]
+
+    def test_handles_empty_list(self, spec_with_task):
+        """Test handling of empty entry list."""
+        results = bulk_journal(spec_with_task, [])
+        assert results == []
+        assert len(spec_with_task["journal"]) == 0
+
+    def test_skips_invalid_entries(self, spec_with_task):
+        """Test that invalid entries are skipped."""
+        entries = [
+            {"title": "Valid", "content": "Content"},
+            {"title": "Missing content"},  # Missing content
+            {"content": "Missing title"},  # Missing title
+            "not a dict",  # Invalid type
+            None,  # Invalid type
+            {"title": "Also valid", "content": "More content"},
+        ]
+        results = bulk_journal(spec_with_task, entries)
+        assert len(results) == 2
+        assert results[0].title == "Valid"
+        assert results[1].title == "Also valid"
+
+    def test_handles_all_optional_fields(self, spec_with_task):
+        """Test that all optional fields are handled."""
+        entries = [
+            {
+                "title": "Full entry",
+                "content": "Full content",
+                "entry_type": "decision",
+                "task_id": "task-1",
+                "author": "custom-author",
+                "metadata": {"key": "value"},
+            }
+        ]
+        results = bulk_journal(spec_with_task, entries)
+        assert results[0].entry_type == "decision"
+        assert results[0].task_id == "task-1"
+        assert results[0].author == "custom-author"
+        assert results[0].metadata == {"key": "value"}
+
+    def test_creates_journal_array_if_missing(self, spec_with_task):
+        """Test that journal array is created if missing."""
+        del spec_with_task["journal"]
+        entries = [{"title": "Test", "content": "Content"}]
+        bulk_journal(spec_with_task, entries)
+        assert "journal" in spec_with_task
+        assert len(spec_with_task["journal"]) == 1
 
 
 class TestJournalConstants:

@@ -173,6 +173,98 @@ def get_journal_entries(
     ]
 
 
+def bulk_journal(
+    spec_data: Dict[str, Any],
+    entries: List[Dict[str, Any]],
+) -> List[JournalEntry]:
+    """
+    Add multiple journal entries to the spec data in a single operation.
+
+    This is more efficient than calling add_journal_entry multiple times
+    as it updates the spec data once after all entries are added.
+
+    Args:
+        spec_data: Spec data dictionary (modified in place)
+        entries: List of entry dicts, each with keys:
+            - title (required): Entry title
+            - content (required): Entry content
+            - entry_type (optional): Type of entry (default: "note")
+            - task_id (optional): Associated task ID
+            - author (optional): Entry author (default: "claude-code")
+            - metadata (optional): Additional metadata dict
+
+    Returns:
+        List of created JournalEntry objects
+
+    Example:
+        >>> entries = [
+        ...     {"title": "First entry", "content": "Content 1", "task_id": "task-1"},
+        ...     {"title": "Second entry", "content": "Content 2", "task_id": "task-2"},
+        ... ]
+        >>> results = bulk_journal(spec_data, entries)
+        >>> print(f"Added {len(results)} entries")
+    """
+    if not entries:
+        return []
+
+    # Ensure journal array exists
+    if "journal" not in spec_data or not isinstance(spec_data["journal"], list):
+        spec_data["journal"] = []
+
+    timestamp = _get_timestamp()
+    created_entries: List[JournalEntry] = []
+    tasks_to_clear: List[str] = []
+
+    for entry_data in entries:
+        if not isinstance(entry_data, dict):
+            continue
+
+        title = entry_data.get("title", "")
+        content = entry_data.get("content", "")
+
+        if not title or not content:
+            continue
+
+        entry_type = entry_data.get("entry_type", "note")
+        task_id = entry_data.get("task_id")
+        author = entry_data.get("author", "claude-code")
+        metadata = entry_data.get("metadata", {})
+
+        journal_entry = {
+            "timestamp": timestamp,
+            "entry_type": entry_type,
+            "title": title,
+            "content": content,
+            "author": author,
+            "metadata": metadata,
+        }
+
+        if task_id:
+            journal_entry["task_id"] = task_id
+            tasks_to_clear.append(task_id)
+
+        spec_data["journal"].append(journal_entry)
+
+        created_entries.append(JournalEntry(
+            timestamp=timestamp,
+            entry_type=entry_type,
+            title=title,
+            content=content,
+            author=author,
+            task_id=task_id,
+            metadata=metadata,
+        ))
+
+    # Update last_updated timestamp once
+    spec_data["last_updated"] = timestamp
+
+    # Clear needs_journaling flags for all affected tasks
+    for task_id in tasks_to_clear:
+        _clear_journaling_flag(spec_data, task_id, timestamp)
+
+    return created_entries
+
+
 def get_latest_journal_entry(
     spec_data: Dict[str, Any],
     task_id: str,
