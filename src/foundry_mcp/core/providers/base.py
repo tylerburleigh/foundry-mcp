@@ -123,3 +123,35 @@ class ProviderStatus(Enum):
             ProviderStatus.CANCELED: ErrorType.INTERNAL,
         }
         return mapping[self]
+
+
+@dataclass(frozen=True)
+class ProviderRequest:
+    """
+    Normalized request payload for provider execution.
+
+    This dataclass encapsulates all parameters needed to make a generation
+    request to any provider backend. Fields follow common LLM API conventions
+    to ensure portability across different providers.
+
+    Attributes:
+        prompt: The user's input prompt/message
+        system_prompt: Optional system/instruction prompt
+        model: Model identifier (provider-specific, e.g., "pro", "flash")
+        timeout: Request timeout in seconds (None = provider default)
+        temperature: Sampling temperature (0.0-2.0, None = provider default)
+        max_tokens: Maximum output tokens (None = provider default)
+        metadata: Arbitrary request metadata (tracing IDs, feature flags, etc.)
+        stream: Whether to request streaming response
+        attachments: File paths or URIs for multimodal inputs
+    """
+
+    prompt: str
+    system_prompt: Optional[str] = None
+    model: Optional[str] = None
+    timeout: Optional[float] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    stream: bool = False
+    attachments: Sequence[str] = field(default_factory=list)
