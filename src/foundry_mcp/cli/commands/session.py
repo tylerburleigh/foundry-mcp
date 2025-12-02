@@ -5,11 +5,13 @@ Provides commands for session tracking, context limits, and consultation monitor
 
 import os
 import secrets
+from pathlib import Path
 from typing import Optional
 
 import click
 
 from foundry_mcp.cli.agent import agent_gated, get_agent_type
+from foundry_mcp.cli.transcript import find_transcript_by_marker, parse_transcript
 from foundry_mcp.cli.context import (
     ContextTracker,
     get_context_tracker,
@@ -355,28 +357,46 @@ def context_cmd(
         )
         return
 
-    # Get context tracker for session state
-    tracker = get_context_tracker()
-    session = tracker.get_session()
+    # Find transcript containing the session marker
+    transcript_path = find_transcript_by_marker(Path.cwd(), session_marker)
+    if transcript_path is None:
+        emit_error(
+            "Could not find transcript containing marker",
+            code="TRANSCRIPT_NOT_FOUND",
+            error_type="not_found",
+            remediation=(
+                "Ensure you run 'sdd session generate-marker' first, then wait for "
+                "the marker to be logged before running 'sdd session context'."
+            ),
+            details={
+                "session_marker": session_marker,
+                "cwd": str(Path.cwd()),
+            },
+        )
+        return
 
-    # Calculate context percentage
-    # Note: In Claude Code, actual context is calculated from transcript
-    # Here we estimate based on session tracking
-    context_percentage = 0
+    # Parse the transcript to get token metrics
+    metrics = parse_transcript(transcript_path)
+    if metrics is None:
+        emit_error(
+            "Failed to parse transcript file",
+            code="PARSE_ERROR",
+            error_type="internal",
+            remediation="Check that the transcript file is valid JSONL.",
+            details={"transcript_path": str(transcript_path)},
+        )
+        return
+
+    # Calculate context percentage (default max context: 155,000 tokens)
+    max_context = 155000
+    context_percentage = round(metrics.context_percentage(max_context))
     recommendations = []
 
-    if session is not None:
-        # Use token usage percentage as proxy for context
-        context_percentage = round(session.token_usage_percentage, 0)
-
-        if check_limits:
-            if context_percentage >= 85:
-                recommendations.append("Context at or above 85%. Consider '/clear' and '/sdd-begin'.")
-            elif context_percentage >= 70:
-                recommendations.append("Context above 70%. Monitor usage closely.")
-    else:
-        # No active session, estimate minimal context used
-        context_percentage = 5
+    if check_limits:
+        if context_percentage >= 85:
+            recommendations.append("Context at or above 85%. Consider '/clear' and '/sdd-begin'.")
+        elif context_percentage >= 70:
+            recommendations.append("Context above 70%. Monitor usage closely.")
 
     result = {"context_percentage_used": int(context_percentage)}
 
@@ -385,5 +405,7 @@ def context_cmd(
         result["recommendations"] = recommendations
         result["threshold_warning"] = 85
         result["threshold_stop"] = 90
+        result["context_length"] = metrics.context_length
+        result["max_context"] = max_context
 
     emit_success(result)
