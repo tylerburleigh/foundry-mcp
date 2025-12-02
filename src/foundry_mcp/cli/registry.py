@@ -173,6 +173,7 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(list_blockers_alias_cmd, name="list-blockers")
     cli.add_command(validate_cmd, name="validate")
     cli.add_command(fix_cmd, name="fix")
+    cli.add_command(schema_cmd, name="schema")
 
     # Placeholder: version command for testing the scaffold
     @cli.command("version")
