@@ -23,7 +23,21 @@ from foundry_mcp.cli.commands.session import (
     token_usage_cmd,
     work_mode_cmd,
 )
-from foundry_mcp.cli.commands.specs import analyze, create, schema_cmd, specs, template
+from foundry_mcp.cli.commands.specs import (
+    analyze,
+    create,
+    find_specs_cmd,
+    find_specs_alias_cmd,
+    list_blockers_cmd,
+    list_blockers_alias_cmd,
+    list_phases_cmd,
+    list_phases_alias_cmd,
+    query_tasks_cmd,
+    query_tasks_alias_cmd,
+    schema_cmd,
+    specs,
+    template,
+)
 from foundry_mcp.cli.commands.cache import (
     cache,
     cache_clear_cmd,
@@ -126,6 +140,14 @@ __all__ = [
     "analyze",
     "template",
     "schema_cmd",
+    "find_specs_cmd",
+    "find_specs_alias_cmd",
+    "list_phases_cmd",
+    "list_phases_alias_cmd",
+    "query_tasks_cmd",
+    "query_tasks_alias_cmd",
+    "list_blockers_cmd",
+    "list_blockers_alias_cmd",
     # Task commands
     "tasks",
     "next_task",

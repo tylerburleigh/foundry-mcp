@@ -72,6 +72,7 @@ def register_all_commands(cli: click.Group) -> None:
         doc_group,
         find_class_alias_cmd,
         find_function_alias_cmd,
+        find_specs_alias_cmd,
         generate_docs_alias_cmd,
         generate_marker_cmd,
         journal,
@@ -79,6 +80,8 @@ def register_all_commands(cli: click.Group) -> None:
         journal_list_alias_cmd,
         journal_unjournaled_alias_cmd,
         lifecycle,
+        list_blockers_alias_cmd,
+        list_phases_alias_cmd,
         lifecycle_state_cmd,
         llm_doc_group,
         modify_apply_cmd,
@@ -87,6 +90,7 @@ def register_all_commands(cli: click.Group) -> None:
         next_task,
         pr_group,
         prepare_task_cmd,
+        query_tasks_alias_cmd,
         render_cmd,
         render_group,
         review_group,
@@ -157,6 +161,10 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(journal_add_alias_cmd, name="journal-add")
     cli.add_command(journal_list_alias_cmd, name="journal-list")
     cli.add_command(journal_unjournaled_alias_cmd, name="journal-unjournaled")
+    cli.add_command(find_specs_alias_cmd, name="find-specs")
+    cli.add_command(list_phases_alias_cmd, name="list-phases")
+    cli.add_command(query_tasks_alias_cmd, name="query-tasks")
+    cli.add_command(list_blockers_alias_cmd, name="list-blockers")
 
     # Placeholder: version command for testing the scaffold
     @cli.command("version")

@@ -15,10 +15,14 @@ from foundry_mcp.cli.logging import cli_command, get_cli_logger
 from foundry_mcp.cli.output import emit, emit_error, emit_success
 from foundry_mcp.cli.registry import get_context
 from foundry_mcp.cli.resilience import (
+    FAST_TIMEOUT,
     handle_keyboard_interrupt,
     MEDIUM_TIMEOUT,
     with_sync_timeout,
 )
+from foundry_mcp.core.journal import list_blocked_tasks
+from foundry_mcp.core.progress import list_phases as core_list_phases
+from foundry_mcp.core.spec import list_specs as core_list_specs, load_spec
 
 logger = get_cli_logger()
 
@@ -590,3 +594,241 @@ def schema_cmd(ctx: click.Context) -> None:
         "version": "1.0.0",
         "source": "bundled",
     })
+
+
+@specs.command("find")
+@click.option(
+    "--status", "-s",
+    type=click.Choice(["active", "pending", "completed", "archived", "all"]),
+    default="all",
+    help="Filter by status folder.",
+)
+@click.pass_context
+@cli_command("specs-find")
+@handle_keyboard_interrupt()
+@with_sync_timeout(MEDIUM_TIMEOUT, "Spec discovery timed out")
+def find_specs_cmd(ctx: click.Context, status: str) -> None:
+    """Find all specifications with progress information.
+
+    Lists specs sorted by status (active first) and completion percentage.
+
+    Examples:
+        sdd specs find
+        sdd specs find --status active
+        sdd find-specs
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Use core function to list specs
+    status_filter = None if status == "all" else status
+    specs_list = core_list_specs(specs_dir, status=status_filter)
+
+    emit_success({
+        "count": len(specs_list),
+        "status_filter": status if status != "all" else None,
+        "specs": specs_list,
+    })
+
+
+@specs.command("list-phases")
+@click.argument("spec_id")
+@click.pass_context
+@cli_command("specs-list-phases")
+@handle_keyboard_interrupt()
+@with_sync_timeout(FAST_TIMEOUT, "List phases timed out")
+def list_phases_cmd(ctx: click.Context, spec_id: str) -> None:
+    """List all phases in a specification with progress.
+
+    SPEC_ID is the specification identifier.
+
+    Examples:
+        sdd specs list-phases my-spec
+        sdd list-phases my-spec
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs find",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+        return
+
+    phases = core_list_phases(spec_data)
+
+    emit_success({
+        "spec_id": spec_id,
+        "phase_count": len(phases),
+        "phases": phases,
+    })
+
+
+@specs.command("query-tasks")
+@click.argument("spec_id")
+@click.option("--status", "-s", help="Filter by status (pending, in_progress, completed, blocked).")
+@click.option("--parent", "-p", help="Filter by parent node ID (e.g., phase-1).")
+@click.pass_context
+@cli_command("specs-query-tasks")
+@handle_keyboard_interrupt()
+@with_sync_timeout(MEDIUM_TIMEOUT, "Query tasks timed out")
+def query_tasks_cmd(
+    ctx: click.Context,
+    spec_id: str,
+    status: Optional[str],
+    parent: Optional[str],
+) -> None:
+    """Query tasks in a specification with filters.
+
+    SPEC_ID is the specification identifier.
+
+    Examples:
+        sdd specs query-tasks my-spec
+        sdd specs query-tasks my-spec --status pending
+        sdd specs query-tasks my-spec --parent phase-2
+        sdd query-tasks my-spec --status in_progress
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs find",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+        return
+
+    hierarchy = spec_data.get("hierarchy", {})
+    tasks = []
+
+    for node_id, node in hierarchy.items():
+        node_type = node.get("type", "")
+        if node_type not in ("task", "subtask", "verify"):
+            continue
+
+        # Apply filters
+        if status and node.get("status") != status:
+            continue
+        if parent and node.get("parent") != parent:
+            continue
+
+        tasks.append({
+            "task_id": node_id,
+            "title": node.get("title", ""),
+            "type": node_type,
+            "status": node.get("status", "pending"),
+            "parent": node.get("parent"),
+            "children": node.get("children", []),
+        })
+
+    # Sort by task_id
+    tasks.sort(key=lambda t: t["task_id"])
+
+    emit_success({
+        "spec_id": spec_id,
+        "filters": {
+            "status": status,
+            "parent": parent,
+        },
+        "task_count": len(tasks),
+        "tasks": tasks,
+    })
+
+
+@specs.command("list-blockers")
+@click.argument("spec_id")
+@click.pass_context
+@cli_command("specs-list-blockers")
+@handle_keyboard_interrupt()
+@with_sync_timeout(FAST_TIMEOUT, "List blockers timed out")
+def list_blockers_cmd(ctx: click.Context, spec_id: str) -> None:
+    """List all blocked tasks in a specification.
+
+    SPEC_ID is the specification identifier.
+
+    Returns tasks with status='blocked' and their blocker information.
+
+    Examples:
+        sdd specs list-blockers my-spec
+        sdd list-blockers my-spec
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs find",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+        return
+
+    blocked = list_blocked_tasks(spec_data)
+
+    emit_success({
+        "spec_id": spec_id,
+        "blocker_count": len(blocked),
+        "blocked_tasks": blocked,
+    })
+
+
+# Top-level aliases
+find_specs_alias_cmd = find_specs_cmd
+list_phases_alias_cmd = list_phases_cmd
+query_tasks_alias_cmd = query_tasks_cmd
+list_blockers_alias_cmd = list_blockers_cmd
