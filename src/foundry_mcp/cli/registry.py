@@ -77,6 +77,7 @@ def register_all_commands(cli: click.Group) -> None:
         journal,
         journal_add_alias_cmd,
         journal_list_alias_cmd,
+        journal_unjournaled_alias_cmd,
         lifecycle,
         lifecycle_state_cmd,
         llm_doc_group,
@@ -155,6 +156,7 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(dev_install_alias_cmd, name="dev-install")
     cli.add_command(journal_add_alias_cmd, name="journal-add")
     cli.add_command(journal_list_alias_cmd, name="journal-list")
+    cli.add_command(journal_unjournaled_alias_cmd, name="journal-unjournaled")
 
     # Placeholder: version command for testing the scaffold
     @cli.command("version")

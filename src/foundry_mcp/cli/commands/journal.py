@@ -233,6 +233,62 @@ def journal_list_cmd(
     })
 
 
+@journal.command("unjournaled")
+@click.argument("spec_id")
+@click.pass_context
+@cli_command("journal-unjournaled")
+@handle_keyboard_interrupt()
+@with_sync_timeout(FAST_TIMEOUT, "Journal unjournaled lookup timed out")
+def journal_unjournaled_cmd(
+    ctx: click.Context,
+    spec_id: str,
+) -> None:
+    """List completed tasks that need journal entries.
+
+    SPEC_ID is the specification identifier.
+
+    Returns tasks that are marked as completed but have the
+    needs_journaling flag set to true.
+
+    Examples:
+        sdd journal unjournaled my-spec
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs list",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+        return
+
+    # Find unjournaled tasks
+    unjournaled = find_unjournaled_tasks(spec_data)
+
+    emit_success({
+        "spec_id": spec_id,
+        "count": len(unjournaled),
+        "tasks": unjournaled,
+    })
+
+
 # Top-level aliases
 journal_add_alias_cmd = journal_add_cmd
 journal_list_alias_cmd = journal_list_cmd
+journal_unjournaled_alias_cmd = journal_unjournaled_cmd
