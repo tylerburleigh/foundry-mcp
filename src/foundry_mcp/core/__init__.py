@@ -70,6 +70,16 @@ from foundry_mcp.core.responses import (
 )
 from foundry_mcp.core.naming import canonical_tool
 
+from foundry_mcp.core.review import (
+    ReviewFinding,
+    QuickReviewResult,
+    ReviewContext,
+    get_llm_status,
+    prepare_review_context,
+    quick_review,
+    review_type_requires_llm,
+)
+
 __all__ = [
     "find_specs_directory",
     "find_spec_file",
@@ -123,4 +133,12 @@ __all__ = [
     "success_response",
     "error_response",
     "canonical_tool",
+    # Review
+    "ReviewFinding",
+    "QuickReviewResult",
+    "ReviewContext",
+    "get_llm_status",
+    "prepare_review_context",
+    "quick_review",
+    "review_type_requires_llm",
 ]

@@ -2,7 +2,7 @@
   "spec_id": "foundry-cli-gap-remediation-2025-12-02-001",
   "title": "Foundry CLI Gap Remediation - Skill Migration Enablement",
   "generated": "2025-12-02T18:00:00Z",
-  "last_updated": "2025-12-02T16:00:20.698344Z",
+  "last_updated": "2025-12-02T16:09:53.067407Z",
   "metadata": {
     "description": "Remove blocking gaps in Foundry CLI that prevent claude-sdd-toolkit skills from migrating away from the legacy sdd binary",
     "objectives": [
@@ -23,7 +23,7 @@
     ],
     "status": "active",
     "activated_date": "2025-12-02T15:27:15.465705Z",
-    "progress_percentage": 37,
+    "progress_percentage": 40,
     "current_phase": "phase-2"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-5"
       ],
       "total_tasks": 35,
-      "completed_tasks": 13,
+      "completed_tasks": 14,
       "metadata": {
         "purpose": "Enable claude-sdd-toolkit skills to migrate from legacy sdd binary to native Foundry CLI"
       }
@@ -384,7 +384,7 @@
         "phase-2-verify"
       ],
       "total_tasks": 8,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {
         "purpose": "Remove subprocess.run calls to legacy sdd binary, use core modules directly",
         "risk_level": "high",
@@ -414,7 +414,7 @@
         "task-2-5"
       ],
       "total_tasks": 5,
-      "completed_tasks": 3,
+      "completed_tasks": 4,
       "metadata": {},
       "dependencies": {
         "blocks": [
@@ -512,16 +512,22 @@
     "task-2-4": {
       "type": "task",
       "title": "Create core/review.py for non-LLM review logic",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-2-files",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "file_path": "src/foundry_mcp/core/review.py",
         "task_category": "implementation",
         "estimated_hours": 2,
-        "details": "Extract structural review logic from CLI, create quick_review() and prepare_review_context()"
+        "details": "Extract structural review logic from CLI, create quick_review() and prepare_review_context()",
+        "started_at": "2025-12-02T16:04:16.410568Z",
+        "status_note": "Creating core/review.py with quick_review() and prepare_review_context()",
+        "completed_at": "2025-12-02T16:09:53.062858Z",
+        "needs_journaling": false,
+        "actual_hours": 0.094,
+        "journaled_at": "2025-12-02T16:09:53.066115Z"
       },
       "dependencies": {
         "blocks": [
@@ -1278,6 +1284,15 @@
       "content": "Nativized assumption, revision, and frontmatter CLI commands. All now use direct imports of add_assumption(), add_revision(), and update_frontmatter() from core/spec.py instead of subprocess.run(). Removed unused subprocess and pathlib imports. All imports verified OK.",
       "metadata": {},
       "task_id": "task-2-3"
+    },
+    {
+      "timestamp": "2025-12-02T16:09:53.066110Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Create core/review.py for non-LLM review logic",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/review.py with non-LLM review logic. Implemented:\n- ReviewFinding, QuickReviewResult, ReviewContext dataclasses\n- get_llm_status() - returns LLM configuration status\n- prepare_review_context() - gathers spec data, validation, progress, phases, completed tasks, and journal entries for reviews\n- quick_review() - performs structural review checking validation diagnostics, empty phases, missing estimates, missing file paths, and blocked tasks\n- review_type_requires_llm() - determines if a review type needs LLM\n\nExported all new symbols from core/__init__.py. Created comprehensive test suite with 19 passing tests in tests/unit/core/test_review.py covering all functions and edge cases.",
+      "metadata": {},
+      "task_id": "task-2-4"
     }
   ]
 }
