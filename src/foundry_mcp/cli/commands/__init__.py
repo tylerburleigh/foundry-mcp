@@ -64,6 +64,7 @@ from foundry_mcp.cli.commands.review import (
     review_tools_cmd,
 )
 from foundry_mcp.cli.commands.validate import (
+    fix_cmd,
     validate_analyze_deps_cmd,
     validate_cmd,
     validate_group,
@@ -200,6 +201,7 @@ __all__ = [
     "review_spec_cmd",
     "review_tools_cmd",
     # Validate commands
+    "fix_cmd",
     "validate_analyze_deps_cmd",
     "validate_cmd",
     "validate_group",

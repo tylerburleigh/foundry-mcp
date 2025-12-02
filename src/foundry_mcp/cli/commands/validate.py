@@ -615,6 +615,9 @@ def validate_analyze_deps_cmd(
 @click.argument("spec_id")
 @click.option("--fix", "auto_fix", is_flag=True, help="Auto-fix issues after validation.")
 @click.option("--dry-run", is_flag=True, help="Preview fixes without applying (requires --fix).")
+@click.option("--preview", is_flag=True, help="Show summary only (counts and issue codes).")
+@click.option("--diff", "show_diff", is_flag=True, help="Show unified diff of changes (requires --fix).")
+@click.option("--select", "select_codes", help="Only fix selected issue codes (comma-separated).")
 @click.pass_context
 @cli_command("validate")
 @handle_keyboard_interrupt()
@@ -624,6 +627,9 @@ def validate_cmd(
     spec_id: str,
     auto_fix: bool,
     dry_run: bool,
+    preview: bool,
+    show_diff: bool,
+    select_codes: Optional[str],
 ) -> None:
     """Validate a specification and optionally apply fixes.
 
@@ -666,32 +672,70 @@ def validate_cmd(
     # Run validation
     result = validate_spec(spec_data)
 
-    # Format diagnostics
+    # Parse select codes if provided
+    selected_codes = None
+    if select_codes:
+        selected_codes = set(code.strip() for code in select_codes.split(","))
+
+    # Format diagnostics (filtered by select if provided)
     diagnostics = []
     for diag in result.diagnostics:
-        diagnostics.append({
-            "code": diag.code,
-            "message": diag.message,
-            "severity": diag.severity,
-            "category": diag.category,
-            "location": diag.location,
-            "suggested_fix": diag.suggested_fix,
-            "auto_fixable": diag.auto_fixable,
-        })
+        if selected_codes and diag.code not in selected_codes:
+            continue
+        if preview:
+            # Preview mode: only include code and severity
+            diagnostics.append({
+                "code": diag.code,
+                "severity": diag.severity,
+                "auto_fixable": diag.auto_fixable,
+            })
+        else:
+            diagnostics.append({
+                "code": diag.code,
+                "message": diag.message,
+                "severity": diag.severity,
+                "category": diag.category,
+                "location": diag.location,
+                "suggested_fix": diag.suggested_fix,
+                "auto_fixable": diag.auto_fixable,
+            })
 
-    output = {
+    output: dict = {
         "spec_id": result.spec_id,
         "is_valid": result.is_valid,
         "error_count": result.error_count,
         "warning_count": result.warning_count,
         "info_count": result.info_count,
-        "diagnostics": diagnostics,
+        "preview": preview,
     }
+
+    if not preview:
+        output["diagnostics"] = diagnostics
+    else:
+        # Preview mode: group by code
+        code_summary: dict = {}
+        for diag in diagnostics:
+            code = diag["code"]
+            if code not in code_summary:
+                code_summary[code] = {"count": 0, "severity": diag["severity"], "auto_fixable": diag["auto_fixable"]}
+            code_summary[code]["count"] += 1
+        output["issue_summary"] = code_summary
 
     # Apply fixes if requested
     if auto_fix:
         actions = get_fix_actions(result, spec_data)
+
+        # Filter actions by selected codes
+        if selected_codes:
+            actions = [a for a in actions if a.id in selected_codes or any(code in a.id for code in selected_codes)]
+
         if actions:
+            # Read original content for diff
+            original_content = None
+            if show_diff and spec_path:
+                with open(spec_path) as f:
+                    original_content = f.read()
+
             report = apply_fixes(
                 actions,
                 str(spec_path),
@@ -706,9 +750,151 @@ def validate_cmd(
                 for a in report.applied_actions
             ]
             output["backup_path"] = report.backup_path
+
+            # Generate diff if requested
+            if show_diff and spec_path and original_content and not dry_run:
+                import difflib
+                with open(spec_path) as f:
+                    new_content = f.read()
+                diff_lines = list(difflib.unified_diff(
+                    original_content.splitlines(keepends=True),
+                    new_content.splitlines(keepends=True),
+                    fromfile=f"{spec_id} (before)",
+                    tofile=f"{spec_id} (after)",
+                ))
+                output["diff"] = "".join(diff_lines)
         else:
             output["fix_applied"] = False
             output["fixes_count"] = 0
             output["fixes"] = []
+
+    emit_success(output)
+
+
+# Top-level fix command (alias for validate fix)
+@click.command("fix")
+@click.argument("spec_id")
+@click.option("--dry-run", is_flag=True, help="Preview fixes without applying.")
+@click.option("--no-backup", is_flag=True, help="Skip creating backup file.")
+@click.option("--diff", "show_diff", is_flag=True, help="Show unified diff of changes.")
+@click.option("--select", "select_codes", help="Only fix selected issue codes (comma-separated).")
+@click.pass_context
+@cli_command("fix")
+@handle_keyboard_interrupt()
+@with_sync_timeout(MEDIUM_TIMEOUT, "Fix operation timed out")
+def fix_cmd(
+    ctx: click.Context,
+    spec_id: str,
+    dry_run: bool,
+    no_backup: bool,
+    show_diff: bool,
+    select_codes: Optional[str],
+) -> None:
+    """Apply auto-fixes to a specification.
+
+    SPEC_ID is the specification identifier.
+
+    This is a top-level alias for `sdd validate fix`.
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+
+    # Find spec path
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if spec_path is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs list",
+            details={"spec_id": spec_id},
+        )
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Failed to load specification: {spec_id}",
+            code="INTERNAL_ERROR",
+            error_type="internal",
+            remediation="Check that the spec file is valid JSON",
+            details={"spec_id": spec_id},
+        )
+
+    # Validate to get diagnostics
+    result = validate_spec(spec_data)
+
+    # Generate fix actions
+    actions = get_fix_actions(result, spec_data)
+
+    # Parse and filter by selected codes
+    if select_codes:
+        selected_codes = set(code.strip() for code in select_codes.split(","))
+        actions = [a for a in actions if a.id in selected_codes or any(code in a.id for code in selected_codes)]
+
+    if not actions:
+        emit_success({
+            "spec_id": spec_id,
+            "applied_count": 0,
+            "skipped_count": 0,
+            "message": "No auto-fixable issues found" + (" matching selection" if select_codes else ""),
+        })
+        return
+
+    # Read original content for diff
+    original_content = None
+    if show_diff and spec_path:
+        with open(spec_path) as f:
+            original_content = f.read()
+
+    # Apply fixes
+    report = apply_fixes(
+        actions,
+        str(spec_path),
+        dry_run=dry_run,
+        create_backup=not no_backup,
+    )
+
+    # Format applied/skipped actions
+    applied = [
+        {"id": a.id, "description": a.description, "category": a.category}
+        for a in report.applied_actions
+    ]
+    skipped = [
+        {"id": a.id, "description": a.description, "category": a.category}
+        for a in report.skipped_actions
+    ]
+
+    output: dict = {
+        "spec_id": spec_id,
+        "dry_run": dry_run,
+        "applied_count": len(applied),
+        "skipped_count": len(skipped),
+        "applied_actions": applied,
+        "skipped_actions": skipped,
+        "backup_path": report.backup_path,
+    }
+
+    # Generate diff if requested
+    if show_diff and spec_path and original_content and not dry_run:
+        import difflib
+        with open(spec_path) as f:
+            new_content = f.read()
+        diff_lines = list(difflib.unified_diff(
+            original_content.splitlines(keepends=True),
+            new_content.splitlines(keepends=True),
+            fromfile=f"{spec_id} (before)",
+            tofile=f"{spec_id} (after)",
+        ))
+        output["diff"] = "".join(diff_lines)
 
     emit_success(output)
