@@ -2,7 +2,7 @@
   "spec_id": "foundry-cli-gap-remediation-2025-12-02-001",
   "title": "Foundry CLI Gap Remediation - Skill Migration Enablement",
   "generated": "2025-12-02T18:00:00Z",
-  "last_updated": "2025-12-02T18:12:38.840684Z",
+  "last_updated": "2025-12-02T18:15:29.652714Z",
   "metadata": {
     "description": "Remove blocking gaps in Foundry CLI that prevent claude-sdd-toolkit skills from migrating away from the legacy sdd binary",
     "objectives": [
@@ -23,7 +23,7 @@
     ],
     "status": "active",
     "activated_date": "2025-12-02T15:27:15.465705Z",
-    "progress_percentage": 94,
+    "progress_percentage": 97,
     "current_phase": "phase-5"
   },
   "hierarchy": {
@@ -40,7 +40,7 @@
         "phase-5"
       ],
       "total_tasks": 35,
-      "completed_tasks": 33,
+      "completed_tasks": 34,
       "metadata": {
         "purpose": "Enable claude-sdd-toolkit skills to migrate from legacy sdd binary to native Foundry CLI"
       }
@@ -1105,7 +1105,7 @@
         "phase-5-verify"
       ],
       "total_tasks": 6,
-      "completed_tasks": 4,
+      "completed_tasks": 5,
       "metadata": {
         "purpose": "Complete context management contract for sdd-next workflow",
         "risk_level": "low",
@@ -1231,7 +1231,7 @@
         "verify-5-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {},
       "dependencies": {
         "blocked_by": [
@@ -1265,16 +1265,22 @@
     "verify-5-2": {
       "type": "verify",
       "title": "Full test suite passes",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-5-verify",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "verification_type": "auto",
         "agent": "run-tests",
         "command": "PYTHONPATH=src pytest tests/ -v --ignore=tests/integration",
-        "expected": "All unit tests pass"
+        "expected": "All unit tests pass",
+        "started_at": "2025-12-02T18:13:05.472872Z",
+        "status_note": "Running full unit test suite",
+        "completed_at": "2025-12-02T18:15:29.646793Z",
+        "needs_journaling": false,
+        "actual_hours": 0.04,
+        "journaled_at": "2025-12-02T18:15:29.651153Z"
       }
     },
     "verify-5-3": {
@@ -1700,6 +1706,15 @@
       "content": "Context token tracking verification PASSED via manual testing. The specified test file (tests/cli/commands/test_session.py) does not exist, but functionality verified manually: (1) 'sdd session generate-marker' generates valid SESSION_MARKER_* tokens with FOUNDRY_MCP_AGENT_TYPE=claude-code, (2) 'sdd session context --session-marker <marker>' returns context_percentage_used, (3) Both commands correctly return 'feature unavailable' for non-claude-code agents. Commands return proper JSON response format with success/data/error/meta envelope.",
       "metadata": {},
       "task_id": "verify-5-1"
+    },
+    {
+      "timestamp": "2025-12-02T18:15:29.651145Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Full test suite passes",
+      "author": "claude-code",
+      "content": "Full test suite PASSED (1914 passed, 1 skipped, 16 xfailed). Fixed command registration conflict in registry.py where validate_cmd was overwriting validate_group. Removed duplicate registration of validate_cmd as top-level alias since validate_group already provides the 'validate' command name with proper subcommands (check, stats, report, fix, analyze-deps). File modified: src/foundry_mcp/cli/registry.py.",
+      "metadata": {},
+      "task_id": "verify-5-2"
     }
   ]
 }
