@@ -986,3 +986,264 @@ def doc_list_functions_cmd(
             remediation="Check that codebase documentation is valid",
             details={"file_path": file_path},
         )
+
+
+@doc_group.command("search")
+@click.argument("query")
+@click.option(
+    "--type",
+    "entity_type",
+    type=click.Choice(["class", "function", "all"]),
+    default="all",
+    help="Type of entity to search for.",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=50,
+    help="Maximum number of results.",
+)
+@click.pass_context
+@cli_command("doc-search")
+@handle_keyboard_interrupt()
+@with_sync_timeout(SLOW_TIMEOUT, "Search timed out")
+def doc_search_cmd(
+    ctx: click.Context,
+    query: str,
+    entity_type: str,
+    limit: int,
+) -> None:
+    """Search documentation by keyword.
+
+    QUERY is the search term (case-insensitive substring match).
+
+    Searches class names, function names, docstrings, and method names.
+    Results are sorted by relevance score.
+    """
+    start_time = time.perf_counter()
+    cli_ctx = get_context(ctx)
+
+    try:
+        from foundry_mcp.core.docs import DocsQuery
+
+        query_obj = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        if not query_obj.load():
+            emit_error(
+                "Codebase documentation not available",
+                code="DOCS_NOT_FOUND",
+                error_type="not_found",
+                remediation="Run documentation generation first with: sdd llm-doc generate",
+                details={"hint": "Run documentation generation first"},
+            )
+            return
+
+        # Map entity_type to list
+        entity_types = None
+        if entity_type == "class":
+            entity_types = ["class"]
+        elif entity_type == "function":
+            entity_types = ["function"]
+        # "all" leaves entity_types as None (searches both)
+
+        result = query_obj.search(query, entity_types=entity_types, max_results=limit)
+
+        if not result.success:
+            emit_error(
+                result.error or "Search failed",
+                code="SEARCH_FAILED",
+                error_type="internal",
+                remediation="Check that the query is valid",
+                details={"query": query},
+            )
+            return
+
+        # Format results
+        matches = []
+        for r in result.results:
+            match = {
+                "name": r.name,
+                "type": r.entity_type,
+                "file_path": r.file_path,
+                "line": r.line_number,
+                "relevance": round(r.relevance_score, 2),
+            }
+            if r.data.get("signature"):
+                match["signature"] = r.data["signature"]
+            matches.append(match)
+
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        emit_success({
+            "query": query,
+            "type_filter": entity_type,
+            "matches": matches,
+            "count": len(matches),
+            "truncated": len(matches) >= limit,
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        })
+
+    except ImportError:
+        emit_error(
+            "Docs module not available",
+            code="MODULE_NOT_FOUND",
+            error_type="internal",
+            remediation="Check foundry_mcp installation",
+            details={"hint": "Check foundry_mcp installation"},
+        )
+    except Exception as e:
+        emit_error(
+            f"Search failed: {e}",
+            code="SEARCH_FAILED",
+            error_type="internal",
+            remediation="Check that codebase documentation is valid",
+            details={"query": query},
+        )
+
+
+@doc_group.command("context")
+@click.argument("target")
+@click.option(
+    "--depth",
+    type=int,
+    default=2,
+    help="Depth of context to include (1=minimal, 2=standard, 3=comprehensive).",
+)
+@click.pass_context
+@cli_command("doc-context")
+@handle_keyboard_interrupt()
+@with_sync_timeout(SLOW_TIMEOUT, "Context query timed out")
+def doc_context_cmd(
+    ctx: click.Context,
+    target: str,
+    depth: int,
+) -> None:
+    """Get comprehensive context for a class or function.
+
+    TARGET is the name of a class or function.
+
+    Provides context including the entity definition, callers/callees,
+    file context, and related entities.
+    """
+    start_time = time.perf_counter()
+    cli_ctx = get_context(ctx)
+
+    try:
+        from foundry_mcp.core.docs import DocsQuery
+
+        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        if not query.load():
+            emit_error(
+                "Codebase documentation not available",
+                code="DOCS_NOT_FOUND",
+                error_type="not_found",
+                remediation="Run documentation generation first with: sdd llm-doc generate",
+                details={"hint": "Run documentation generation first"},
+            )
+            return
+
+        # Try to find as class first, then function
+        entity_type = None
+        entity_data = None
+
+        cls_result = query.find_class(target, exact=True)
+        if cls_result.success and cls_result.results:
+            entity_type = "class"
+            entity_data = cls_result.results[0]
+        else:
+            func_result = query.find_function(target, exact=True)
+            if func_result.success and func_result.results:
+                entity_type = "function"
+                entity_data = func_result.results[0]
+
+        if not entity_data:
+            emit_error(
+                f"Target not found: {target}",
+                code="TARGET_NOT_FOUND",
+                error_type="not_found",
+                remediation="Check that the class or function name is correct",
+                details={"target": target},
+            )
+            return
+
+        context_data = {
+            "name": entity_data.name,
+            "type": entity_type,
+            "file_path": entity_data.file_path,
+            "line": entity_data.line_number,
+        }
+
+        # Add entity-specific data
+        if entity_type == "class":
+            context_data["bases"] = entity_data.data.get("bases", [])
+            context_data["methods"] = entity_data.data.get("methods", [])
+            if entity_data.data.get("docstring"):
+                context_data["docstring"] = entity_data.data["docstring"][:500]
+        else:
+            context_data["signature"] = entity_data.data.get("signature", "")
+            if entity_data.data.get("docstring"):
+                context_data["docstring"] = entity_data.data["docstring"][:500]
+            context_data["parameters"] = entity_data.data.get("parameters", [])
+
+        # Add call graph info for functions (depth >= 2)
+        if entity_type == "function" and depth >= 2:
+            callers_result = query.get_callers(target)
+            if callers_result.success:
+                context_data["callers"] = [
+                    {"name": r.name, "file": r.file_path}
+                    for r in callers_result.results[:10]
+                ]
+
+            callees_result = query.get_callees(target)
+            if callees_result.success:
+                context_data["callees"] = [
+                    {"name": r.name, "file": r.file_path}
+                    for r in callees_result.results[:10]
+                ]
+
+        # Add file context (depth >= 2)
+        if depth >= 2 and entity_data.file_path:
+            file_classes = query.find_classes_in_file(entity_data.file_path)
+            file_funcs = query.find_functions_in_file(entity_data.file_path)
+
+            context_data["file_context"] = {
+                "classes": [r.name for r in file_classes.results if r.name != target],
+                "functions": [r.name for r in file_funcs.results if r.name != target],
+            }
+
+        # Add impact analysis (depth >= 3)
+        if depth >= 3:
+            impact_result = query.impact_analysis(target, target_type=entity_type)
+            if impact_result.success and impact_result.results:
+                impact = impact_result.results[0]
+                context_data["impact"] = {
+                    "direct_impacts": impact.direct_impacts[:10],
+                    "indirect_impacts": impact.indirect_impacts[:10],
+                    "impact_score": impact.impact_score,
+                    "affected_files": impact.affected_files[:10],
+                }
+
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        emit_success({
+            "target": target,
+            "depth": depth,
+            "context": context_data,
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        })
+
+    except ImportError:
+        emit_error(
+            "Docs module not available",
+            code="MODULE_NOT_FOUND",
+            error_type="internal",
+            remediation="Check foundry_mcp installation",
+            details={"hint": "Check foundry_mcp installation"},
+        )
+    except Exception as e:
+        emit_error(
+            f"Context query failed: {e}",
+            code="CONTEXT_FAILED",
+            error_type="internal",
+            remediation="Check that the target exists in documentation",
+            details={"target": target},
+        )
