@@ -65,6 +65,7 @@ def register_all_commands(cli: click.Group) -> None:
         block_task_cmd,
         cache,
         complete_spec_cmd,
+        complete_task_cmd,
         create,
         create_pr_alias_cmd,
         dev_group,
@@ -77,6 +78,7 @@ def register_all_commands(cli: click.Group) -> None:
         generate_marker_cmd,
         journal,
         journal_add_alias_cmd,
+        journal_get_alias_cmd,
         journal_list_alias_cmd,
         journal_unjournaled_alias_cmd,
         lifecycle,
@@ -141,6 +143,7 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(update_status_cmd, name="update-status")
     cli.add_command(block_task_cmd, name="block-task")
     cli.add_command(unblock_task_cmd, name="unblock-task")
+    cli.add_command(complete_task_cmd, name="complete-task")
     cli.add_command(activate_spec_cmd, name="activate-spec")
     cli.add_command(complete_spec_cmd, name="complete-spec")
     cli.add_command(archive_spec_cmd, name="archive-spec")
@@ -159,6 +162,8 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(generate_docs_alias_cmd, name="generate-docs")
     cli.add_command(dev_install_alias_cmd, name="dev-install")
     cli.add_command(journal_add_alias_cmd, name="journal-add")
+    cli.add_command(journal_add_alias_cmd, name="add-journal")
+    cli.add_command(journal_get_alias_cmd, name="get-journal")
     cli.add_command(journal_list_alias_cmd, name="journal-list")
     cli.add_command(journal_unjournaled_alias_cmd, name="journal-unjournaled")
     cli.add_command(find_specs_alias_cmd, name="find-specs")

@@ -118,6 +118,8 @@ from foundry_mcp.cli.commands.journal import (
     journal,
     journal_add_cmd,
     journal_add_alias_cmd,
+    journal_get_cmd,
+    journal_get_alias_cmd,
     journal_list_cmd,
     journal_list_alias_cmd,
     journal_unjournaled_cmd,
@@ -125,6 +127,7 @@ from foundry_mcp.cli.commands.journal import (
 )
 from foundry_mcp.cli.commands.tasks import (
     block_task_cmd,
+    complete_task_cmd,
     next_task,
     prepare_task_cmd,
     task_info_cmd,
@@ -156,6 +159,7 @@ __all__ = [
     "update_status_cmd",
     "block_task_cmd",
     "unblock_task_cmd",
+    "complete_task_cmd",
     # Lifecycle commands
     "lifecycle",
     "activate_spec_cmd",
@@ -244,6 +248,8 @@ __all__ = [
     "journal",
     "journal_add_cmd",
     "journal_add_alias_cmd",
+    "journal_get_cmd",
+    "journal_get_alias_cmd",
     "journal_list_cmd",
     "journal_list_alias_cmd",
     "journal_unjournaled_cmd",

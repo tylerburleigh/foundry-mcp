@@ -10,6 +10,7 @@ Provides commands for modifying SDD specifications including:
 import json
 import subprocess
 import time
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -22,6 +23,7 @@ from foundry_mcp.cli.resilience import (
     with_sync_timeout,
     handle_keyboard_interrupt,
 )
+from foundry_mcp.core.modifications import apply_modifications, load_modifications_file
 
 logger = get_cli_logger()
 
@@ -80,69 +82,64 @@ def modify_apply_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
-
-    # Build command
-    cmd = ["sdd", "apply-modifications", spec_id, modifications_file, "--json"]
-
-    if dry_run:
-        cmd.append("--dry-run")
-    if output_file:
-        cmd.extend(["--output", output_file])
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
+        return
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=MODIFY_TIMEOUT,
+        # Load modifications from file
+        modifications = load_modifications_file(modifications_file)
+
+        # Apply modifications using native Python API
+        applied, skipped, changes = apply_modifications(
+            spec_id=spec_id,
+            modifications=modifications,
+            specs_dir=specs_dir,
+            dry_run=dry_run,
         )
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Apply failed"
-            emit_error(
-                f"Apply modifications failed: {error_msg}",
-                code="APPLY_FAILED",
-                error_type="internal",
-                remediation="Check that the modifications file is valid JSON",
-                details={
-                    "spec_id": spec_id,
-                    "modifications_file": modifications_file,
-                    "exit_code": result.returncode,
-                },
-            )
-
-        # Parse output
-        try:
-            apply_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            apply_data = {"raw_output": result.stdout}
-
         emit_success({
             "spec_id": spec_id,
             "dry_run": dry_run,
-            **apply_data,
+            "modifications_applied": applied,
+            "modifications_skipped": skipped,
+            "changes": changes,
+            "output_path": output_file if output_file else str(specs_dir),
             "telemetry": {"duration_ms": round(duration_ms, 2)},
         })
 
-    except subprocess.TimeoutExpired:
+    except FileNotFoundError as e:
         emit_error(
-            f"Apply modifications timed out after {MODIFY_TIMEOUT}s",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Try applying fewer modifications at once",
-            details={"spec_id": spec_id, "timeout_seconds": MODIFY_TIMEOUT},
+            str(e),
+            code="FILE_NOT_FOUND",
+            error_type="validation",
+            remediation="Check that the modifications file and spec exist",
+            details={
+                "spec_id": spec_id,
+                "modifications_file": modifications_file,
+            },
         )
-    except FileNotFoundError:
+    except json.JSONDecodeError as e:
         emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
+            f"Invalid JSON in modifications file: {e}",
+            code="INVALID_JSON",
+            error_type="validation",
+            remediation="Check that the modifications file is valid JSON",
+            details={
+                "spec_id": spec_id,
+                "modifications_file": modifications_file,
+            },
+        )
+    except ValueError as e:
+        emit_error(
+            str(e),
+            code="APPLY_FAILED",
             error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
+            remediation="Verify spec exists and modifications are valid",
+            details={
+                "spec_id": spec_id,
+                "modifications_file": modifications_file,
+            },
         )
 
 

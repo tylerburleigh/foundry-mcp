@@ -288,7 +288,84 @@ def journal_unjournaled_cmd(
     })
 
 
+@journal.command("get")
+@click.argument("spec_id")
+@click.option("--task-id", help="Filter by task ID.")
+@click.option("--last", "-n", "last_n", type=int, help="Get last N entries (most recent).")
+@click.pass_context
+@cli_command("journal-get")
+@handle_keyboard_interrupt()
+@with_sync_timeout(FAST_TIMEOUT, "Journal get timed out")
+def journal_get_cmd(
+    ctx: click.Context,
+    spec_id: str,
+    task_id: Optional[str],
+    last_n: Optional[int],
+) -> None:
+    """Get journal entries for a specification or task.
+
+    SPEC_ID is the specification identifier.
+
+    Retrieves journal entries, optionally filtered by task.
+    Use --last to limit to the N most recent entries.
+
+    Examples:
+        sdd get-journal my-spec
+        sdd get-journal my-spec --task-id task-2-1
+        sdd get-journal my-spec --last 5
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+        return
+
+    # Load spec
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs list",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+        return
+
+    # Get journal entries
+    entries = get_journal_entries(
+        spec_data,
+        task_id=task_id,
+        limit=last_n,
+    )
+
+    emit_success({
+        "spec_id": spec_id,
+        "task_id": task_id,
+        "entry_count": len(entries),
+        "entries": [
+            {
+                "timestamp": e.timestamp,
+                "entry_type": e.entry_type,
+                "title": e.title,
+                "content": e.content,
+                "task_id": e.task_id,
+                "author": e.author,
+            }
+            for e in entries
+        ],
+    })
+
+
 # Top-level aliases
 journal_add_alias_cmd = journal_add_cmd
 journal_list_alias_cmd = journal_list_cmd
 journal_unjournaled_alias_cmd = journal_unjournaled_cmd
+journal_get_alias_cmd = journal_get_cmd

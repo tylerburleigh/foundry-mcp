@@ -19,6 +19,7 @@ from foundry_mcp.cli.registry import get_context
 logger = get_cli_logger()
 from foundry_mcp.core.spec import load_spec, find_spec_file, get_node
 from foundry_mcp.core.journal import (
+    add_journal_entry,
     mark_blocked,
     save_journal,
     unblock,
@@ -508,4 +509,119 @@ def unblock_task_cmd(
         "task_id": task_id,
         "status": status,
         "resolution": resolution,
+    })
+
+
+@tasks.command("complete")
+@click.argument("spec_id")
+@click.argument("task_id")
+@click.option("--note", "-n", required=True, help="Completion note describing what was accomplished.")
+@click.pass_context
+@cli_command("tasks-complete")
+@handle_keyboard_interrupt()
+@with_sync_timeout(MEDIUM_TIMEOUT, "Task completion timed out")
+def complete_task_cmd(
+    ctx: click.Context,
+    spec_id: str,
+    task_id: str,
+    note: str,
+) -> None:
+    """Mark a task as completed with auto-journaling.
+
+    SPEC_ID is the specification identifier.
+    TASK_ID is the task identifier.
+
+    Combines status update to 'completed' with automatic journal entry creation.
+    The --note is required and should describe what was accomplished.
+    """
+    cli_ctx = get_context(ctx)
+    specs_dir = cli_ctx.specs_dir
+
+    if specs_dir is None:
+        emit_error(
+            "No specs directory found",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
+            details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
+        )
+
+    # Find and load spec
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if spec_path is None:
+        emit_error(
+            f"Specification not found: {spec_id}",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID exists using: sdd specs list",
+            details={"spec_id": spec_id, "specs_dir": str(specs_dir)},
+        )
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        emit_error(
+            f"Failed to load specification: {spec_id}",
+            code="INTERNAL_ERROR",
+            error_type="internal",
+            remediation="Check that the spec file is valid JSON",
+            details={"spec_id": spec_id},
+        )
+
+    # Get task info before updating
+    task_data = get_node(spec_data, task_id)
+    if task_data is None:
+        emit_error(
+            f"Task not found: {task_id}",
+            code="TASK_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the task ID exists using: sdd tasks info <spec_id> --list",
+            details={"spec_id": spec_id, "task_id": task_id},
+        )
+
+    task_title = task_data.get("title", task_id)
+
+    # Update status to completed
+    success = update_task_status(spec_data, task_id, "completed", note)
+    if not success:
+        emit_error(
+            f"Failed to update task status: {task_id}",
+            code="INTERNAL_ERROR",
+            error_type="internal",
+            remediation="Verify the task ID exists and the status transition is valid",
+            details={"task_id": task_id, "status": "completed"},
+        )
+
+    # Create journal entry for the completion
+    journal_title = f"Completed: {task_title}"
+    entry = add_journal_entry(
+        spec_data,
+        title=journal_title,
+        content=note,
+        entry_type="status_change",
+        task_id=task_id,
+        author="claude-code",
+        metadata={"previous_status": task_data.get("status", "unknown")},
+    )
+
+    # Save changes
+    if not save_journal(spec_data, str(spec_path), create_backup=True):
+        emit_error(
+            "Failed to save spec file",
+            code="INTERNAL_ERROR",
+            error_type="internal",
+            remediation="Check file permissions and disk space",
+            details={"path": str(spec_path)},
+        )
+
+    emit_success({
+        "spec_id": spec_id,
+        "task_id": task_id,
+        "status": "completed",
+        "title": task_title,
+        "journal_entry": {
+            "timestamp": entry.timestamp,
+            "title": entry.title,
+            "entry_type": entry.entry_type,
+        },
+        "note": note,
     })
