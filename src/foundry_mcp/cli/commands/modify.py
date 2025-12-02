@@ -8,9 +8,7 @@ Provides commands for modifying SDD specifications including:
 """
 
 import json
-import subprocess
 import time
-from pathlib import Path
 from typing import Optional
 
 import click
@@ -25,6 +23,7 @@ from foundry_mcp.cli.resilience import (
 )
 from foundry_mcp.core.modifications import apply_modifications, load_modifications_file
 from foundry_mcp.core.task import add_task, remove_task
+from foundry_mcp.core.spec import add_assumption, add_revision, update_frontmatter
 
 logger = get_cli_logger()
 
@@ -423,74 +422,55 @@ def modify_assumption_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
-    # Build command
-    cmd = ["sdd", "add-assumption", spec_id, "--text", text, "--json"]
-
-    if assumption_type:
-        cmd.extend(["--type", assumption_type])
-    if author:
-        cmd.extend(["--author", author])
     if dry_run:
-        cmd.append("--dry-run")
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=MEDIUM_TIMEOUT,
-        )
-
+        # For dry_run, emit a preview response
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Add assumption failed"
-            emit_error(
-                f"Add assumption failed: {error_msg}",
-                code="ADD_FAILED",
-                error_type="internal",
-                remediation="Verify spec exists and assumption format is valid",
-                details={
-                    "spec_id": spec_id,
-                    "exit_code": result.returncode,
-                },
-            )
-            return
-
-        # Parse output
-        try:
-            assumption_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            assumption_data = {"raw_output": result.stdout}
-
         emit_success({
             "spec_id": spec_id,
             "text": text,
-            "type": assumption_type,
-            "dry_run": dry_run,
-            **assumption_data,
+            "type": assumption_type or "constraint",
+            "dry_run": True,
+            "preview": {
+                "action": "add_assumption",
+                "author": author,
+            },
             "telemetry": {"duration_ms": round(duration_ms, 2)},
         })
+        return
 
-    except subprocess.TimeoutExpired:
+    # Use native add_assumption function
+    result, error = add_assumption(
+        spec_id=spec_id,
+        text=text,
+        assumption_type=assumption_type or "constraint",
+        author=author,
+        specs_dir=specs_dir,
+    )
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+
+    if error:
         emit_error(
-            f"Add assumption timed out after {MEDIUM_TIMEOUT}s",
-            code="TIMEOUT",
+            f"Add assumption failed: {error}",
+            code="ADD_FAILED",
             error_type="internal",
-            remediation="Try again or check system resources",
-            details={"spec_id": spec_id},
+            remediation="Verify spec exists and assumption format is valid",
+            details={
+                "spec_id": spec_id,
+            },
         )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
-        )
+        return
+
+    emit_success({
+        "spec_id": spec_id,
+        "text": text,
+        "type": assumption_type or "constraint",
+        "dry_run": False,
+        **result,
+        "telemetry": {"duration_ms": round(duration_ms, 2)},
+    })
 
 
 @modify_group.command("revision")
@@ -542,72 +522,55 @@ def modify_revision_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
-    # Build command
-    cmd = ["sdd", "add-revision", spec_id, "--version", version, "--changes", changes, "--json"]
-
-    if author:
-        cmd.extend(["--author", author])
     if dry_run:
-        cmd.append("--dry-run")
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=MEDIUM_TIMEOUT,
-        )
-
+        # For dry_run, emit a preview response
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Add revision failed"
-            emit_error(
-                f"Add revision failed: {error_msg}",
-                code="ADD_FAILED",
-                error_type="internal",
-                remediation="Verify spec exists and revision format is valid",
-                details={
-                    "spec_id": spec_id,
-                    "exit_code": result.returncode,
-                },
-            )
-            return
-
-        # Parse output
-        try:
-            revision_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            revision_data = {"raw_output": result.stdout}
-
         emit_success({
             "spec_id": spec_id,
             "version": version,
             "changes": changes,
-            "dry_run": dry_run,
-            **revision_data,
+            "dry_run": True,
+            "preview": {
+                "action": "add_revision",
+                "author": author,
+            },
             "telemetry": {"duration_ms": round(duration_ms, 2)},
         })
+        return
 
-    except subprocess.TimeoutExpired:
+    # Use native add_revision function
+    result, error = add_revision(
+        spec_id=spec_id,
+        version=version,
+        changelog=changes,
+        author=author,
+        specs_dir=specs_dir,
+    )
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+
+    if error:
         emit_error(
-            f"Add revision timed out after {MEDIUM_TIMEOUT}s",
-            code="TIMEOUT",
+            f"Add revision failed: {error}",
+            code="ADD_FAILED",
             error_type="internal",
-            remediation="Try again or check system resources",
-            details={"spec_id": spec_id},
+            remediation="Verify spec exists and revision format is valid",
+            details={
+                "spec_id": spec_id,
+            },
         )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
-        )
+        return
+
+    emit_success({
+        "spec_id": spec_id,
+        "version": version,
+        "changes": changes,
+        "dry_run": False,
+        **result,
+        "telemetry": {"duration_ms": round(duration_ms, 2)},
+    })
 
 
 @modify_group.command("frontmatter")
@@ -654,68 +617,51 @@ def modify_frontmatter_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
-
-    # Build command
-    cmd = ["sdd", "update-frontmatter", spec_id, "--key", key, "--value", value, "--json"]
+        return
 
     if dry_run:
-        cmd.append("--dry-run")
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=MEDIUM_TIMEOUT,
-        )
-
+        # For dry_run, emit a preview response
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Update frontmatter failed"
-            emit_error(
-                f"Update frontmatter failed: {error_msg}",
-                code="UPDATE_FAILED",
-                error_type="internal",
-                remediation="Verify spec exists and frontmatter key is valid",
-                details={
-                    "spec_id": spec_id,
-                    "key": key,
-                    "exit_code": result.returncode,
-                },
-            )
-            return
-
-        # Parse output
-        try:
-            frontmatter_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            frontmatter_data = {"raw_output": result.stdout}
-
         emit_success({
             "spec_id": spec_id,
             "key": key,
             "value": value,
-            "dry_run": dry_run,
-            **frontmatter_data,
+            "dry_run": True,
+            "preview": {
+                "action": "update_frontmatter",
+            },
             "telemetry": {"duration_ms": round(duration_ms, 2)},
         })
+        return
 
-    except subprocess.TimeoutExpired:
+    # Use native update_frontmatter function
+    result, error = update_frontmatter(
+        spec_id=spec_id,
+        key=key,
+        value=value,
+        specs_dir=specs_dir,
+    )
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+
+    if error:
         emit_error(
-            f"Update frontmatter timed out after {MEDIUM_TIMEOUT}s",
-            code="TIMEOUT",
+            f"Update frontmatter failed: {error}",
+            code="UPDATE_FAILED",
             error_type="internal",
-            remediation="Try again or check system resources",
-            details={"spec_id": spec_id},
+            remediation="Verify spec exists and frontmatter key is valid",
+            details={
+                "spec_id": spec_id,
+                "key": key,
+            },
         )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
-        )
+        return
+
+    emit_success({
+        "spec_id": spec_id,
+        "key": key,
+        "value": value,
+        "dry_run": False,
+        **result,
+        "telemetry": {"duration_ms": round(duration_ms, 2)},
+    })
