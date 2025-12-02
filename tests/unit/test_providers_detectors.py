@@ -260,10 +260,23 @@ class TestTestMode:
 # Probe Execution Tests
 # =============================================================================
 
+# Check if test mode is enabled (real probes disabled)
+_TEST_MODE_ENABLED = os.environ.get("FOUNDRY_PROVIDER_TEST_MODE", "").lower() in (
+    "1", "true", "yes", "on"
+)
+
 
 class TestProbeExecution:
-    """Tests for health probe execution."""
+    """Tests for health probe execution.
 
+    Note: These tests require real binary execution and are skipped in
+    FOUNDRY_PROVIDER_TEST_MODE since test mode disables real probes.
+    """
+
+    @pytest.mark.skipif(
+        _TEST_MODE_ENABLED,
+        reason="Test mode disables real probe execution"
+    )
     def test_probe_success(self):
         """Successful probe should return True."""
         detector = ProviderDetector(
@@ -287,6 +300,10 @@ class TestProbeExecution:
         result = detector.is_available(use_probe=True)
         assert result is False
 
+    @pytest.mark.skipif(
+        _TEST_MODE_ENABLED,
+        reason="Test mode disables real probe execution"
+    )
     def test_skip_probe_only_checks_path(self):
         """use_probe=False should only check PATH resolution."""
         detector = ProviderDetector(
@@ -298,6 +315,10 @@ class TestProbeExecution:
         result = detector.is_available(use_probe=False)
         assert result is True
 
+    @pytest.mark.skipif(
+        _TEST_MODE_ENABLED,
+        reason="Test mode disables real probe execution"
+    )
     def test_empty_probe_args_skips_probe(self):
         """Empty probe_args should skip probe execution."""
         detector = ProviderDetector(
