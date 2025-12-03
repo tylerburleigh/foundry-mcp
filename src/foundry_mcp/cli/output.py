@@ -16,7 +16,7 @@ to ensure CLI output matches the response-v2 schema used by MCP tools.
 import json
 import sys
 from dataclasses import asdict
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, NoReturn
 
 from foundry_mcp.core.responses import error_response, success_response
 
@@ -40,7 +40,7 @@ def emit_error(
     error_type: str = "internal",
     remediation: str | None = None,
     details: Mapping[str, Any] | None = None,
-) -> None:
+) -> NoReturn:
     """Emit error JSON to stderr and exit with code 1.
 
     Uses foundry_mcp.core.responses.error_response to ensure response-v2 compliance.

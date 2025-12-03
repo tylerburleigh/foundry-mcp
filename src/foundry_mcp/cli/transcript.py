@@ -7,7 +7,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 
 @dataclass
@@ -142,83 +142,66 @@ def find_transcript_by_marker(
     cwd: Path,
     marker: str,
     max_retries: int = 10,
+    search_dirs: Optional[Sequence[Path]] = None,
+    allow_home_search: bool = False,
 ) -> Optional[Path]:
     """
     Search transcripts for a specific SESSION_MARKER to identify current session.
 
-    This function searches all .jsonl transcript files in the project directory
-    for a specific marker string. The transcript containing that exact marker
-    is the current session's transcript.
-
-    To handle race conditions where the marker may not be flushed to disk yet,
-    this function will retry with exponential backoff if the marker is not found
-    on the first attempt.
-
-    Transcripts are searched in reverse chronological order (most recently modified
-    first) to prioritize active sessions over historical ones.
-
-    If the exact CWD-based transcript directory doesn't exist, this function will
-    search parent directories as a fallback to handle cases where commands are run
-    from subdirectories of the project root.
-
     Args:
-        cwd: Current working directory (used to find project-specific transcripts)
+        cwd: Current working directory (used to derive default project path)
         marker: Specific marker to search for (e.g., "SESSION_MARKER_abc12345")
         max_retries: Maximum number of retry attempts (default: 10)
+        search_dirs: Explicit directories to search (takes precedence over defaults)
+        allow_home_search: Whether to scan ~/.claude/projects derived paths
 
     Returns:
         Path to transcript containing the marker, or None if not found
     """
-    # Build list of candidate transcript directories to search
-    # Start with the exact CWD, then try parent directories
-    candidate_dirs = []
+    candidate_dirs: list[Path] = []
 
-    # Claude Code stores transcripts in project-specific directories
-    current_path = cwd.resolve()
-    while True:
-        project_dir_name = str(current_path).replace("/", "-").replace("_", "-")
-        transcript_dir = Path.home() / ".claude" / "projects" / project_dir_name
-        if transcript_dir.exists():
-            candidate_dirs.append(transcript_dir)
+    if search_dirs:
+        for directory in search_dirs:
+            resolved = Path(directory).expanduser().resolve()
+            if resolved.is_dir() and resolved not in candidate_dirs:
+                candidate_dirs.append(resolved)
 
-        # Stop at root or after checking enough parents
-        if current_path.parent == current_path or len(candidate_dirs) >= 5:
-            break
-        current_path = current_path.parent
+    if allow_home_search:
+        current_path = cwd.resolve()
+        while True:
+            project_dir_name = str(current_path).replace("/", "-").replace("_", "-")
+            transcript_dir = Path.home() / ".claude" / "projects" / project_dir_name
+            if transcript_dir.exists() and transcript_dir not in candidate_dirs:
+                candidate_dirs.append(transcript_dir)
+
+            if current_path.parent == current_path or len(candidate_dirs) >= 5:
+                break
+            current_path = current_path.parent
 
     if not candidate_dirs:
         return None
 
-    # Extended retry with exponential backoff, capped at 30 seconds total
-    # Delays: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s, 6.4s, 12.8s, ...
     delays = [min(0.1 * (2**i), 10.0) for i in range(max_retries)]
 
     for attempt in range(max_retries):
         current_time = time.time()
 
-        # Search all candidate directories (prioritizing exact CWD match first)
         for transcript_dir in candidate_dirs:
             try:
-                # Get all recent transcript files
                 transcript_files = []
                 for transcript_path in transcript_dir.glob("*.jsonl"):
                     try:
                         mtime = transcript_path.stat().st_mtime
-                        # Only check recent transcripts (modified in last 24 hours)
                         if (current_time - mtime) > 86400:
                             continue
                         transcript_files.append((transcript_path, mtime))
                     except (OSError, IOError):
                         continue
 
-                # Sort by modification time (most recent first)
-                # This prioritizes the active session over historical transcripts
                 transcript_files.sort(key=lambda x: x[1], reverse=True)
 
-                # Search through transcripts in order of recency
                 for transcript_path, _ in transcript_files:
                     try:
-                        # Search for the specific marker in the transcript
                         with open(transcript_path, "r", encoding="utf-8") as f:
                             for line in f:
                                 if marker in line:
@@ -228,7 +211,6 @@ def find_transcript_by_marker(
             except (OSError, IOError):
                 continue
 
-        # If not found and we have retries left, wait before next attempt
         if attempt < max_retries - 1:
             time.sleep(delays[attempt])
 

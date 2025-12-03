@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
 
 # Schema version for compatibility tracking
@@ -16,11 +16,13 @@ SCHEMA_VERSION = "1.0.0"
 
 # Data structures
 
+
 @dataclass
 class QueryResult:
     """
     Result of a documentation query.
     """
+
     entity_type: str  # class, function, module, dependency
     name: str
     data: Dict[str, Any]
@@ -34,6 +36,7 @@ class CallGraphEntry:
     """
     Entry in a call graph.
     """
+
     caller: str
     callee: str
     caller_file: Optional[str] = None
@@ -46,6 +49,7 @@ class ImpactResult:
     """
     Result of impact analysis for a change.
     """
+
     target: str
     target_type: str  # class, function, module
     direct_impacts: List[str] = field(default_factory=list)
@@ -59,6 +63,7 @@ class DocsQueryResponse:
     """
     Standard response wrapper for documentation queries.
     """
+
     success: bool
     schema_version: str = SCHEMA_VERSION
     timestamp: str = ""
@@ -70,11 +75,14 @@ class DocsQueryResponse:
 
     def __post_init__(self):
         if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            self.timestamp = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
         self.count = len(self.results)
 
 
 # Main query class
+
 
 class DocsQuery:
     """
@@ -84,7 +92,9 @@ class DocsQuery:
     and analyzing change impact.
     """
 
-    def __init__(self, docs_path: Optional[Path] = None, workspace: Optional[Path] = None):
+    def __init__(
+        self, docs_path: Optional[Path] = None, workspace: Optional[Path] = None
+    ):
         """
         Initialize documentation query.
 
@@ -154,8 +164,10 @@ class DocsQuery:
         if not self.data:
             return
 
+        data = cast(Dict[str, Any], self.data)
+
         # Index classes
-        for cls in self.data.get("classes", []):
+        for cls in data.get("classes", []):
             name = cls.get("name", "")
             if name:
                 self._classes_by_name[name] = cls
@@ -164,7 +176,7 @@ class DocsQuery:
                     self._classes_by_file.setdefault(file_path, []).append(cls)
 
         # Index functions and build call graph
-        for func in self.data.get("functions", []):
+        for func in data.get("functions", []):
             name = func.get("name", "")
             if name:
                 self._functions_by_name[name] = func
@@ -206,23 +218,27 @@ class DocsQuery:
         if exact:
             cls = self._classes_by_name.get(name)
             if cls:
-                results.append(QueryResult(
-                    entity_type="class",
-                    name=name,
-                    data=cls,
-                    file_path=cls.get("file"),
-                    line_number=cls.get("line"),
-                ))
-        else:
-            for cls_name, cls in self._classes_by_name.items():
-                if name.lower() in cls_name.lower():
-                    results.append(QueryResult(
+                results.append(
+                    QueryResult(
                         entity_type="class",
-                        name=cls_name,
+                        name=name,
                         data=cls,
                         file_path=cls.get("file"),
                         line_number=cls.get("line"),
-                    ))
+                    )
+                )
+        else:
+            for cls_name, cls in self._classes_by_name.items():
+                if name.lower() in cls_name.lower():
+                    results.append(
+                        QueryResult(
+                            entity_type="class",
+                            name=cls_name,
+                            data=cls,
+                            file_path=cls.get("file"),
+                            line_number=cls.get("line"),
+                        )
+                    )
 
         return DocsQueryResponse(
             success=True,
@@ -295,23 +311,27 @@ class DocsQuery:
         if exact:
             func = self._functions_by_name.get(name)
             if func:
-                results.append(QueryResult(
-                    entity_type="function",
-                    name=name,
-                    data=func,
-                    file_path=func.get("file"),
-                    line_number=func.get("line"),
-                ))
-        else:
-            for func_name, func in self._functions_by_name.items():
-                if name.lower() in func_name.lower():
-                    results.append(QueryResult(
+                results.append(
+                    QueryResult(
                         entity_type="function",
-                        name=func_name,
+                        name=name,
                         data=func,
                         file_path=func.get("file"),
                         line_number=func.get("line"),
-                    ))
+                    )
+                )
+        else:
+            for func_name, func in self._functions_by_name.items():
+                if name.lower() in func_name.lower():
+                    results.append(
+                        QueryResult(
+                            entity_type="function",
+                            name=func_name,
+                            data=func,
+                            file_path=func.get("file"),
+                            line_number=func.get("line"),
+                        )
+                    )
 
         return DocsQueryResponse(
             success=True,
@@ -392,12 +412,14 @@ class DocsQuery:
             for caller in self._callers_index.get(name, []):
                 caller_data = self._functions_by_name.get(caller, {})
                 callee_data = self._functions_by_name.get(name, {})
-                entries.append(CallGraphEntry(
-                    caller=caller,
-                    callee=name,
-                    caller_file=caller_data.get("file"),
-                    callee_file=callee_data.get("file"),
-                ))
+                entries.append(
+                    CallGraphEntry(
+                        caller=caller,
+                        callee=name,
+                        caller_file=caller_data.get("file"),
+                        callee_file=callee_data.get("file"),
+                    )
+                )
                 trace_callers(caller, depth + 1)
 
         def trace_callees(name: str, depth: int):
@@ -408,12 +430,14 @@ class DocsQuery:
             for callee in self._callees_index.get(name, []):
                 caller_data = self._functions_by_name.get(name, {})
                 callee_data = self._functions_by_name.get(callee, {})
-                entries.append(CallGraphEntry(
-                    caller=name,
-                    callee=callee,
-                    caller_file=caller_data.get("file"),
-                    callee_file=callee_data.get("file"),
-                ))
+                entries.append(
+                    CallGraphEntry(
+                        caller=name,
+                        callee=callee,
+                        caller_file=caller_data.get("file"),
+                        callee_file=callee_data.get("file"),
+                    )
+                )
                 trace_callees(callee, depth + 1)
 
         if direction in ("callers", "both"):
@@ -630,7 +654,8 @@ class DocsQuery:
                 error="Documentation not loaded",
             )
 
-        deps = self.data.get("dependencies", {}).get(module, [])
+        data: Dict[str, Any] = self.data or {}
+        deps = data.get("dependencies", {}).get(module, [])
 
         return DocsQueryResponse(
             success=True,
@@ -657,7 +682,8 @@ class DocsQuery:
             )
 
         reverse_deps = []
-        dependencies = self.data.get("dependencies", {})
+        data: Dict[str, Any] = self.data or {}
+        dependencies = data.get("dependencies", {})
         for mod, deps in dependencies.items():
             if module in deps:
                 reverse_deps.append(mod)
@@ -739,11 +765,12 @@ class DocsQuery:
 
         # Get module dependencies
         module_path = normalized_path.replace("/", ".").replace(".py", "")
-        deps = self.data.get("dependencies", {}).get(module_path, [])
+        data: Dict[str, Any] = self.data or {}
+        deps = data.get("dependencies", {}).get(module_path, [])
         scope_data["dependencies"] = deps
 
         # Get reverse dependencies (what depends on this file)
-        dependencies = self.data.get("dependencies", {})
+        dependencies = data.get("dependencies", {})
         for mod, mod_deps in dependencies.items():
             if module_path in mod_deps or normalized_path in mod_deps:
                 scope_data["dependents"].append(mod)
@@ -808,14 +835,16 @@ class DocsQuery:
                             break
 
                 if score > 0:
-                    results.append(QueryResult(
-                        entity_type="class",
-                        name=cls_name,
-                        data=cls,
-                        file_path=cls.get("file"),
-                        line_number=cls.get("line"),
-                        relevance_score=score,
-                    ))
+                    results.append(
+                        QueryResult(
+                            entity_type="class",
+                            name=cls_name,
+                            data=cls,
+                            file_path=cls.get("file"),
+                            line_number=cls.get("line"),
+                            relevance_score=score,
+                        )
+                    )
 
         # Search functions
         if "function" in entity_types:
@@ -835,14 +864,16 @@ class DocsQuery:
                             break
 
                 if score > 0:
-                    results.append(QueryResult(
-                        entity_type="function",
-                        name=func_name,
-                        data=func,
-                        file_path=func.get("file"),
-                        line_number=func.get("line"),
-                        relevance_score=score,
-                    ))
+                    results.append(
+                        QueryResult(
+                            entity_type="function",
+                            name=func_name,
+                            data=func,
+                            file_path=func.get("file"),
+                            line_number=func.get("line"),
+                            relevance_score=score,
+                        )
+                    )
 
         # Sort by relevance score and limit
         results.sort(key=lambda r: r.relevance_score, reverse=True)
@@ -906,17 +937,21 @@ class DocsQuery:
                 reasons.append(f"high_complexity ({complexity})")
 
             if reasons:
-                candidates.append({
-                    "name": func_name,
-                    "type": "function",
-                    "file_path": func.get("file"),
-                    "line": func.get("line"),
-                    "caller_count": caller_count,
-                    "callee_count": callee_count,
-                    "complexity": complexity,
-                    "reasons": reasons,
-                    "priority": caller_count + (callee_count * 0.5) + (complexity * 0.2),
-                })
+                candidates.append(
+                    {
+                        "name": func_name,
+                        "type": "function",
+                        "file_path": func.get("file"),
+                        "line": func.get("line"),
+                        "caller_count": caller_count,
+                        "callee_count": callee_count,
+                        "complexity": complexity,
+                        "reasons": reasons,
+                        "priority": caller_count
+                        + (callee_count * 0.5)
+                        + (complexity * 0.2),
+                    }
+                )
 
         # Also check classes
         for cls_name, cls in self._classes_by_name.items():
@@ -932,16 +967,18 @@ class DocsQuery:
                 reasons.append(f"deep_inheritance ({len(cls.get('bases', []))} bases)")
 
             if reasons:
-                candidates.append({
-                    "name": cls_name,
-                    "type": "class",
-                    "file_path": cls.get("file"),
-                    "line": cls.get("line"),
-                    "method_count": method_count,
-                    "base_count": len(cls.get("bases", [])),
-                    "reasons": reasons,
-                    "priority": method_count * 0.5,
-                })
+                candidates.append(
+                    {
+                        "name": cls_name,
+                        "type": "class",
+                        "file_path": cls.get("file"),
+                        "line": cls.get("line"),
+                        "method_count": method_count,
+                        "base_count": len(cls.get("bases", [])),
+                        "reasons": reasons,
+                        "priority": method_count * 0.5,
+                    }
+                )
 
         # Sort by priority
         candidates.sort(key=lambda c: c.get("priority", 0), reverse=True)
@@ -973,7 +1010,8 @@ class DocsQuery:
                 error="Documentation not loaded",
             )
 
-        metadata = self.data.get("metadata", {})
+        data: Dict[str, Any] = self.data or {}
+        metadata = data.get("metadata", {})
 
         return DocsQueryResponse(
             success=True,
@@ -999,11 +1037,16 @@ class DocsQuery:
                 error="Documentation not loaded",
             )
 
+        data: Dict[str, Any] = self.data or {}
         stats = {
             "total_classes": len(self._classes_by_name),
             "total_functions": len(self._functions_by_name),
-            "total_files": len(set(self._classes_by_file.keys()) | set(self._functions_by_file.keys())),
-            "total_dependencies": sum(len(deps) for deps in self.data.get("dependencies", {}).values()),
+            "total_files": len(
+                set(self._classes_by_file.keys()) | set(self._functions_by_file.keys())
+            ),
+            "total_dependencies": sum(
+                len(deps) for deps in data.get("dependencies", {}).values()
+            ),
         }
 
         return DocsQueryResponse(
@@ -1014,6 +1057,7 @@ class DocsQuery:
 
 
 # Convenience functions
+
 
 def load_docs(
     docs_path: Optional[Path] = None,

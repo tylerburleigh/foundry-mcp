@@ -590,6 +590,33 @@ def example_command(param: str, dry_run: bool):
 3. **Stderr for errors** — Non-JSON diagnostics go to stderr
 4. **Exit codes** — 0 for success, non-zero for failures
 
+### Documentation Query Commands
+
+The `sdd doc` namespace wraps the transport-agnostic `foundry_mcp.core.docs.DocQuery`
+helpers. All commands support JSON pagination and input validation:
+
+- `sdd doc find-class|find-function` — Exact or fuzzy lookups constrained by `--limit`
+- `sdd doc trace-calls` — Traverses callers/callees up to 6 hops; rejects deeper traversals
+- `sdd doc context` — Depth 1–3 (plan/standard/comprehensive) with optional graph overlays
+- `sdd doc refactor-candidates` — Flags high-risk functions/classes with bounded thresholds
+
+Keep inputs within the published ranges to avoid runaway traversals, and reuse
+`core.pagination.normalize_page_size` for list commands.
+
+### Session Context & Transcript Access
+
+`session context` parses Claude transcript JSONL files to estimate token budgets.
+Because those transcripts live outside the repo, access is opt-in:
+
+- Pass `--transcript-dir <path>` to point at an explicit directory of `.jsonl` files
+- Set `FOUNDRY_MCP_ALLOW_TRANSCRIPTS=1` or pass `--allow-home-transcripts` to scan
+  `~/.claude/projects` derived paths
+- Without either control, the command returns `TRANSCRIPTS_DISABLED` to honor
+  the trust-boundary guidance in `docs/mcp_best_practices/08-security-trust-boundaries.md`
+
+All transcript scans continue to produce JSON envelopes and respect the
+`MEDIUM_TIMEOUT` budget so that exponential backoff never exceeds the declared limit.
+
 ### Registering Commands
 
 ```python

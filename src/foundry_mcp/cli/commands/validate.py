@@ -55,6 +55,7 @@ def validate_check_cmd(ctx: click.Context, spec_id: str) -> None:
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -66,6 +67,7 @@ def validate_check_cmd(ctx: click.Context, spec_id: str) -> None:
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Run validation
     result = validate_spec(spec_data)
@@ -122,6 +124,7 @@ def validate_fix_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Find spec path
     spec_path = find_spec_file(spec_id, specs_dir)
@@ -133,6 +136,7 @@ def validate_fix_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -144,6 +148,7 @@ def validate_fix_cmd(
             remediation="Check that the spec file is valid JSON",
             details={"spec_id": spec_id},
         )
+        return
 
     # Validate to get diagnostics
     result = validate_spec(spec_data)
@@ -211,6 +216,7 @@ def validate_stats_cmd(ctx: click.Context, spec_id: str) -> None:
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Find spec path
     spec_path = find_spec_file(spec_id, specs_dir)
@@ -222,6 +228,7 @@ def validate_stats_cmd(ctx: click.Context, spec_id: str) -> None:
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -233,6 +240,7 @@ def validate_stats_cmd(ctx: click.Context, spec_id: str) -> None:
             remediation="Check that the spec file is valid JSON",
             details={"spec_id": spec_id},
         )
+        return
 
     # Calculate stats
     stats = calculate_stats(spec_data, str(spec_path))
@@ -288,6 +296,7 @@ def validate_report_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Find spec path
     spec_path = find_spec_file(spec_id, specs_dir)
@@ -299,6 +308,7 @@ def validate_report_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -310,6 +320,7 @@ def validate_report_cmd(
             remediation="Check that the spec file is valid JSON",
             details={"spec_id": spec_id},
         )
+        return
 
     # Parse sections
     requested_sections = set()
@@ -467,6 +478,7 @@ def validate_analyze_deps_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -478,6 +490,7 @@ def validate_analyze_deps_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     hierarchy = spec_data.get("hierarchy", {})
 
@@ -646,6 +659,7 @@ def validate_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Find spec path
     spec_path = find_spec_file(spec_id, specs_dir)
@@ -657,6 +671,7 @@ def validate_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -668,6 +683,7 @@ def validate_cmd(
             remediation="Check that the spec file is valid JSON",
             details={"spec_id": spec_id},
         )
+        return
 
     # Run validation
     result = validate_spec(spec_data)
@@ -807,6 +823,7 @@ def fix_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Find spec path
     spec_path = find_spec_file(spec_id, specs_dir)
@@ -818,6 +835,7 @@ def fix_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
     # Load spec
     spec_data = load_spec(spec_id, specs_dir)
@@ -829,6 +847,7 @@ def fix_cmd(
             remediation="Check that the spec file is valid JSON",
             details={"spec_id": spec_id},
         )
+        return
 
     # Validate to get diagnostics
     result = validate_spec(spec_data)

@@ -10,7 +10,7 @@ Provides commands for running and managing tests including:
 import json
 import subprocess
 import time
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import click
 
@@ -79,7 +79,6 @@ def test_group() -> None:
 @click.pass_context
 @cli_command("test-run")
 @handle_keyboard_interrupt()
-@with_sync_timeout(TEST_TIMEOUT, "Test run timed out")
 def test_run_cmd(
     ctx: click.Context,
     target: Optional[str],
@@ -95,7 +94,7 @@ def test_run_cmd(
 
     TARGET is the test target (file, directory, or test name pattern).
     """
-    start_time = time.perf_counter()
+    timeout = max(1, timeout)
     cli_ctx = get_context(ctx)
 
     # Build pytest command
@@ -134,87 +133,97 @@ def test_run_cmd(
     # Add JSON output format
     cmd.extend(["--tb=short", "-q"])
 
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(cli_ctx.specs_dir.parent) if cli_ctx.specs_dir else None,
-        )
+    def _run_pytest() -> None:
+        start_time = time.perf_counter()
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=str(cli_ctx.specs_dir.parent) if cli_ctx.specs_dir else None,
+            )
+        except subprocess.TimeoutExpired:
+            emit_error(
+                f"Test run timed out after {timeout}s",
+                code="TIMEOUT",
+                error_type="internal",
+                remediation="Try a smaller test target or increase timeout with --timeout",
+                details={"target": target, "timeout_seconds": timeout},
+            )
+        except FileNotFoundError:
+            emit_error(
+                "pytest not found",
+                code="PYTEST_NOT_FOUND",
+                error_type="internal",
+                remediation="Install pytest: pip install pytest",
+                details={"hint": "Install pytest: pip install pytest"},
+            )
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        # Parse pytest output
-        passed = 0
-        failed = 0
-        skipped = 0
-        errors = 0
-
+        summary = {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": 0,
+        }
         for line in result.stdout.split("\n"):
             if "passed" in line:
                 try:
                     parts = line.split()
-                    for i, p in enumerate(parts):
-                        if p == "passed":
-                            passed = int(parts[i - 1])
-                        elif p == "failed":
-                            failed = int(parts[i - 1])
-                        elif p == "skipped":
-                            skipped = int(parts[i - 1])
-                        elif p == "error" or p == "errors":
-                            errors = int(parts[i - 1])
+                    for i, token in enumerate(parts):
+                        if token in ("passed", "failed", "skipped", "error", "errors"):
+                            key = "errors" if token in ("error", "errors") else token
+                            summary[key] = int(parts[i - 1])
                 except (ValueError, IndexError):
-                    pass
+                    continue
+        summary["total"] = (
+            summary["passed"]
+            + summary["failed"]
+            + summary["skipped"]
+            + summary["errors"]
+        )
 
-        emit_success({
+        payload = {
             "target": target,
             "preset": preset,
             "exit_code": result.returncode,
-            "passed": result.returncode == 0,
-            "summary": {
-                "passed": passed,
-                "failed": failed,
-                "skipped": skipped,
-                "errors": errors,
-                "total": passed + failed + skipped + errors,
-            },
+            "summary": summary,
             "stdout": result.stdout,
             "stderr": result.stderr if result.returncode != 0 else None,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        }
+        telemetry = {"duration_ms": round(duration_ms, 2)}
 
-    except subprocess.TimeoutExpired:
-        emit_error(
-            f"Test run timed out after {timeout}s",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Try a smaller test target or increase timeout with --timeout",
-            details={"target": target, "timeout_seconds": timeout},
-        )
-    except FileNotFoundError:
-        emit_error(
-            "pytest not found",
-            code="PYTEST_NOT_FOUND",
-            error_type="internal",
-            remediation="Install pytest: pip install pytest",
-            details={"hint": "Install pytest: pip install pytest"},
-        )
+        if result.returncode != 0:
+            emit_error(
+                "Tests failed",
+                code="TEST_FAILED",
+                error_type="internal",
+                remediation="Inspect pytest output and fix failing tests",
+                details={**payload, "telemetry": telemetry},
+            )
+
+        emit_success({**payload, "passed": True, "telemetry": telemetry})
+
+    run_with_timeout = with_sync_timeout(
+        timeout, f"Test run timed out after {timeout}s"
+    )(_run_pytest)
+    run_with_timeout()
 
 
 @test_group.command("discover")
 @click.argument("target", required=False)
 @click.option(
     "--pattern",
-    default="test_*.py",
-    help="File pattern for test files.",
+    default=None,
+    help="Optional pytest -k expression to filter collected tests.",
 )
 @click.option(
-    "--list",
+    "--list/--no-list",
     "list_only",
-    is_flag=True,
     default=True,
-    help="List tests without running (default behavior).",
+    help="List tests without running (pass --no-list to execute them).",
 )
 @click.pass_context
 @cli_command("test-discover")
@@ -223,7 +232,7 @@ def test_run_cmd(
 def test_discover_cmd(
     ctx: click.Context,
     target: Optional[str],
-    pattern: str,
+    pattern: Optional[str],
     list_only: bool,
 ) -> None:
     """Discover tests without running them.
@@ -233,46 +242,37 @@ def test_discover_cmd(
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
 
-    # Build pytest collect command
-    cmd = ["pytest", "--collect-only", "-q"]
+    def _truncate(text: Optional[str], limit: int = 4000) -> Optional[str]:
+        if text is None:
+            return None
+        if len(text) <= limit:
+            return text
+        return text[-limit:]
 
+    # Build pytest collect command
+    collect_cmd = ["pytest", "--collect-only", "-q"]
+    if pattern:
+        collect_cmd.extend(["-k", pattern])
     if target:
-        cmd.append(target)
+        collect_cmd.append(target)
 
     try:
-        result = subprocess.run(
-            cmd,
+        collect_result = subprocess.run(
+            collect_cmd,
             capture_output=True,
             text=True,
             timeout=60,
             cwd=str(cli_ctx.specs_dir.parent) if cli_ctx.specs_dir else None,
         )
-
-        duration_ms = (time.perf_counter() - start_time) * 1000
-
-        # Parse collected tests
-        tests = []
-        for line in result.stdout.split("\n"):
-            line = line.strip()
-            if "::" in line and not line.startswith("<"):
-                tests.append(line)
-
-        emit_success({
-            "target": target,
-            "pattern": pattern,
-            "tests": tests,
-            "total_count": len(tests),
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
-
     except subprocess.TimeoutExpired:
         emit_error(
             "Test discovery timed out",
             code="TIMEOUT",
             error_type="internal",
             remediation="Try a smaller target directory or check for slow fixtures",
-            details={"target": target},
+            details={"target": target, "pattern": pattern},
         )
+        return
     except FileNotFoundError:
         emit_error(
             "pytest not found",
@@ -281,6 +281,98 @@ def test_discover_cmd(
             remediation="Install pytest: pip install pytest",
             details={"hint": "Install pytest: pip install pytest"},
         )
+        return
+
+    if collect_result.returncode != 0:
+        emit_error(
+            "Test discovery failed",
+            code="TEST_DISCOVERY_FAILED",
+            error_type="internal",
+            remediation="Inspect pytest output for collection errors",
+            details={
+                "target": target,
+                "pattern": pattern,
+                "stdout": _truncate(collect_result.stdout),
+                "stderr": _truncate(collect_result.stderr),
+            },
+        )
+        return
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+
+    # Parse collected tests
+    tests = []
+    for line in collect_result.stdout.split("\n"):
+        line = line.strip()
+        if "::" in line and not line.startswith("<"):
+            tests.append(line)
+
+    response: Dict[str, Any] = {
+        "target": target,
+        "pattern": pattern,
+        "tests": tests,
+        "total_count": len(tests),
+        "list_only": list_only,
+        "telemetry": {"duration_ms": round(duration_ms, 2)},
+    }
+
+    if list_only:
+        emit_success(response)
+        return
+
+    # Execute tests when --no-list is supplied
+    run_cmd = ["pytest", "-q"]
+    if pattern:
+        run_cmd.extend(["-k", pattern])
+    if target:
+        run_cmd.append(target)
+
+    try:
+        run_result = subprocess.run(
+            run_cmd,
+            capture_output=True,
+            text=True,
+            timeout=MEDIUM_TIMEOUT,
+            cwd=str(cli_ctx.specs_dir.parent) if cli_ctx.specs_dir else None,
+        )
+    except subprocess.TimeoutExpired:
+        emit_error(
+            "Test execution timed out",
+            code="TIMEOUT",
+            error_type="internal",
+            remediation="Rerun with a narrower target or pattern",
+            details={"target": target, "pattern": pattern},
+        )
+        return
+    except FileNotFoundError:
+        emit_error(
+            "pytest not found",
+            code="PYTEST_NOT_FOUND",
+            error_type="internal",
+            remediation="Install pytest: pip install pytest",
+            details={"hint": "Install pytest: pip install pytest"},
+        )
+        return
+
+    test_run = {
+        "return_code": run_result.returncode,
+        "passed": run_result.returncode == 0,
+        "stdout": _truncate(run_result.stdout),
+        "stderr": _truncate(run_result.stderr),
+    }
+
+    if run_result.returncode != 0:
+        emit_error(
+            "Test execution failed",
+            code="TEST_FAILED",
+            error_type="internal",
+            remediation="Fix the failing tests above",
+            details={**response, "test_run": test_run},
+        )
+        return
+
+    response["test_run"] = test_run
+    emit_success(response)
 
 
 @test_group.command("presets")
@@ -327,11 +419,13 @@ def test_presets_cmd(ctx: click.Context) -> None:
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    emit_success({
-        "presets": presets,
-        "default_preset": "quick",
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "presets": presets,
+            "default_preset": "quick",
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        }
+    )
 
 
 @test_group.command("check-tools")
@@ -355,7 +449,9 @@ def test_check_tools_cmd(ctx: click.Context) -> None:
         )
         tools["pytest"] = {
             "available": result.returncode == 0,
-            "version": result.stdout.split("\n")[0].strip() if result.returncode == 0 else None,
+            "version": result.stdout.split("\n")[0].strip()
+            if result.returncode == 0
+            else None,
         }
     except (FileNotFoundError, subprocess.TimeoutExpired):
         tools["pytest"] = {"available": False, "version": None}
@@ -370,7 +466,9 @@ def test_check_tools_cmd(ctx: click.Context) -> None:
         )
         tools["coverage"] = {
             "available": result.returncode == 0,
-            "version": result.stdout.split("\n")[0].strip() if result.returncode == 0 else None,
+            "version": result.stdout.split("\n")[0].strip()
+            if result.returncode == 0
+            else None,
         }
     except (FileNotFoundError, subprocess.TimeoutExpired):
         tools["coverage"] = {"available": False, "version": None}
@@ -402,12 +500,14 @@ def test_check_tools_cmd(ctx: click.Context) -> None:
     if not tools.get("pytest-cov", {}).get("available"):
         recommendations.append("Install pytest-cov: pip install pytest-cov")
 
-    emit_success({
-        "tools": tools,
-        "all_available": all_available,
-        "recommendations": recommendations,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "tools": tools,
+            "all_available": all_available,
+            "recommendations": recommendations,
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        }
+    )
 
 
 @test_group.command("quick")
@@ -519,25 +619,29 @@ def test_consult_cmd(
         if result.returncode == 0:
             try:
                 response_data = json.loads(result.stdout)
-                emit_success({
-                    "pattern": pattern,
-                    "issue": issue,
-                    "tools_used": tools.split(",") if tools else ["default"],
-                    "model": model,
-                    "response": response_data,
-                    "test_context": test_context[:500] if test_context else None,
-                    "telemetry": {"duration_ms": round(duration_ms, 2)},
-                })
+                emit_success(
+                    {
+                        "pattern": pattern,
+                        "issue": issue,
+                        "tools_used": tools.split(",") if tools else ["default"],
+                        "model": model,
+                        "response": response_data,
+                        "test_context": test_context[:500] if test_context else None,
+                        "telemetry": {"duration_ms": round(duration_ms, 2)},
+                    }
+                )
             except json.JSONDecodeError:
-                emit_success({
-                    "pattern": pattern,
-                    "issue": issue,
-                    "tools_used": tools.split(",") if tools else ["default"],
-                    "model": model,
-                    "response": {"raw_output": result.stdout},
-                    "test_context": test_context[:500] if test_context else None,
-                    "telemetry": {"duration_ms": round(duration_ms, 2)},
-                })
+                emit_success(
+                    {
+                        "pattern": pattern,
+                        "issue": issue,
+                        "tools_used": tools.split(",") if tools else ["default"],
+                        "model": model,
+                        "response": {"raw_output": result.stdout},
+                        "test_context": test_context[:500] if test_context else None,
+                        "telemetry": {"duration_ms": round(duration_ms, 2)},
+                    }
+                )
         else:
             emit_error(
                 "Test consultation failed",
@@ -557,7 +661,11 @@ def test_consult_cmd(
             code="TIMEOUT",
             error_type="internal",
             remediation="Try a more specific issue description or check AI service status",
-            details={"pattern": pattern, "issue": issue, "timeout_seconds": CONSULT_TIMEOUT},
+            details={
+                "pattern": pattern,
+                "issue": issue,
+                "timeout_seconds": CONSULT_TIMEOUT,
+            },
         )
     except FileNotFoundError:
         emit_error(
@@ -572,12 +680,13 @@ def test_consult_cmd(
 # Top-level alias
 @click.command("run-tests")
 @click.argument("target", required=False)
-@click.option("--preset", type=click.Choice(["quick", "full", "unit", "integration", "smoke"]))
+@click.option(
+    "--preset", type=click.Choice(["quick", "full", "unit", "integration", "smoke"])
+)
 @click.option("--fail-fast", is_flag=True)
 @click.pass_context
 @cli_command("run-tests-alias")
 @handle_keyboard_interrupt()
-@with_sync_timeout(TEST_TIMEOUT, "Tests timed out")
 def run_tests_alias_cmd(
     ctx: click.Context,
     target: Optional[str],

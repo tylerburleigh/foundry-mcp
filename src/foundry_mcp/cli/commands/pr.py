@@ -7,7 +7,7 @@ and AI-enhanced PR descriptions.
 import json
 import subprocess
 import time
-from typing import Optional
+from typing import Any, Dict, Optional, cast
 
 import click
 
@@ -98,6 +98,7 @@ def pr_create_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Get LLM status
     llm_status = _get_llm_status()
@@ -142,6 +143,7 @@ def pr_create_cmd(
                     "exit_code": result.returncode,
                 },
             )
+            return
 
         # Parse output
         try:
@@ -149,13 +151,15 @@ def pr_create_cmd(
         except json.JSONDecodeError:
             pr_data = {"raw_output": result.stdout}
 
-        emit_success({
-            "spec_id": spec_id,
-            "dry_run": dry_run,
-            "llm_status": llm_status,
-            **pr_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "spec_id": spec_id,
+                "dry_run": dry_run,
+                "llm_status": llm_status,
+                **pr_data,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except subprocess.TimeoutExpired:
         emit_error(
@@ -225,9 +229,10 @@ def pr_context_cmd(
             remediation="Use --specs-dir option or set SDD_SPECS_DIR environment variable",
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
+        return
 
     # Use prepare_review_context from core/review for consistent context gathering
-    from foundry_mcp.core.review import prepare_review_context
+    from foundry_mcp.core.review import ReviewContext, prepare_review_context
 
     review_ctx = prepare_review_context(
         spec_id=spec_id,
@@ -245,8 +250,11 @@ def pr_context_cmd(
             remediation="Verify the spec ID exists using: sdd specs list",
             details={"spec_id": spec_id},
         )
+        return
 
-    context = {
+    review_ctx = cast(ReviewContext, review_ctx)
+
+    context: Dict[str, Any] = {
         "spec_id": spec_id,
         "title": review_ctx.title,
     }
@@ -269,10 +277,12 @@ def pr_context_cmd(
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    emit_success({
-        **context,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            **context,
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        }
+    )
 
 
 @pr_group.command("status")
@@ -357,12 +367,14 @@ def pr_status_cmd(ctx: click.Context) -> None:
     if not llm_status.get("configured"):
         recommendations.append("Configure LLM for enhanced PR descriptions")
 
-    emit_success({
-        "ready": ready,
-        "prerequisites": prerequisites,
-        "recommendations": recommendations,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "ready": ready,
+            "prerequisites": prerequisites,
+            "recommendations": recommendations,
+            "telemetry": {"duration_ms": round(duration_ms, 2)},
+        }
+    )
 
 
 def _get_llm_status() -> dict:
@@ -417,5 +429,8 @@ def create_pr_alias_cmd(
         spec_id=spec_id,
         title=title,
         base_branch=base_branch,
+        include_journals=True,
+        include_diffs=True,
+        model=None,
         dry_run=dry_run,
     )

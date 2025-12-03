@@ -6,12 +6,14 @@ Provides commands for session tracking, context limits, and consultation monitor
 import os
 import secrets
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import click
 
 from foundry_mcp.cli.agent import agent_gated, get_agent_type
 from foundry_mcp.cli.transcript import find_transcript_by_marker, parse_transcript
+
+TRANSCRIPT_OPT_IN_ENV = "FOUNDRY_MCP_ALLOW_TRANSCRIPTS"
 from foundry_mcp.cli.context import (
     ContextTracker,
     get_context_tracker,
@@ -24,6 +26,7 @@ from foundry_mcp.cli.output import emit_error, emit_success
 from foundry_mcp.cli.registry import get_context
 from foundry_mcp.cli.resilience import (
     FAST_TIMEOUT,
+    MEDIUM_TIMEOUT,
     handle_keyboard_interrupt,
     with_sync_timeout,
 )
@@ -44,7 +47,9 @@ def session() -> None:
 
 @session.command("start")
 @click.option("--id", "session_id", help="Custom session ID.")
-@click.option("--max-consultations", type=int, help="Maximum LLM consultations allowed.")
+@click.option(
+    "--max-consultations", type=int, help="Maximum LLM consultations allowed."
+)
 @click.option("--max-tokens", type=int, help="Maximum context tokens allowed.")
 @click.pass_context
 @cli_command("session-start")
@@ -74,14 +79,16 @@ def start_session_cmd(
 
     session = tracker.start_session(session_id=session_id, limits=limits)
 
-    emit_success({
-        "session_id": session.session_id,
-        "started_at": session.started_at,
-        "limits": {
-            "max_consultations": session.limits.max_consultations,
-            "max_context_tokens": session.limits.max_context_tokens,
-        },
-    })
+    emit_success(
+        {
+            "session_id": session.session_id,
+            "started_at": session.started_at,
+            "limits": {
+                "max_consultations": session.limits.max_consultations,
+                "max_context_tokens": session.limits.max_context_tokens,
+            },
+        }
+    )
 
 
 @session.command("status")
@@ -133,37 +140,43 @@ def show_limits_cmd(ctx: click.Context) -> None:
     session = tracker.get_session()
 
     if session is None:
-        emit_success({
-            "active": False,
-            "message": "No active session. Use 'sdd session start' to begin.",
-            "default_limits": {
-                "max_consultations": tracker._default_limits.max_consultations,
-                "max_context_tokens": tracker._default_limits.max_context_tokens,
-                "warn_at_percentage": tracker._default_limits.warn_at_percentage,
-            },
-        })
+        emit_success(
+            {
+                "active": False,
+                "message": "No active session. Use 'sdd session start' to begin.",
+                "default_limits": {
+                    "max_consultations": tracker._default_limits.max_consultations,
+                    "max_context_tokens": tracker._default_limits.max_context_tokens,
+                    "warn_at_percentage": tracker._default_limits.warn_at_percentage,
+                },
+            }
+        )
     else:
-        emit_success({
-            "active": True,
-            "session_id": session.session_id,
-            "limits": {
-                "max_consultations": session.limits.max_consultations,
-                "max_context_tokens": session.limits.max_context_tokens,
-                "warn_at_percentage": session.limits.warn_at_percentage,
-            },
-            "usage": {
-                "consultations_used": session.stats.consultation_count,
-                "consultations_remaining": session.consultations_remaining,
-                "tokens_used": session.stats.estimated_tokens_used,
-                "tokens_remaining": session.tokens_remaining,
-            },
-            "status": {
-                "consultation_percentage": round(session.consultation_usage_percentage, 1),
-                "token_percentage": round(session.token_usage_percentage, 1),
-                "should_warn": session.should_warn,
-                "at_limit": session.at_limit,
-            },
-        })
+        emit_success(
+            {
+                "active": True,
+                "session_id": session.session_id,
+                "limits": {
+                    "max_consultations": session.limits.max_consultations,
+                    "max_context_tokens": session.limits.max_context_tokens,
+                    "warn_at_percentage": session.limits.warn_at_percentage,
+                },
+                "usage": {
+                    "consultations_used": session.stats.consultation_count,
+                    "consultations_remaining": session.consultations_remaining,
+                    "tokens_used": session.stats.estimated_tokens_used,
+                    "tokens_remaining": session.tokens_remaining,
+                },
+                "status": {
+                    "consultation_percentage": round(
+                        session.consultation_usage_percentage, 1
+                    ),
+                    "token_percentage": round(session.token_usage_percentage, 1),
+                    "should_warn": session.should_warn,
+                    "at_limit": session.at_limit,
+                },
+            }
+        )
 
 
 @session.command("capabilities")
@@ -206,15 +219,17 @@ def session_capabilities_cmd(ctx: click.Context) -> None:
         "rate_limiting": True,  # Rate limiting built-in
     }
 
-    emit_success({
-        "version": "0.1.0",
-        "name": "foundry-cli",
-        "capabilities": capabilities,
-        "feature_flags": flags,
-        "command_groups": list(command_groups.keys()),
-        "command_count": len(cli.commands),
-        "specs_dir": str(cli_ctx.specs_dir) if cli_ctx.specs_dir else None,
-    })
+    emit_success(
+        {
+            "version": "0.1.0",
+            "name": "foundry-cli",
+            "capabilities": capabilities,
+            "feature_flags": flags,
+            "command_groups": list(command_groups.keys()),
+            "command_count": len(cli.commands),
+            "specs_dir": str(cli_ctx.specs_dir) if cli_ctx.specs_dir else None,
+        }
+    )
 
 
 def get_work_mode() -> str:
@@ -253,12 +268,14 @@ def work_mode_cmd(ctx: click.Context) -> None:
     mode = get_work_mode()
     agent = get_agent_type()
 
-    emit_success({
-        "work_mode": mode,
-        "agent_type": agent,
-        "modes_available": list(WORK_MODES),
-        "configured_via": "FOUNDRY_MCP_WORK_MODE",
-    })
+    emit_success(
+        {
+            "work_mode": mode,
+            "agent_type": agent,
+            "modes_available": list(WORK_MODES),
+            "configured_via": "FOUNDRY_MCP_WORK_MODE",
+        }
+    )
 
 
 @session.command("token-usage")
@@ -278,13 +295,15 @@ def token_usage_cmd(ctx: click.Context, session_marker: Optional[str]) -> None:
     """
     # Note: Full implementation requires transcript parsing logic
     # For now, return a placeholder indicating the feature is available
-    emit_success({
-        "available": True,
-        "agent_type": "claude-code",
-        "session_marker": session_marker,
-        "message": "Token usage tracking available. Full metrics require transcript access.",
-        "hint": "Use generate-marker to create a session marker for tracking.",
-    })
+    emit_success(
+        {
+            "available": True,
+            "agent_type": "claude-code",
+            "session_marker": session_marker,
+            "message": "Token usage tracking available. Full metrics require transcript access.",
+            "hint": "Use generate-marker to create a session marker for tracking.",
+        }
+    )
 
 
 @session.command("generate-marker")
@@ -303,11 +322,13 @@ def generate_marker_cmd(ctx: click.Context) -> None:
     """
     marker = f"SESSION_MARKER_{secrets.token_hex(4).upper()}"
 
-    emit_success({
-        "marker": marker,
-        "usage": "Include this marker in your prompts to track context usage.",
-        "hint": "Pass to 'session token-usage --session-marker' to filter metrics.",
-    })
+    emit_success(
+        {
+            "marker": marker,
+            "usage": "Include this marker in your prompts to track context usage.",
+            "hint": "Pass to 'session token-usage --session-marker' to filter metrics.",
+        }
+    )
 
 
 @session.command("context")
@@ -322,14 +343,26 @@ def generate_marker_cmd(ctx: click.Context) -> None:
     is_flag=True,
     help="Include limit checking and recommendations.",
 )
+@click.option(
+    "--transcript-dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    help="Explicit directory containing transcript JSONL files.",
+)
+@click.option(
+    "--allow-home-transcripts",
+    is_flag=True,
+    help="Allow scanning ~/.claude/projects for transcripts (requires opt-in).",
+)
 @click.pass_context
 @cli_command("session-context")
 @handle_keyboard_interrupt()
-@with_sync_timeout(FAST_TIMEOUT, "Context check timed out")
+@with_sync_timeout(MEDIUM_TIMEOUT, "Context check timed out")
 def context_cmd(
     ctx: click.Context,
     session_marker: str,
     check_limits: bool,
+    transcript_dir: Optional[Path],
+    allow_home_transcripts: bool,
 ) -> None:
     """Check current context usage percentage (Claude Code only).
 
@@ -357,8 +390,43 @@ def context_cmd(
         )
         return
 
+    transcript_dirs: Optional[List[Path]] = None
+    if transcript_dir is not None:
+        resolved_dir = transcript_dir.expanduser().resolve()
+        if not resolved_dir.exists() or not resolved_dir.is_dir():
+            emit_error(
+                "Transcript directory not found",
+                code="VALIDATION_ERROR",
+                error_type="validation",
+                remediation="Pass a directory containing transcript JSONL files",
+                details={"transcript_dir": str(transcript_dir)},
+            )
+            return
+        transcript_dirs = [resolved_dir]
+
+    allow_home_search = allow_home_transcripts or bool(
+        os.environ.get(TRANSCRIPT_OPT_IN_ENV, "").strip()
+    )
+
+    if transcript_dirs is None and not allow_home_search:
+        emit_error(
+            "Transcript access disabled",
+            code="TRANSCRIPTS_DISABLED",
+            error_type="forbidden",
+            remediation=(
+                "Pass --transcript-dir, use --allow-home-transcripts, or set FOUNDRY_MCP_ALLOW_TRANSCRIPTS=1"
+            ),
+            details={"session_marker": session_marker},
+        )
+        return
+
     # Find transcript containing the session marker
-    transcript_path = find_transcript_by_marker(Path.cwd(), session_marker)
+    transcript_path = find_transcript_by_marker(
+        Path.cwd(),
+        session_marker,
+        search_dirs=transcript_dirs,
+        allow_home_search=allow_home_search,
+    )
     if transcript_path is None:
         emit_error(
             "Could not find transcript containing marker",
@@ -394,7 +462,9 @@ def context_cmd(
 
     if check_limits:
         if context_percentage >= 85:
-            recommendations.append("Context at or above 85%. Consider '/clear' and '/sdd-begin'.")
+            recommendations.append(
+                "Context at or above 85%. Consider '/clear' and '/sdd-begin'."
+            )
         elif context_percentage >= 70:
             recommendations.append("Context above 70%. Monitor usage closely.")
 

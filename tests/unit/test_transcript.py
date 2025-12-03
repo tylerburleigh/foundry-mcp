@@ -139,9 +139,7 @@ class TestParseTranscript:
             # Clear command
             clear_entry = {
                 "type": "user",
-                "message": {
-                    "content": "<command-name>/clear</command-name>"
-                },
+                "message": {"content": "<command-name>/clear</command-name>"},
             }
             # Second entry after clear
             entry2 = {
@@ -233,7 +231,10 @@ class TestFindTranscriptByMarker:
 
         # Search from the project path
         result = find_transcript_by_marker(
-            project_path, "SESSION_MARKER_ABC12345", max_retries=1
+            project_path,
+            "SESSION_MARKER_ABC12345",
+            max_retries=1,
+            allow_home_search=True,
         )
         assert result is not None
         assert result == transcript
@@ -258,7 +259,10 @@ class TestFindTranscriptByMarker:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         result = find_transcript_by_marker(
-            project_path, "SESSION_MARKER_NOTFOUND", max_retries=1
+            project_path,
+            "SESSION_MARKER_NOTFOUND",
+            max_retries=1,
+            allow_home_search=True,
         )
         assert result is None
 
@@ -267,6 +271,27 @@ class TestFindTranscriptByMarker:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         result = find_transcript_by_marker(
-            Path("/nonexistent/path"), "SESSION_MARKER_ABC", max_retries=1
+            Path("/nonexistent/path"),
+            "SESSION_MARKER_ABC",
+            max_retries=1,
+            allow_home_search=True,
         )
         assert result is None
+
+    def test_explicit_search_directory(self, tmp_path):
+        """Explicit search directories are honored without home scanning."""
+        transcripts_dir = tmp_path / "transcripts"
+        transcripts_dir.mkdir()
+        transcript = transcripts_dir / "session.jsonl"
+        transcript.write_text(
+            json.dumps({"type": "user", "message": {"content": "SESSION_MARKER_Z"}})
+            + "\n"
+        )
+
+        result = find_transcript_by_marker(
+            Path("/anywhere"),
+            "SESSION_MARKER_Z",
+            max_retries=1,
+            search_dirs=[transcripts_dir],
+        )
+        assert result == transcript

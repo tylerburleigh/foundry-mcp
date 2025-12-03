@@ -9,7 +9,8 @@ Provides commands for querying codebase documentation including:
 
 import json
 import time
-from typing import Optional
+from bisect import bisect
+from typing import Optional, TYPE_CHECKING
 
 import click
 
@@ -21,8 +22,34 @@ from foundry_mcp.cli.resilience import (
     handle_keyboard_interrupt,
     with_sync_timeout,
 )
+from foundry_mcp.core.pagination import (
+    CursorError,
+    decode_cursor,
+    encode_cursor,
+    normalize_page_size,
+)
 
 logger = get_cli_logger()
+
+
+def _validate_int_range(
+    parameter: str,
+    value: int,
+    minimum: int,
+    maximum: int,
+) -> None:
+    if value < minimum or value > maximum:
+        emit_error(
+            f"{parameter} must be between {minimum} and {maximum}",
+            code="VALIDATION_ERROR",
+            error_type="validation",
+            remediation=f"Provide a {parameter} between {minimum} and {maximum}",
+            details={"parameter": parameter, "value": value},
+        )
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from foundry_mcp.core.docs import DocsQuery
 
 
 @click.group("doc")
@@ -62,10 +89,12 @@ def doc_find_class_cmd(
     cli_ctx = get_context(ctx)
 
     try:
-        from foundry_mcp.core.codebase_docs import get_codebase_docs
+        from foundry_mcp.core.docs import DocsQuery
 
-        docs = get_codebase_docs(cli_ctx.specs_dir)
-        if docs is None:
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
+        if not query.load():
             emit_error(
                 "Codebase documentation not available",
                 code="DOCS_NOT_FOUND",
@@ -75,41 +104,46 @@ def doc_find_class_cmd(
             )
             return
 
-        # Search for classes
+        response = query.find_class(name, exact=exact)
+        if not response.success:
+            emit_error(
+                response.error or "Class search failed",
+                code="FIND_FAILED",
+                error_type="internal",
+                remediation="Check that codebase documentation is valid",
+                details={"query": name},
+            )
+            return
+
+        raw_results = response.results
         matches = []
-        classes = docs.get("classes", {})
-
-        for class_name, class_info in classes.items():
-            if exact:
-                if class_name == name:
-                    matches.append({
-                        "name": class_name,
-                        **class_info,
-                    })
-            else:
-                if name.lower() in class_name.lower():
-                    matches.append({
-                        "name": class_name,
-                        **class_info,
-                    })
-
-            if len(matches) >= limit:
-                break
+        for result in raw_results[: max(1, limit)]:
+            match_data = dict(result.data or {})
+            match = {"name": result.name}
+            if result.file_path:
+                match["file_path"] = result.file_path
+            if result.line_number is not None:
+                match["line"] = result.line_number
+            match_data.pop("name", None)
+            match.update(match_data)
+            matches.append(match)
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "query": name,
-            "exact": exact,
-            "matches": matches,
-            "total_count": len(matches),
-            "truncated": len(matches) >= limit,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "query": name,
+                "exact": exact,
+                "matches": matches,
+                "total_count": response.count,
+                "truncated": response.count > len(matches),
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
-            "Codebase docs module not available",
+            "Docs module not available",
             code="MODULE_NOT_FOUND",
             error_type="internal",
             remediation="Check foundry_mcp installation and reinstall if needed",
@@ -156,10 +190,12 @@ def doc_find_function_cmd(
     cli_ctx = get_context(ctx)
 
     try:
-        from foundry_mcp.core.codebase_docs import get_codebase_docs
+        from foundry_mcp.core.docs import DocsQuery
 
-        docs = get_codebase_docs(cli_ctx.specs_dir)
-        if docs is None:
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
+        if not query.load():
             emit_error(
                 "Codebase documentation not available",
                 code="DOCS_NOT_FOUND",
@@ -169,41 +205,48 @@ def doc_find_function_cmd(
             )
             return
 
-        # Search for functions
+        response = query.find_function(name, exact=exact)
+        if not response.success:
+            emit_error(
+                response.error or "Function search failed",
+                code="FIND_FAILED",
+                error_type="internal",
+                remediation="Check that codebase documentation is valid",
+                details={"query": name},
+            )
+            return
+
+        raw_results = response.results
         matches = []
-        functions = docs.get("functions", {})
-
-        for func_name, func_info in functions.items():
-            if exact:
-                if func_name == name:
-                    matches.append({
-                        "name": func_name,
-                        **func_info,
-                    })
-            else:
-                if name.lower() in func_name.lower():
-                    matches.append({
-                        "name": func_name,
-                        **func_info,
-                    })
-
-            if len(matches) >= limit:
-                break
+        for result in raw_results[: max(1, limit)]:
+            match_data = dict(result.data or {})
+            match = {"name": result.name}
+            if result.file_path:
+                match["file_path"] = result.file_path
+            if result.line_number is not None:
+                match["line"] = result.line_number
+            if result.data.get("signature"):
+                match.setdefault("signature", result.data.get("signature"))
+            match_data.pop("name", None)
+            match.update(match_data)
+            matches.append(match)
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "query": name,
-            "exact": exact,
-            "matches": matches,
-            "total_count": len(matches),
-            "truncated": len(matches) >= limit,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "query": name,
+                "exact": exact,
+                "matches": matches,
+                "total_count": response.count,
+                "truncated": response.count > len(matches),
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
-            "Codebase docs module not available",
+            "Docs module not available",
             code="MODULE_NOT_FOUND",
             error_type="internal",
             remediation="Check foundry_mcp installation and reinstall if needed",
@@ -247,14 +290,17 @@ def doc_trace_calls_cmd(
 
     FUNCTION_NAME is the function to trace from.
     """
+    _validate_int_range("max_depth", max_depth, 1, 6)
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
 
     try:
-        from foundry_mcp.core.codebase_docs import get_codebase_docs
+        from foundry_mcp.core.docs import DocsQuery
 
-        docs = get_codebase_docs(cli_ctx.specs_dir)
-        if docs is None:
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
+        if not query.load():
             emit_error(
                 "Codebase documentation not available",
                 code="DOCS_NOT_FOUND",
@@ -264,7 +310,6 @@ def doc_trace_calls_cmd(
             )
             return
 
-        call_graph = docs.get("call_graph", {})
         result = {
             "function": function_name,
             "direction": direction,
@@ -273,24 +318,26 @@ def doc_trace_calls_cmd(
 
         # Trace callers (who calls this function)
         if direction in ("callers", "both"):
-            callers = _trace_direction(call_graph, function_name, "callers", max_depth)
+            callers = _trace_direction(query, function_name, "callers", max_depth)
             result["callers"] = callers
 
         # Trace callees (what this function calls)
         if direction in ("callees", "both"):
-            callees = _trace_direction(call_graph, function_name, "callees", max_depth)
+            callees = _trace_direction(query, function_name, "callees", max_depth)
             result["callees"] = callees
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            **result,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                **result,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
-            "Codebase docs module not available",
+            "Docs module not available",
             code="MODULE_NOT_FOUND",
             error_type="internal",
             remediation="Check foundry_mcp installation and reinstall if needed",
@@ -306,26 +353,48 @@ def doc_trace_calls_cmd(
         )
 
 
-def _trace_direction(call_graph: dict, start: str, direction: str, max_depth: int) -> list:
-    """Trace call relationships in a given direction."""
+def _trace_direction(
+    query: "DocsQuery", start: str, direction: str, max_depth: int
+) -> list:
+    """Trace call relationships in a given direction using DocsQuery indexes."""
     visited = set()
     result = []
 
-    def _trace(name: str, depth: int):
+    def _trace(name: str, depth: int) -> None:
         if depth > max_depth or name in visited:
             return
         visited.add(name)
 
-        node = call_graph.get(name, {})
-        relations = node.get(direction, [])
-
-        for rel in relations:
-            result.append({
-                "from": name if direction == "callees" else rel,
-                "to": rel if direction == "callees" else name,
-                "depth": depth,
-            })
-            _trace(rel, depth + 1)
+        if direction == "callers":
+            relations = query._callers_index.get(name, [])
+            for rel in relations:
+                caller = query._functions_by_name.get(rel, {})
+                callee = query._functions_by_name.get(name, {})
+                result.append(
+                    {
+                        "from": rel,
+                        "to": name,
+                        "depth": depth,
+                        "caller_file": caller.get("file"),
+                        "callee_file": callee.get("file"),
+                    }
+                )
+                _trace(rel, depth + 1)
+        else:
+            relations = query._callees_index.get(name, [])
+            for rel in relations:
+                caller = query._functions_by_name.get(name, {})
+                callee = query._functions_by_name.get(rel, {})
+                result.append(
+                    {
+                        "from": name,
+                        "to": rel,
+                        "depth": depth,
+                        "caller_file": caller.get("file"),
+                        "callee_file": callee.get("file"),
+                    }
+                )
+                _trace(rel, depth + 1)
 
     _trace(start, 1)
     return result
@@ -356,18 +425,18 @@ def doc_impact_cmd(
     target_type: str,
     max_depth: int,
 ) -> None:
-    """Analyze impact of changing a class or function.
-
-    TARGET is the name of the class or function to analyze.
-    """
+    """Analyze impact of changing a class or function."""
+    _validate_int_range("max_depth", max_depth, 1, 6)
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
 
     try:
-        from foundry_mcp.core.codebase_docs import get_codebase_docs
+        from foundry_mcp.core.docs import DocsQuery
 
-        docs = get_codebase_docs(cli_ctx.specs_dir)
-        if docs is None:
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
+        if not query.load():
             emit_error(
                 "Codebase documentation not available",
                 code="DOCS_NOT_FOUND",
@@ -377,49 +446,81 @@ def doc_impact_cmd(
             )
             return
 
-        # Auto-detect type if needed
         detected_type = target_type
         if target_type == "auto":
-            if target in docs.get("classes", {}):
+            if target in query._classes_by_name:
                 detected_type = "class"
-            elif target in docs.get("functions", {}):
+            elif target in query._functions_by_name:
                 detected_type = "function"
             else:
                 detected_type = "unknown"
 
-        # Get direct impacts
-        call_graph = docs.get("call_graph", {})
-        callers = _trace_direction(call_graph, target, "callers", max_depth)
-
-        # Collect affected files
+        direct_names: list[str] = []
+        indirect_names: list[str] = []
         affected_files = set()
-        for caller in callers:
-            caller_name = caller.get("from", "")
-            func_info = docs.get("functions", {}).get(caller_name, {})
-            if "file" in func_info:
-                affected_files.add(func_info["file"])
+        callers_list = []
 
-        # Calculate impact score (simple heuristic)
-        direct_impacts = len([c for c in callers if c.get("depth") == 1])
-        indirect_impacts = len([c for c in callers if c.get("depth", 0) > 1])
+        if detected_type == "function":
+            callers_list = _trace_direction(query, target, "callers", max_depth)
+            for entry in callers_list:
+                depth = entry.get("depth", 0)
+                caller_name = entry.get("from")
+                if depth == 1 and caller_name:
+                    direct_names.append(caller_name)
+                elif depth > 1 and caller_name:
+                    indirect_names.append(caller_name)
+
+            for name in set(direct_names + indirect_names):
+                func_data = query._functions_by_name.get(name, {})
+                file_path = func_data.get("file")
+                if file_path:
+                    affected_files.add(file_path)
+        elif detected_type == "class":
+            cls = query._classes_by_name.get(target, {})
+            cls_file = cls.get("file")
+            if cls_file:
+                affected_files.add(cls_file)
+                for func in query._functions_by_file.get(cls_file, []):
+                    func_name = func.get("name")
+                    if func_name:
+                        direct_names.append(func_name)
+            for other_name, other_cls in query._classes_by_name.items():
+                if target in other_cls.get("bases", []):
+                    direct_names.append(other_name)
+                    if other_cls.get("file"):
+                        affected_files.add(other_cls["file"])
+        else:
+            emit_error(
+                f"Target not found: {target}",
+                code="TARGET_NOT_FOUND",
+                error_type="not_found",
+                remediation="Check that the class or function name is correct",
+                details={"target": target},
+            )
+            return
+
+        direct_impacts = len(direct_names)
+        indirect_impacts = len(indirect_names)
         impact_score = direct_impacts * 3 + indirect_impacts
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "target": target,
-            "target_type": detected_type,
-            "direct_impacts": direct_impacts,
-            "indirect_impacts": indirect_impacts,
-            "impact_score": impact_score,
-            "affected_files": sorted(affected_files),
-            "callers": callers,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "target": target,
+                "target_type": detected_type,
+                "direct_impacts": direct_impacts,
+                "indirect_impacts": indirect_impacts,
+                "impact_score": impact_score,
+                "affected_files": sorted(affected_files),
+                "callers": callers_list,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
-            "Codebase docs module not available",
+            "Docs module not available",
             code="MODULE_NOT_FOUND",
             error_type="internal",
             remediation="Check foundry_mcp installation and reinstall if needed",
@@ -446,10 +547,12 @@ def doc_stats_cmd(ctx: click.Context) -> None:
     cli_ctx = get_context(ctx)
 
     try:
-        from foundry_mcp.core.codebase_docs import get_codebase_docs
+        from foundry_mcp.core.docs import DocsQuery
 
-        docs = get_codebase_docs(cli_ctx.specs_dir)
-        if docs is None:
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
+        if not query.load():
             emit_error(
                 "Codebase documentation not available",
                 code="DOCS_NOT_FOUND",
@@ -459,32 +562,34 @@ def doc_stats_cmd(ctx: click.Context) -> None:
             )
             return
 
-        # Calculate stats
-        classes = docs.get("classes", {})
-        functions = docs.get("functions", {})
-        files = docs.get("files", {})
-        call_graph = docs.get("call_graph", {})
+        class_count = len(query._classes_by_name)
+        function_count = len(query._functions_by_name)
+        file_count = len(
+            set(query._classes_by_file.keys()) | set(query._functions_by_file.keys())
+        )
 
-        # Count dependencies
-        total_deps = 0
-        for node in call_graph.values():
-            total_deps += len(node.get("callers", []))
-            total_deps += len(node.get("callees", []))
+        edges = set()
+        for callee, callers in query._callers_index.items():
+            for caller in callers:
+                edges.add((caller, callee))
+        total_dependencies = len(edges)
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "class_count": len(classes),
-            "function_count": len(functions),
-            "file_count": len(files),
-            "call_graph_nodes": len(call_graph),
-            "total_dependencies": total_deps // 2,  # Each dep counted twice
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "class_count": class_count,
+                "function_count": function_count,
+                "file_count": file_count,
+                "call_graph_nodes": function_count,
+                "total_dependencies": total_dependencies,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
-            "Codebase docs module not available",
+            "Docs module not available",
             code="MODULE_NOT_FOUND",
             error_type="internal",
             remediation="Check foundry_mcp installation and reinstall if needed",
@@ -566,7 +671,9 @@ def doc_scope_cmd(
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -599,22 +706,31 @@ def doc_scope_cmd(
             trace_info = []
             for func in scope_data.get("functions", []):
                 func_name = func.get("name", "")
-                trace_result = query.trace_calls(func_name, direction="both", max_depth=2)
+                trace_result = query.trace_calls(
+                    func_name, direction="both", max_depth=2
+                )
                 if trace_result.success and trace_result.results:
-                    trace_info.append({
-                        "function": func_name,
-                        "calls": [{"caller": e.caller, "callee": e.callee} for e in trace_result.results[:10]],
-                    })
+                    trace_info.append(
+                        {
+                            "function": func_name,
+                            "calls": [
+                                {"caller": e.caller, "callee": e.callee}
+                                for e in trace_result.results[:10]
+                            ],
+                        }
+                    )
             scope_data["trace"] = trace_info
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "target": target,
-            "view": view,
-            "scope": scope_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "target": target,
+                "view": view,
+                "scope": scope_data,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
@@ -663,7 +779,9 @@ def doc_dependencies_cmd(
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -691,13 +809,15 @@ def doc_dependencies_cmd(
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "module": module,
-            "direction": "reverse" if reverse else "forward",
-            "dependencies": result.results,
-            "count": len(result.results),
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "module": module,
+                "direction": "reverse" if reverse else "forward",
+                "dependencies": result.results,
+                "count": len(result.results),
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
@@ -737,7 +857,9 @@ def doc_describe_module_cmd(
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -777,14 +899,16 @@ def doc_describe_module_cmd(
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "file_path": file_path,
-            "classes": classes,
-            "functions": functions,
-            "class_count": len(classes),
-            "function_count": len(functions),
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "file_path": file_path,
+                "classes": classes,
+                "functions": functions,
+                "class_count": len(classes),
+                "function_count": len(functions),
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
@@ -811,6 +935,11 @@ def doc_describe_module_cmd(
     default=100,
     help="Maximum number of modules to return.",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Pagination cursor from previous response.",
+)
 @click.pass_context
 @cli_command("doc-list-modules")
 @handle_keyboard_interrupt()
@@ -818,15 +947,46 @@ def doc_describe_module_cmd(
 def doc_list_modules_cmd(
     ctx: click.Context,
     limit: int,
+    cursor: Optional[str],
 ) -> None:
     """List all modules (files) in the codebase documentation."""
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
+    limit = normalize_page_size(limit)
+
+    start_after = None
+    if cursor:
+        try:
+            cursor_data = decode_cursor(cursor)
+        except CursorError as exc:
+            emit_error(
+                "Invalid pagination cursor",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Pass the cursor value from the previous response or omit --cursor.",
+                details={"reason": exc.reason or "decode_failed"},
+            )
+            return
+        if cursor_data.get("mode") != "doc_modules":
+            emit_error(
+                "Cursor not valid for doc list-modules",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Restart without --cursor to obtain a new cursor.",
+                details={
+                    "mode": cursor_data.get("mode"),
+                    "expected_mode": "doc_modules",
+                },
+            )
+            return
+        start_after = cursor_data.get("last_file")
 
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -837,7 +997,6 @@ def doc_list_modules_cmd(
             )
             return
 
-        # Collect unique files from classes and functions
         files = set()
         for cls in query._classes_by_name.values():
             if cls.get("file"):
@@ -846,27 +1005,54 @@ def doc_list_modules_cmd(
             if func.get("file"):
                 files.add(func["file"])
 
-        # Build module list with counts
+        sorted_files = sorted(files)
+        start_index = 0
+        if start_after:
+            start_index = bisect(sorted_files, start_after)
+
+        window = sorted_files[start_index : start_index + limit + 1]
+        page_files = window[:limit]
+        has_more = len(window) > limit
+
         modules = []
-        sorted_files = sorted(files)[:limit]
-        for file_path in sorted_files:
+        for file_path in page_files:
             class_count = len(query._classes_by_file.get(file_path, []))
             function_count = len(query._functions_by_file.get(file_path, []))
-            modules.append({
-                "file_path": file_path,
-                "class_count": class_count,
-                "function_count": function_count,
-            })
+            modules.append(
+                {
+                    "file_path": file_path,
+                    "class_count": class_count,
+                    "function_count": function_count,
+                }
+            )
+
+        next_cursor = None
+        if has_more and modules:
+            next_cursor = encode_cursor(
+                {
+                    "mode": "doc_modules",
+                    "last_file": modules[-1]["file_path"],
+                }
+            )
 
         duration_ms = (time.perf_counter() - start_time) * 1000
+        pagination = {
+            "cursor": next_cursor,
+            "has_more": has_more,
+            "page_size": limit,
+        }
 
-        emit_success({
-            "modules": modules,
-            "count": len(modules),
-            "total_files": len(files),
-            "truncated": len(files) > limit,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "modules": modules,
+                "count": len(modules),
+                "total_files": len(files),
+                "offset": start_index,
+                "truncated": has_more,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            },
+            pagination=pagination,
+        )
 
     except ImportError:
         emit_error(
@@ -899,6 +1085,11 @@ def doc_list_modules_cmd(
     default=100,
     help="Maximum number of functions to return.",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Pagination cursor from previous response.",
+)
 @click.pass_context
 @cli_command("doc-list-functions")
 @handle_keyboard_interrupt()
@@ -907,6 +1098,7 @@ def doc_list_functions_cmd(
     ctx: click.Context,
     file_path: Optional[str],
     limit: int,
+    cursor: Optional[str],
 ) -> None:
     """List functions in the codebase documentation.
 
@@ -914,11 +1106,56 @@ def doc_list_functions_cmd(
     """
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
+    limit = normalize_page_size(limit)
+
+    scope = file_path or "__all__"
+    cursor_name: Optional[str] = None
+    cursor_file: Optional[str] = None
+    cursor_line: Optional[int] = None
+
+    if cursor:
+        try:
+            cursor_data = decode_cursor(cursor)
+        except CursorError as exc:
+            emit_error(
+                "Invalid pagination cursor",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Pass the cursor value from the previous response or omit --cursor.",
+                details={"reason": exc.reason or "decode_failed"},
+            )
+            return
+        if (
+            cursor_data.get("mode") != "doc_functions"
+            or cursor_data.get("scope") != scope
+        ):
+            emit_error(
+                "Cursor not valid for doc list-functions",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Restart without --cursor to obtain a new cursor.",
+                details={
+                    "mode": cursor_data.get("mode"),
+                    "scope": cursor_data.get("scope"),
+                    "expected_scope": scope,
+                },
+            )
+            return
+        cursor_name = cursor_data.get("last_name")
+        cursor_file = cursor_data.get("last_file")
+        cursor_line_value = cursor_data.get("last_line")
+        if cursor_line_value is not None:
+            try:
+                cursor_line = int(cursor_line_value)
+            except ValueError:
+                cursor_line = None
 
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -929,46 +1166,93 @@ def doc_list_functions_cmd(
             )
             return
 
-        functions = []
+        def build_entries(results):
+            rows = []
+            for r in results:
+                rows.append(
+                    {
+                        "name": r.name,
+                        "file_path": r.file_path,
+                        "line": r.line_number,
+                        "signature": r.data.get("signature", ""),
+                    }
+                )
+            return rows
 
         if file_path:
-            # Get functions from specific file
             result = query.find_functions_in_file(file_path)
-            for r in result.results[:limit]:
-                functions.append({
-                    "name": r.name,
-                    "file_path": r.file_path,
-                    "line": r.line_number,
-                    "signature": r.data.get("signature", ""),
-                })
+            all_entries = build_entries(result.results)
         else:
-            # List all functions
-            count = 0
+            all_entries = []
             for func_name, func in sorted(query._functions_by_name.items()):
-                if count >= limit:
-                    break
-                functions.append({
-                    "name": func_name,
-                    "file_path": func.get("file"),
-                    "line": func.get("line"),
-                    "signature": func.get("signature", ""),
-                })
-                count += 1
+                all_entries.append(
+                    {
+                        "name": func_name,
+                        "file_path": func.get("file"),
+                        "line": func.get("line"),
+                        "signature": func.get("signature", ""),
+                    }
+                )
 
-        total_count = len(query._functions_by_name)
-        if file_path:
-            total_count = len(query._functions_by_file.get(file_path, []))
+        total_count = len(all_entries)
+        start_index = 0
+        if cursor_name:
+            match_index = None
+            for idx, entry in enumerate(all_entries):
+                if (
+                    entry.get("name") == cursor_name
+                    and entry.get("file_path") == cursor_file
+                    and entry.get("line") == cursor_line
+                ):
+                    match_index = idx
+                    break
+            if match_index is None:
+                emit_error(
+                    "Cursor no longer valid for doc list-functions",
+                    code="INVALID_CURSOR",
+                    error_type="validation",
+                    remediation="Restart without --cursor to obtain a new cursor.",
+                    details={"reason": "target_not_found"},
+                )
+                return
+            start_index = match_index + 1
+
+        window = all_entries[start_index : start_index + limit + 1]
+        page_entries = window[:limit]
+        has_more = len(window) > limit
+
+        next_cursor = None
+        if has_more and page_entries:
+            last_entry = page_entries[-1]
+            next_cursor = encode_cursor(
+                {
+                    "mode": "doc_functions",
+                    "scope": scope,
+                    "last_name": last_entry.get("name"),
+                    "last_file": last_entry.get("file_path"),
+                    "last_line": last_entry.get("line"),
+                }
+            )
 
         duration_ms = (time.perf_counter() - start_time) * 1000
+        pagination = {
+            "cursor": next_cursor,
+            "has_more": has_more,
+            "page_size": limit,
+        }
 
-        emit_success({
-            "functions": functions,
-            "count": len(functions),
-            "total_count": total_count,
-            "truncated": len(functions) < total_count,
-            "file_filter": file_path,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "functions": page_entries,
+                "count": len(page_entries),
+                "total_count": total_count,
+                "file_filter": file_path,
+                "offset": start_index,
+                "truncated": has_more,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            },
+            pagination=pagination,
+        )
 
     except ImportError:
         emit_error(
@@ -984,7 +1268,7 @@ def doc_list_functions_cmd(
             code="LIST_FAILED",
             error_type="internal",
             remediation="Check that codebase documentation is valid",
-            details={"file_path": file_path},
+            details={},
         )
 
 
@@ -1003,6 +1287,11 @@ def doc_list_functions_cmd(
     default=50,
     help="Maximum number of results.",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Pagination cursor from previous response.",
+)
 @click.pass_context
 @cli_command("doc-search")
 @handle_keyboard_interrupt()
@@ -1012,6 +1301,7 @@ def doc_search_cmd(
     query: str,
     entity_type: str,
     limit: int,
+    cursor: Optional[str],
 ) -> None:
     """Search documentation by keyword.
 
@@ -1022,11 +1312,48 @@ def doc_search_cmd(
     """
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
+    limit = normalize_page_size(limit)
+
+    offset = 0
+    if cursor:
+        try:
+            cursor_data = decode_cursor(cursor)
+        except CursorError as exc:
+            emit_error(
+                "Invalid pagination cursor",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Pass the cursor value from the previous response or omit --cursor.",
+                details={"reason": exc.reason or "decode_failed"},
+            )
+            return
+        if (
+            cursor_data.get("mode") != "doc_search"
+            or cursor_data.get("query") != query
+            or cursor_data.get("entity_type") != entity_type
+        ):
+            emit_error(
+                "Cursor not valid for doc search",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Restart without --cursor to obtain a new cursor.",
+                details={
+                    "mode": cursor_data.get("mode"),
+                    "query": cursor_data.get("query"),
+                    "entity_type": cursor_data.get("entity_type"),
+                },
+            )
+            return
+        offset = int(cursor_data.get("offset", 0))
+        if offset < 0:
+            offset = 0
 
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query_obj = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query_obj = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query_obj.load():
             emit_error(
                 "Codebase documentation not available",
@@ -1037,15 +1364,15 @@ def doc_search_cmd(
             )
             return
 
-        # Map entity_type to list
         entity_types = None
         if entity_type == "class":
             entity_types = ["class"]
         elif entity_type == "function":
             entity_types = ["function"]
-        # "all" leaves entity_types as None (searches both)
 
-        result = query_obj.search(query, entity_types=entity_types, max_results=limit)
+        result = query_obj.search(
+            query, entity_types=entity_types, max_results=offset + limit + 1
+        )
 
         if not result.success:
             emit_error(
@@ -1057,9 +1384,13 @@ def doc_search_cmd(
             )
             return
 
-        # Format results
+        raw_matches = result.results
+        page_window = raw_matches[offset : offset + limit + 1]
+        page_results = page_window[:limit]
+        has_more = len(raw_matches) > offset + limit
+
         matches = []
-        for r in result.results:
+        for r in page_results:
             match = {
                 "name": r.name,
                 "type": r.entity_type,
@@ -1071,16 +1402,36 @@ def doc_search_cmd(
                 match["signature"] = r.data["signature"]
             matches.append(match)
 
-        duration_ms = (time.perf_counter() - start_time) * 1000
+        next_cursor = None
+        if has_more and matches:
+            next_cursor = encode_cursor(
+                {
+                    "mode": "doc_search",
+                    "query": query,
+                    "entity_type": entity_type,
+                    "offset": offset + len(matches),
+                }
+            )
 
-        emit_success({
-            "query": query,
-            "type_filter": entity_type,
-            "matches": matches,
-            "count": len(matches),
-            "truncated": len(matches) >= limit,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        pagination = {
+            "cursor": next_cursor,
+            "has_more": has_more,
+            "page_size": limit,
+        }
+
+        emit_success(
+            {
+                "query": query,
+                "type_filter": entity_type,
+                "matches": matches,
+                "count": len(matches),
+                "offset": offset,
+                "truncated": has_more,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            },
+            pagination=pagination,
+        )
 
     except ImportError:
         emit_error(
@@ -1124,13 +1475,16 @@ def doc_context_cmd(
     Provides context including the entity definition, callers/callees,
     file context, and related entities.
     """
+    _validate_int_range("depth", depth, 1, 3)
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
 
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -1212,7 +1566,10 @@ def doc_context_cmd(
 
         # Add impact analysis (depth >= 3)
         if depth >= 3:
-            impact_result = query.impact_analysis(target, target_type=entity_type)
+            impact_target_type = entity_type if entity_type is not None else "auto"
+            impact_result = query.impact_analysis(
+                target, target_type=impact_target_type
+            )
             if impact_result.success and impact_result.results:
                 impact = impact_result.results[0]
                 context_data["impact"] = {
@@ -1224,12 +1581,14 @@ def doc_context_cmd(
 
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        emit_success({
-            "target": target,
-            "depth": depth,
-            "context": context_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "target": target,
+                "depth": depth,
+                "context": context_data,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            }
+        )
 
     except ImportError:
         emit_error(
@@ -1268,6 +1627,11 @@ def doc_context_cmd(
     default=50,
     help="Maximum number of candidates to return.",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Pagination cursor from previous response.",
+)
 @click.pass_context
 @cli_command("doc-refactor-candidates")
 @handle_keyboard_interrupt()
@@ -1277,6 +1641,7 @@ def doc_refactor_candidates_cmd(
     threshold: int,
     complexity: int,
     limit: int,
+    cursor: Optional[str],
 ) -> None:
     """Find candidates for refactoring.
 
@@ -1289,13 +1654,52 @@ def doc_refactor_candidates_cmd(
 
     Results are sorted by priority score.
     """
+    _validate_int_range("threshold", threshold, 0, 1000)
+    _validate_int_range("complexity", complexity, 0, 500)
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
+    limit = normalize_page_size(limit)
+
+    offset = 0
+    if cursor:
+        try:
+            cursor_data = decode_cursor(cursor)
+        except CursorError as exc:
+            emit_error(
+                "Invalid pagination cursor",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Pass the cursor value from the previous response or omit --cursor.",
+                details={"reason": exc.reason or "decode_failed"},
+            )
+            return
+        if (
+            cursor_data.get("mode") != "doc_refactor"
+            or int(cursor_data.get("threshold", threshold)) != threshold
+            or int(cursor_data.get("complexity", complexity)) != complexity
+        ):
+            emit_error(
+                "Cursor not valid for doc refactor-candidates",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Restart without --cursor to obtain a new cursor.",
+                details={
+                    "mode": cursor_data.get("mode"),
+                    "threshold": cursor_data.get("threshold"),
+                    "complexity": cursor_data.get("complexity"),
+                },
+            )
+            return
+        offset = int(cursor_data.get("offset", 0))
+        if offset < 0:
+            offset = 0
 
     try:
         from foundry_mcp.core.docs import DocsQuery
 
-        query = DocsQuery(workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None)
+        query = DocsQuery(
+            workspace=cli_ctx.specs_dir.parent if cli_ctx.specs_dir else None
+        )
         if not query.load():
             emit_error(
                 "Codebase documentation not available",
@@ -1306,7 +1710,9 @@ def doc_refactor_candidates_cmd(
             )
             return
 
-        result = query.get_refactor_candidates(min_callers=threshold, min_complexity=complexity)
+        result = query.get_refactor_candidates(
+            min_callers=threshold, min_complexity=complexity
+        )
 
         if not result.success:
             emit_error(
@@ -1318,20 +1724,52 @@ def doc_refactor_candidates_cmd(
             )
             return
 
-        # Limit and format results
-        candidates = result.results[:limit]
+        total_found = len(result.results)
+        if offset > total_found:
+            emit_error(
+                "Cursor exceeds available results",
+                code="INVALID_CURSOR",
+                error_type="validation",
+                remediation="Restart without --cursor to obtain a new cursor.",
+                details={"offset": offset, "total": total_found},
+            )
+            return
+
+        window = result.results[offset : offset + limit + 1]
+        page_candidates = window[:limit]
+        has_more = len(window) > limit
+
+        next_cursor = None
+        if has_more and page_candidates:
+            next_cursor = encode_cursor(
+                {
+                    "mode": "doc_refactor",
+                    "threshold": threshold,
+                    "complexity": complexity,
+                    "offset": offset + len(page_candidates),
+                }
+            )
 
         duration_ms = (time.perf_counter() - start_time) * 1000
+        pagination = {
+            "cursor": next_cursor,
+            "has_more": has_more,
+            "page_size": limit,
+        }
 
-        emit_success({
-            "threshold": threshold,
-            "complexity_min": complexity,
-            "candidates": candidates,
-            "count": len(candidates),
-            "total_found": len(result.results),
-            "truncated": len(result.results) > limit,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
+        emit_success(
+            {
+                "threshold": threshold,
+                "complexity_min": complexity,
+                "candidates": page_candidates,
+                "count": len(page_candidates),
+                "total_found": total_found,
+                "offset": offset,
+                "truncated": has_more,
+                "telemetry": {"duration_ms": round(duration_ms, 2)},
+            },
+            pagination=pagination,
+        )
 
     except ImportError:
         emit_error(
