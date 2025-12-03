@@ -1,0 +1,950 @@
+{
+  "spec_id": "ai-consultation-layer-2025-12-03-001",
+  "title": "AI Consultation Layer",
+  "generated": "2025-12-03T12:00:00Z",
+  "last_updated": "2025-12-03T14:56:17.497772Z",
+  "metadata": {
+    "description": "Restore LLM-backed capabilities in foundry-mcp without claude_skills dependency",
+    "objectives": [
+      "Create unified consultation orchestrator using existing provider registry",
+      "Implement versioned prompt system for all AI workflows",
+      "Add persistent caching with invalidation support",
+      "Enable doc generation, plan review, and fidelity review via AI",
+      "Remove claude_skills dependency"
+    ],
+    "complexity": "high",
+    "estimated_hours": 40,
+    "assumptions": [
+      "Existing provider registry (gemini, codex, cursor-agent, claude, opencode) is stable",
+      "Provider detection via detectors.py works correctly",
+      "CLI and MCP surfaces share the same consultation layer"
+    ],
+    "progress_percentage": 3,
+    "status": "active",
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AI Consultation Layer",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5"
+      ],
+      "total_tasks": 26,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Foundation",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "phase-1-files",
+        "phase-1-verify"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 1,
+      "metadata": {
+        "purpose": "Create core AI consultation infrastructure",
+        "risk_level": "medium"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2",
+          "phase-3",
+          "phase-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "task-1-5",
+        "task-1-6"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 1,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-1-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/ai_consultation.py",
+      "status": "completed",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-1-3",
+          "task-1-4"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/ai_consultation.py",
+        "task_category": "implementation",
+        "estimated_hours": 4,
+        "details": [
+          "ConsultationRequest dataclass (workflow, prompt_id, context, provider_id, model, cache_key, timeout)",
+          "ConsultationResult dataclass (workflow, content, provider_id, model_used, tokens, duration_ms, cache_hit, raw_payload, warnings)",
+          "ConsultationOrchestrator class with consult() and is_available() methods",
+          "ResultCache class with filesystem persistence under .cache/foundry-mcp/consultations/",
+          "Cache key structure: {workflow}/{spec_id_or_hash}/{key}.json",
+          "Integration with existing provider registry via resolve_provider()"
+        ],
+        "started_at": "2025-12-03T14:50:17.201956Z",
+        "status_note": "Starting implementation of core consultation module",
+        "completed_at": "2025-12-03T14:56:17.493296Z",
+        "needs_journaling": false,
+        "actual_hours": 0.1,
+        "journaled_at": "2025-12-03T14:56:17.496725Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/prompts/__init__.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-1-3",
+          "task-1-4",
+          "task-1-5"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/prompts/__init__.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "PromptTemplate dataclass (id, version, system_prompt, user_template, required_context, metadata)",
+          "PromptRegistry class for registering and retrieving prompts by ID",
+          "Template variable substitution via {variable} syntax",
+          "Validation of required_context keys"
+        ]
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/prompts/doc_generation.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-2",
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/prompts/doc_generation.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Port prompts from claude_skills/llm_doc_gen/generators/",
+          "DOC_GEN_PROJECT_OVERVIEW_V1 - project overview narrative",
+          "DOC_GEN_ARCHITECTURE_V1 - architecture documentation",
+          "DOC_GEN_COMPONENT_INVENTORY_V1 - component inventory",
+          "Each prompt includes system_prompt and user_template with {codebase_json} context"
+        ]
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/prompts/plan_review.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-2",
+          "task-1-1"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/prompts/plan_review.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Port prompts from claude_skills/sdd_plan_review/prompts.py",
+          "PLAN_REVIEW_FULL_V1 - 6 dimensions (Completeness, Architecture, Data Model, Interface, Security, Verification)",
+          "PLAN_REVIEW_QUICK_V1 - Critical Blockers and Questions only",
+          "PLAN_REVIEW_SECURITY_V1 - Auth, AuthZ, Data Protection, Vulnerabilities",
+          "PLAN_REVIEW_FEASIBILITY_V1 - Complexity, Dependencies, Risks",
+          "SYNTHESIS_PROMPT_V1 - AI-powered synthesis of multiple model responses"
+        ]
+      }
+    },
+    "task-1-5": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/prompts/fidelity_review.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "task-1-2"
+        ],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/prompts/fidelity_review.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Port prompts from claude_skills/sdd_fidelity_review/consultation.py",
+          "FIDELITY_REVIEW_V1 - 6-section prompt (Context, Spec Requirements, Implementation, Tests, Journal, Questions)",
+          "JSON response schema with verdict, summary, deviations, test_coverage, recommendations",
+          "Severity categorization keywords (CRITICAL, HIGH, MEDIUM, LOW)"
+        ]
+      }
+    },
+    "task-1-6": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/responses.py",
+      "status": "pending",
+      "parent": "phase-1-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/responses.py",
+        "task_category": "implementation",
+        "estimated_hours": 1,
+        "details": [
+          "Add AI_NO_PROVIDER error code - No AI provider available",
+          "Add AI_PROVIDER_TIMEOUT error code - Provider execution timed out",
+          "Add AI_PROVIDER_ERROR error code - Provider returned error",
+          "Add AI_CONTEXT_TOO_LARGE error code - Context exceeds limits",
+          "Add AI_PROMPT_NOT_FOUND error code - Unknown prompt ID",
+          "Add AI_CACHE_STALE error code - Cached result outdated",
+          "Include remediation guidance in error metadata"
+        ]
+      }
+    },
+    "phase-1-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Unit tests pass for consultation layer",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=src pytest tests/unit/test_ai_consultation.py -v",
+        "expected": "All tests pass"
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Phase 1 fidelity review",
+      "status": "pending",
+      "parent": "phase-1-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "agent": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-1"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Documentation Generation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-2-files",
+        "phase-2-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-5"
+        ],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Port LLM doc generation to use consultation layer",
+        "risk_level": "medium"
+      }
+    },
+    "phase-2-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-2-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/core/docgen.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-2-2",
+          "task-2-3"
+        ],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/core/docgen.py",
+        "task_category": "implementation",
+        "estimated_hours": 4,
+        "details": [
+          "Replace placeholder _build_project_overview() with AI-enhanced version",
+          "Replace placeholder _build_architecture_doc() with AI-enhanced version",
+          "Replace placeholder _build_component_inventory() with AI-enhanced version",
+          "Pass codebase.json content as context to prompts",
+          "Implement write-as-you-go pattern for memory management",
+          "Error with AI_NO_PROVIDER if no provider available (no fallback)"
+        ]
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/cli/commands/docgen.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "dependencies": {
+        "blocked_by": [
+          "task-2-1"
+        ]
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/cli/commands/docgen.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Add --ai-provider flag for explicit provider selection",
+          "Add --no-cache flag to bypass consultation cache",
+          "Add --timeout flag for consultation timeout override",
+          "Update llm-doc generate command to use consultation layer"
+        ]
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/docgen_tools.py",
+      "status": "pending",
+      "parent": "phase-2-files",
+      "children": [],
+      "dependencies": {
+        "blocked_by": [
+          "task-2-1"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/docgen_tools.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Update spec-doc-llm MCP tool to use consultation layer",
+          "Add provider and cache parameters to tool schema",
+          "Return AI_NO_PROVIDER error with remediation if no provider"
+        ]
+      }
+    },
+    "phase-2-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-2-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Doc generation tests pass",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=src pytest tests/unit/test_docgen.py -v",
+        "expected": "All tests pass"
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Phase 2 fidelity review",
+      "status": "pending",
+      "parent": "phase-2-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "agent": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-2"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Plan Review",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-3-files",
+        "phase-3-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-5"
+        ],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Port plan review workflows to consultation layer",
+        "risk_level": "low-medium"
+      }
+    },
+    "phase-3-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "task-3-1",
+        "task-3-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-3-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/cli/commands/review.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-3-2"
+        ]
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/cli/commands/review.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Update review command to use consultation layer for full/quick/security/feasibility types",
+          "Implement AI-powered synthesis for multi-model responses",
+          "Add --ai-provider, --no-cache flags",
+          "Error with remediation when AI unavailable"
+        ]
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/review_tools.py",
+      "status": "pending",
+      "parent": "phase-3-files",
+      "children": [],
+      "dependencies": {
+        "blocked_by": [
+          "task-3-1"
+        ]
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/review_tools.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Update spec-review MCP tool to use consultation layer",
+          "Add provider and cache parameters to tool schema",
+          "Return structured review results matching existing format"
+        ]
+      }
+    },
+    "phase-3-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [
+        "verify-3-1",
+        "verify-3-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-3-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Plan review tests pass",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=src pytest tests/unit/test_review.py -v",
+        "expected": "All tests pass"
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Phase 3 fidelity review",
+      "status": "pending",
+      "parent": "phase-3-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "agent": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-3"
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Fidelity Review",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-4-files",
+        "phase-4-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-1"
+        ],
+        "blocks": [
+          "phase-5"
+        ],
+        "depends": []
+      },
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Port fidelity review (implementation vs spec) to consultation layer",
+        "risk_level": "low-medium"
+      }
+    },
+    "phase-4-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "task-4-1",
+        "task-4-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-4-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "src/foundry_mcp/cli/commands/review.py (fidelity)",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "dependencies": {
+        "blocks": [
+          "task-4-2"
+        ]
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/cli/commands/review.py",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Add 'review fidelity' subcommand using consultation layer",
+          "Support --task, --phase, --files scope options",
+          "Implement JSON response parsing with markdown fallback",
+          "Implement multi-model consensus detection",
+          "Issue categorization with severity levels"
+        ]
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "src/foundry_mcp/tools/review_tools.py (fidelity)",
+      "status": "pending",
+      "parent": "phase-4-files",
+      "children": [],
+      "dependencies": {
+        "blocked_by": [
+          "task-4-1"
+        ]
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "src/foundry_mcp/tools/review_tools.py",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Update spec-review-fidelity MCP tool to use consultation layer",
+          "Add scope parameters (task_id, phase_id, files)",
+          "Return structured verdict with deviations and recommendations"
+        ]
+      }
+    },
+    "phase-4-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [
+        "verify-4-1",
+        "verify-4-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-4-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Fidelity review tests pass",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=src pytest tests/unit/test_fidelity_review.py -v",
+        "expected": "All tests pass"
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Phase 4 fidelity review",
+      "status": "pending",
+      "parent": "phase-4-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "agent": "sdd-fidelity-review",
+        "scope": "phase",
+        "target": "phase-4"
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Cleanup and Documentation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "phase-5-files",
+        "phase-5-verify"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-2",
+          "phase-3",
+          "phase-4"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Remove claude_skills refs, add tests and documentation",
+        "risk_level": "low"
+      }
+    },
+    "phase-5-files": {
+      "type": "group",
+      "title": "File Modifications",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {},
+      "dependencies": {
+        "blocks": [
+          "phase-5-verify"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "tests/fixtures/ai_responses/",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "tests/fixtures/ai_responses/",
+        "task_category": "implementation",
+        "estimated_hours": 3,
+        "details": [
+          "Create fixture files with recorded provider responses",
+          "doc_gen_response.json - Sample doc generation output",
+          "plan_review_response.json - Sample plan review output",
+          "fidelity_review_response.json - Sample fidelity review output",
+          "Update tests to use fixtures via FOUNDRY_PROVIDER_TEST_MODE=1"
+        ]
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "Remove claude_skills references",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "task_category": "refactoring",
+        "estimated_hours": 2,
+        "details": [
+          "Search for and remove all claude_skills imports",
+          "Update any capability manifests referencing claude_skills",
+          "Verify no remaining references in codebase"
+        ],
+        "file_path": "task-5-2.py"
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "docs/guides/ai-consultation.md",
+      "status": "pending",
+      "parent": "phase-5-files",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "docs/guides/ai-consultation.md",
+        "task_category": "implementation",
+        "estimated_hours": 2,
+        "details": [
+          "Document FOUNDRY_AI_PROVIDER_PRIORITY configuration",
+          "Document FOUNDRY_AI_CACHE_DIR and FOUNDRY_AI_CACHE_TTL_HOURS",
+          "Document per-provider overrides",
+          "Include examples for CLI and MCP usage",
+          "Document error codes and remediation steps"
+        ]
+      }
+    },
+    "phase-5-verify": {
+      "type": "group",
+      "title": "Verification",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [
+        "verify-5-1",
+        "verify-5-2"
+      ],
+      "dependencies": {
+        "blocked_by": [
+          "phase-5-files"
+        ],
+        "blocks": [],
+        "depends": []
+      },
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Full test suite passes",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "PYTHONPATH=src pytest tests/ -v --ignore=tests/integration",
+        "expected": "All tests pass"
+      }
+    },
+    "verify-5-2": {
+      "type": "verify",
+      "title": "No claude_skills references remain",
+      "status": "pending",
+      "parent": "phase-5-verify",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "auto",
+        "command": "grep -r 'claude_skills' src/ --include='*.py' | wc -l",
+        "expected": "0 matches"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2025-12-03T14:56:17.496718Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: src/foundry_mcp/core/ai_consultation.py",
+      "author": "claude-code",
+      "content": "Created src/foundry_mcp/core/ai_consultation.py with:\n- ConsultationWorkflow enum (DOC_GENERATION, PLAN_REVIEW, FIDELITY_REVIEW)\n- ConsultationRequest dataclass with all specified fields (workflow, prompt_id, context, provider_id, model, cache_key, timeout, temperature, max_tokens, system_prompt_override)\n- ConsultationResult dataclass with success property and all output fields\n- ResultCache class with filesystem persistence under .cache/foundry-mcp/consultations/, supporting get/set/invalidate/stats operations\n- ConsultationOrchestrator class with consult(), is_available(), get_available_providers(), consult_multiple() methods\n- Integration with existing provider registry via resolve_provider()\n\nAlso created prompts package:\n- src/foundry_mcp/core/prompts/__init__.py with PromptBuilder ABC and get_prompt_builder() factory\n- src/foundry_mcp/core/prompts/doc_generation.py with 5 prompt templates\n- src/foundry_mcp/core/prompts/plan_review.py with 5 prompt templates  \n- src/foundry_mcp/core/prompts/fidelity_review.py with 5 prompt templates\n\nAll imports verified working. Manual tests pass for cache operations, prompt building, and result structures.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    }
+  ]
+}

@@ -1,11 +1,10 @@
 """Review commands for SDD CLI.
 
-Provides commands for LLM-powered spec review and fidelity checking.
-Integrates review templates and fidelity hooks for quality assurance.
+Provides commands for structural spec review metadata and exposes
+availability of LLM-powered review workflows.
 """
 
-import json
-import subprocess
+from dataclasses import asdict
 import time
 from typing import Optional
 
@@ -21,14 +20,42 @@ from foundry_mcp.cli.resilience import (
     with_sync_timeout,
     handle_keyboard_interrupt,
 )
+from foundry_mcp.core.review import quick_review, review_type_requires_llm
 
 logger = get_cli_logger()
 
 # Review types supported
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
 
-# External review tools
-REVIEW_TOOLS = ["cursor-agent", "gemini", "codex"]
+REVIEW_TOOL_DEFINITIONS = [
+    {
+        "name": "quick-review",
+        "description": "Structural validation with schema & progress checks (native).",
+        "capabilities": ["structure", "progress", "quality"],
+        "requires_llm": False,
+    },
+    {
+        "name": "full-review",
+        "description": "LLM-powered deep review via sdd-toolkit.",
+        "capabilities": ["structure", "quality", "suggestions"],
+        "requires_llm": True,
+        "alternative": "sdd-toolkit:sdd-plan-review",
+    },
+    {
+        "name": "security-review",
+        "description": "Security-focused LLM analysis.",
+        "capabilities": ["security", "trust_boundaries"],
+        "requires_llm": True,
+        "alternative": "sdd-toolkit:sdd-plan-review",
+    },
+    {
+        "name": "feasibility-review",
+        "description": "Implementation feasibility assessment (LLM).",
+        "capabilities": ["complexity", "risk", "dependencies"],
+        "requires_llm": True,
+        "alternative": "sdd-toolkit:sdd-plan-review",
+    },
+]
 
 # Fidelity review timeout (longer for AI consultation)
 FIDELITY_TIMEOUT = 600
@@ -51,11 +78,11 @@ def review_group() -> None:
 )
 @click.option(
     "--tools",
-    help="Comma-separated list of review tools to use.",
+    help="Comma-separated list of review tools to use (LLM types only).",
 )
 @click.option(
     "--model",
-    help="LLM model to use for review.",
+    help="LLM model to use for review (LLM types only).",
 )
 @click.option(
     "--dry-run",
@@ -74,16 +101,7 @@ def review_spec_cmd(
     model: Optional[str],
     dry_run: bool,
 ) -> None:
-    """Run an LLM-powered review on a specification.
-
-    SPEC_ID is the specification identifier.
-
-    Review types:
-    - quick: Fast structural review (no LLM required)
-    - full: Comprehensive review with LLM analysis
-    - security: Security-focused analysis
-    - feasibility: Implementation feasibility assessment
-    """
+    """Run a structural review or report availability of LLM reviews."""
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
     specs_dir = cli_ctx.specs_dir
@@ -97,107 +115,44 @@ def review_spec_cmd(
             details={"hint": "Use --specs-dir or set SDD_SPECS_DIR"},
         )
 
-    # Get LLM status
     llm_status = _get_llm_status()
 
-    # Check if LLM is required but not configured
-    if review_type != "quick" and not llm_status.get("configured"):
+    if review_type_requires_llm(review_type):
         emit_error(
-            f"Review type '{review_type}' requires LLM configuration",
-            code="LLM_NOT_CONFIGURED",
-            error_type="validation",
-            remediation="Set FOUNDRY_MCP_LLM_API_KEY or use --type quick for structural review",
-            details={
-                "review_type": review_type,
-                "hint": "Set FOUNDRY_MCP_LLM_API_KEY or use --type quick",
-            },
-        )
-
-    # Dry run mode
-    if dry_run:
-        cmd_preview = ["sdd", "review", spec_id, "--type", review_type, "--json"]
-        if tools:
-            cmd_preview.extend(["--tools", tools])
-        if model:
-            cmd_preview.extend(["--model", model])
-
-        emit_success({
-            "spec_id": spec_id,
-            "review_type": review_type,
-            "dry_run": True,
-            "command": " ".join(cmd_preview),
-            "llm_status": llm_status,
-            "message": "Dry run - no review executed",
-        })
-        return
-
-    # Build and execute review command
-    cmd = ["sdd", "review", spec_id, "--type", review_type, "--json"]
-    if tools:
-        cmd.extend(["--tools", tools])
-    if model:
-        cmd.extend(["--model", model])
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=SLOW_TIMEOUT,
-        )
-
-        duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Review failed"
-            emit_error(
-                f"Review failed: {error_msg}",
-                code="REVIEW_FAILED",
-                error_type="internal",
-                remediation="Check that the spec exists and LLM is properly configured",
-                details={
-                    "spec_id": spec_id,
-                    "review_type": review_type,
-                    "exit_code": result.returncode,
-                },
-            )
-
-        # Parse review output
-        try:
-            review_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            review_data = {"raw_output": result.stdout}
-
-        emit_success({
-            "spec_id": spec_id,
-            "review_type": review_type,
-            "llm_status": llm_status,
-            **review_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
-
-    except subprocess.TimeoutExpired:
-        emit_error(
-            f"Review timed out after {SLOW_TIMEOUT}s",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Consider using --type quick for faster review or reviewing smaller scope",
+            f"Review type '{review_type}' is handled by the sdd-toolkit review workflow",
+            code="NOT_IMPLEMENTED",
+            error_type="unavailable",
+            remediation="Use the sdd-toolkit:sdd-plan-review skill for LLM-powered reviews",
             details={
                 "spec_id": spec_id,
                 "review_type": review_type,
-                "timeout_seconds": SLOW_TIMEOUT,
+                "alternative": "sdd-toolkit:sdd-plan-review",
+                "llm_status": llm_status,
             },
         )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
+
+    if dry_run:
+        emit_success(
+            {
+                "spec_id": spec_id,
+                "review_type": review_type,
+                "dry_run": True,
+                "llm_status": llm_status,
+                "message": "Dry run - quick review skipped",
+            }
         )
+        return
+
+    quick_result = quick_review(spec_id=spec_id, specs_dir=specs_dir)
+    duration_ms = (time.perf_counter() - start_time) * 1000
+
+    payload = asdict(quick_result)
+    payload["llm_status"] = llm_status
+
+    emit_success(
+        payload,
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 @review_group.command("tools")
@@ -206,41 +161,38 @@ def review_spec_cmd(
 @handle_keyboard_interrupt()
 @with_sync_timeout(FAST_TIMEOUT, "Review tools lookup timed out")
 def review_tools_cmd(ctx: click.Context) -> None:
-    """List available review tools and their status."""
+    """List native and external review toolchains."""
     start_time = time.perf_counter()
 
     llm_status = _get_llm_status()
 
-    # Check tool availability
     tools_info = []
-    for tool in REVIEW_TOOLS:
-        try:
-            result = subprocess.run(
-                [tool, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5.0,
-            )
-            available = result.returncode == 0
-            version = result.stdout.strip() if available else None
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            available = False
-            version = None
-
-        tools_info.append({
-            "name": tool,
+    for definition in REVIEW_TOOL_DEFINITIONS:
+        requires_llm = definition.get("requires_llm", False)
+        available = not requires_llm  # LLM reviews are handled by external workflows
+        tool_info = {
+            "name": definition["name"],
+            "description": definition["description"],
+            "capabilities": definition.get("capabilities", []),
+            "requires_llm": requires_llm,
             "available": available,
-            "version": version,
-        })
+            "status": "native" if available else "external",
+        }
+        if not available:
+            tool_info["alternative"] = definition.get("alternative")
+            tool_info["message"] = "Use the sdd-toolkit workflow for this review type"
+        tools_info.append(tool_info)
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    emit_success({
-        "tools": tools_info,
-        "llm_status": llm_status,
-        "review_types": REVIEW_TYPES,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "tools": tools_info,
+            "llm_status": llm_status,
+            "review_types": REVIEW_TYPES,
+        },
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 @review_group.command("plan-tools")
@@ -286,39 +238,36 @@ def review_plan_tools_cmd(ctx: click.Context) -> None:
         },
     ]
 
-    # Add availability status
+    # Add availability status (only quick review is native today)
     available_tools = []
     for tool in plan_tools:
         tool_info = tool.copy()
-        if tool["llm_required"] and not llm_status.get("configured"):
-            tool_info["status"] = "unavailable"
-            tool_info["reason"] = "LLM not configured"
+        if tool["llm_required"]:
+            tool_info["status"] = "external"
+            tool_info["available"] = False
+            tool_info["reason"] = "Use the sdd-toolkit:sdd-plan-review workflow"
+            tool_info["alternative"] = "sdd-toolkit:sdd-plan-review"
         else:
-            tool_info["status"] = "available"
+            tool_info["status"] = "native"
+            tool_info["available"] = True
         available_tools.append(tool_info)
 
-    # Build recommendations
-    if llm_status.get("configured"):
-        recommendations = [
-            "Use 'full-review' for comprehensive plan analysis",
-            "Run 'security-review' before implementation of sensitive features",
-            "Use 'feasibility-review' for complex or risky plans",
-        ]
-    else:
-        recommendations = [
-            "Use 'quick-review' for basic validation (no LLM required)",
-            "Configure LLM to unlock full review capabilities",
-            "Set FOUNDRY_MCP_LLM_API_KEY or provider-specific env var",
-        ]
+    recommendations = [
+        "Use 'quick-review' for structural validation inside foundry-mcp",
+        "Invoke sdd-toolkit:sdd-plan-review for AI-assisted plan analysis",
+        "Configure LLM credentials when ready to adopt the toolkit workflow",
+    ]
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    emit_success({
-        "plan_tools": available_tools,
-        "llm_status": llm_status,
-        "recommendations": recommendations,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "plan_tools": available_tools,
+            "llm_status": llm_status,
+            "recommendations": recommendations,
+        },
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 @review_group.command("fidelity")
@@ -391,91 +340,30 @@ def review_fidelity_cmd(
             details={"hint": "Use either --task or --phase, not both"},
         )
 
-    # Get LLM status
     llm_status = _get_llm_status()
 
-    # Build command
-    cmd = ["sdd", "fidelity-review", spec_id, "--json"]
-
+    scope = "spec"
     if task_id:
-        cmd.extend(["--task", task_id])
-    if phase_id:
-        cmd.extend(["--phase", phase_id])
-    for file in files:
-        cmd.extend(["--file", file])
-    if incremental:
-        cmd.append("--incremental")
-    if base_branch != "main":
-        cmd.extend(["--base-branch", base_branch])
-    if specs_dir:
-        cmd.extend(["--path", str(specs_dir.parent)])
+        scope = f"task:{task_id}"
+    elif phase_id:
+        scope = f"phase:{phase_id}"
+    elif files:
+        scope = f"files:{len(files)}"
 
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=FIDELITY_TIMEOUT,
-        )
-
-        duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Fidelity review failed"
-            emit_error(
-                f"Fidelity review failed: {error_msg}",
-                code="FIDELITY_FAILED",
-                error_type="internal",
-                remediation="Check that the spec exists and files are accessible",
-                details={
-                    "spec_id": spec_id,
-                    "exit_code": result.returncode,
-                },
-            )
-
-        # Parse review output
-        try:
-            review_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            review_data = {"raw_output": result.stdout}
-
-        # Determine scope
-        scope = "spec"
-        if task_id:
-            scope = f"task:{task_id}"
-        elif phase_id:
-            scope = f"phase:{phase_id}"
-        elif files:
-            scope = f"files:{len(files)}"
-
-        emit_success({
+    emit_error(
+        "Fidelity review requires the sdd-toolkit fidelity workflow",
+        code="NOT_IMPLEMENTED",
+        error_type="unavailable",
+        remediation="Use the sdd-toolkit:sdd-fidelity-review skill for implementation comparisons",
+        details={
             "spec_id": spec_id,
             "scope": scope,
+            "alternative": "sdd-toolkit:sdd-fidelity-review",
             "llm_status": llm_status,
-            **review_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
-
-    except subprocess.TimeoutExpired:
-        emit_error(
-            f"Fidelity review timed out after {FIDELITY_TIMEOUT}s",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Consider reviewing a smaller scope (single task or phase)",
-            details={
-                "spec_id": spec_id,
-                "timeout_seconds": FIDELITY_TIMEOUT,
-                "hint": "Consider reviewing a smaller scope (single task or phase)",
-            },
-        )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
-        )
+            "incremental": incremental,
+            "base_branch": base_branch,
+        },
+    )
 
 
 def _get_llm_status() -> dict:

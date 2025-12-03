@@ -1,15 +1,16 @@
-"""LLM documentation generation commands for SDD CLI.
+"""Documentation generation commands for the SDD CLI.
 
-Provides commands for AI-powered documentation generation including:
-- Generating comprehensive documentation from code
-- Managing LLM generation cache
-- Checking LLM status
+This command group now provides deterministic, local documentation generation
+without relying on claude_skills. It scans the repository, emits structured
+artifacts (codebase.json, markdown summaries), and exposes basic cache/status
+operations.
 """
 
 import json
-import subprocess
+from datetime import datetime
+from pathlib import Path
 import time
-from typing import Optional
+from typing import List, Optional
 
 import click
 
@@ -18,9 +19,13 @@ from foundry_mcp.cli.output import emit_error, emit_success
 from foundry_mcp.cli.registry import get_context
 from foundry_mcp.cli.resilience import (
     FAST_TIMEOUT,
-    SLOW_TIMEOUT,
     handle_keyboard_interrupt,
     with_sync_timeout,
+)
+from foundry_mcp.core.docgen import (
+    DOC_ARTIFACTS,
+    DocumentationGenerator,
+    resolve_output_directory,
 )
 
 logger = get_cli_logger()
@@ -85,125 +90,125 @@ def llm_doc_generate_cmd(
     resume: bool,
     clear_cache: bool,
 ) -> None:
-    """Generate LLM-powered documentation for a project.
-
-    DIRECTORY is the project directory to document.
-
-    Uses AI to analyze code and generate rich, context-aware
-    documentation with explanations and architectural insights.
-    """
+    """Generate project documentation artifacts."""
     start_time = time.perf_counter()
-    cli_ctx = get_context(ctx)
-
-    # Check LLM status first
-    llm_status = _get_llm_status()
-    if not llm_status.get("configured"):
+    project_root = Path(directory).expanduser().resolve()
+    if not project_root.exists():
         emit_error(
-            "LLM not configured",
-            code="LLM_NOT_CONFIGURED",
+            f"Project directory not found: {directory}",
+            code="PROJECT_NOT_FOUND",
             error_type="validation",
-            remediation="Set ANTHROPIC_API_KEY or configure LLM provider",
-            details={
-                "hint": "Set ANTHROPIC_API_KEY or configure LLM provider",
-                "llm_status": llm_status,
-            },
+            remediation="Provide a valid directory containing the project source",
+            details={"directory": directory},
         )
 
-    # Build command
-    cmd = ["sdd", "llm-doc-gen", directory, "--json"]
+    if batch_size <= 0:
+        emit_error(
+            "Batch size must be greater than zero",
+            code="INVALID_BATCH_SIZE",
+            error_type="validation",
+            remediation="Pass --batch-size with a positive integer",
+            details={"batch_size": batch_size},
+        )
 
-    if output_dir:
-        cmd.extend(["--output-dir", output_dir])
-    if name:
-        cmd.extend(["--name", name])
-    if description:
-        cmd.extend(["--description", description])
-    cmd.extend(["--batch-size", str(batch_size)])
+    destination = (
+        Path(output_dir).expanduser()
+        if output_dir
+        else resolve_output_directory(project_root)
+    )
+    if not destination.is_absolute():
+        destination = (project_root / destination).resolve()
 
-    if not use_cache:
-        cmd.append("--no-cache")
-    if resume:
-        cmd.append("--resume")
     if clear_cache:
-        cmd.append("--clear-cache")
+        _clear_generated_docs(destination)
+
+    project_name = name or project_root.name
+    project_description = description or f"Documentation snapshot for {project_name}"
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=DOCGEN_TIMEOUT,
-        )
-
-        duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Generation failed"
-            emit_error(
-                f"Documentation generation failed: {error_msg}",
-                code="GENERATION_FAILED",
-                error_type="internal",
-                remediation="Check LLM configuration and ensure the directory contains valid source files",
-                details={
-                    "directory": directory,
-                    "exit_code": result.returncode,
-                    "llm_status": llm_status,
-                },
-            )
-
-        # Parse output
-        try:
-            gen_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            gen_data = {"raw_output": result.stdout}
-
-        emit_success({
-            "directory": directory,
-            "llm_status": llm_status,
-            **gen_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
-
-    except subprocess.TimeoutExpired:
+        generator = DocumentationGenerator(project_root, destination)
+    except FileNotFoundError as exc:
         emit_error(
-            f"Documentation generation timed out after {DOCGEN_TIMEOUT}s",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Try using --batch-size to process smaller batches or use --resume to continue later",
-            details={"directory": directory, "timeout_seconds": DOCGEN_TIMEOUT},
+            str(exc),
+            code="PROJECT_NOT_FOUND",
+            error_type="validation",
+            remediation="Verify the project directory exists",
+            details={"directory": directory},
         )
-    except FileNotFoundError:
-        emit_error(
-            "SDD CLI not found",
-            code="CLI_NOT_FOUND",
-            error_type="internal",
-            remediation="Ensure 'sdd' is installed and in PATH",
-            details={"hint": "Ensure 'sdd' is installed and in PATH"},
-        )
+
+    result = generator.generate(
+        project_name=project_name,
+        description=project_description,
+        use_cache=use_cache,
+        resume=resume,
+    )
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    artifacts = [artifact.to_dict() for artifact in result.artifacts]
+    state_entry = next(
+        (a for a in artifacts if a["name"] == "doc-generation-state.json"), None
+    )
+
+    payload = {
+        "project": {
+            "name": project_name,
+            "root": str(project_root),
+            "description": project_description,
+        },
+        "output_dir": str(destination),
+        "statistics": result.stats.to_dict(),
+        "artifacts": [
+            artifact
+            for artifact in artifacts
+            if artifact["name"] != "doc-generation-state.json"
+        ],
+        "state_artifact": state_entry,
+        "generation": {
+            "batch_size": batch_size,
+            "use_cache": use_cache,
+            "resume": resume,
+            "cleared_before_run": clear_cache,
+        },
+    }
+
+    warnings: List[str] = []
+    if batch_size != 3:
+        warnings.append("Batch size hint is currently informational only.")
+
+    emit_success(
+        payload,
+        warnings=warnings or None,
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 @llm_doc_group.command("status")
 @click.pass_context
 @cli_command("llm-doc-status")
 @handle_keyboard_interrupt()
-@with_sync_timeout(FAST_TIMEOUT, "LLM status check timed out")
+@with_sync_timeout(FAST_TIMEOUT, "Status lookup timed out")
 def llm_doc_status_cmd(ctx: click.Context) -> None:
-    """Check LLM configuration status."""
+    """Show documentation generation status and artifacts."""
     start_time = time.perf_counter()
+    project_root = _resolve_project_root(ctx)
+    output_dir = resolve_output_directory(project_root)
+    state = _load_generation_state(output_dir)
+    artifacts = _describe_artifacts(output_dir)
 
-    llm_status = _get_llm_status()
+    has_docs = any(artifact["exists"] for artifact in artifacts)
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    recommendations = []
-    if not llm_status.get("configured"):
-        recommendations.append("Set ANTHROPIC_API_KEY environment variable")
-        recommendations.append("Or configure alternative LLM provider")
-
-    emit_success({
-        **llm_status,
-        "recommendations": recommendations,
-        "telemetry": {"duration_ms": round(duration_ms, 2)},
-    })
+    emit_success(
+        {
+            "project_root": str(project_root),
+            "output_dir": str(output_dir),
+            "status": "ready" if has_docs else "missing",
+            "last_generated": state.get("last_updated"),
+            "completed_shards": state.get("completed_shards", []),
+            "artifacts": artifacts,
+        },
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 @llm_doc_group.command("cache")
@@ -211,11 +216,11 @@ def llm_doc_status_cmd(ctx: click.Context) -> None:
     "--action",
     type=click.Choice(["info", "clear"]),
     default="info",
-    help="Cache operation to perform.",
+    help="Show or clear generated documentation artifacts.",
 )
 @click.option(
     "--spec-id",
-    help="Optional spec ID filter for clear operation.",
+    help="Deprecated parameter retained for backwards compatibility (ignored).",
 )
 @click.pass_context
 @cli_command("llm-doc-cache")
@@ -226,86 +231,37 @@ def llm_doc_cache_cmd(
     action: str,
     spec_id: Optional[str],
 ) -> None:
-    """Manage LLM documentation cache.
-
-    Actions:
-      info  - Show cache statistics
-      clear - Remove cached entries
-    """
+    """Inspect or clear locally generated documentation artifacts."""
     start_time = time.perf_counter()
-    cli_ctx = get_context(ctx)
+    project_root = _resolve_project_root(ctx)
+    output_dir = resolve_output_directory(project_root)
 
-    # Build command
-    cmd = ["sdd", "cache", action, "--json"]
-
-    if spec_id:
-        cmd.extend(["--spec-id", spec_id])
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-
+    if action == "info":
+        artifacts = _describe_artifacts(output_dir)
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-        if result.returncode != 0:
-            # Fall back to basic cache info
-            emit_success({
+        emit_success(
+            {
                 "action": action,
-                "status": "cache_unavailable",
-                "message": "Cache management not available",
-                "telemetry": {"duration_ms": round(duration_ms, 2)},
-            })
-            return
-
-        # Parse output
-        try:
-            cache_data = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            cache_data = {"raw_output": result.stdout}
-
-        emit_success({
-            "action": action,
-            **cache_data,
-            "telemetry": {"duration_ms": round(duration_ms, 2)},
-        })
-
-    except subprocess.TimeoutExpired:
-        emit_error(
-            "Cache operation timed out",
-            code="TIMEOUT",
-            error_type="internal",
-            remediation="Try again or check system resources",
-            details={"action": action},
+                "project_root": str(project_root),
+                "output_dir": str(output_dir),
+                "artifacts": artifacts,
+                "spec_id": spec_id,
+            },
+            telemetry={"duration_ms": round(duration_ms, 2)},
         )
-    except FileNotFoundError:
-        # Provide basic cache info without CLI
-        emit_success({
+        return
+
+    removed = _clear_generated_docs(output_dir)
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    emit_success(
+        {
             "action": action,
-            "status": "cli_unavailable",
-            "message": "SDD CLI not available for cache management",
-            "telemetry": {"duration_ms": round((time.perf_counter() - start_time) * 1000, 2)},
-        })
-
-
-def _get_llm_status() -> dict:
-    """Get LLM configuration status."""
-    try:
-        from foundry_mcp.core.llm_config import get_llm_config
-
-        config = get_llm_config()
-        return {
-            "configured": config.get_api_key() is not None,
-            "provider": config.provider.value,
-            "model": config.get_model(),
-        }
-    except ImportError:
-        return {"configured": False, "error": "LLM config not available"}
-    except Exception as e:
-        return {"configured": False, "error": str(e)}
+            "removed": removed,
+            "output_dir": str(output_dir),
+            "spec_id": spec_id,
+        },
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
 
 
 # Top-level alias
@@ -325,11 +281,60 @@ def generate_docs_alias_cmd(
     name: Optional[str],
     resume: bool,
 ) -> None:
-    """Generate AI-powered documentation (alias for llm-doc generate)."""
+    """Generate documentation (alias for llm-doc generate)."""
     ctx.invoke(
         llm_doc_generate_cmd,
         directory=directory,
         output_dir=output_dir,
         name=name,
+        description=None,
+        batch_size=3,
+        use_cache=True,
         resume=resume,
+        clear_cache=False,
     )
+
+
+def _resolve_project_root(ctx: click.Context) -> Path:
+    cli_ctx = get_context(ctx)
+    if cli_ctx and cli_ctx.specs_dir:
+        return cli_ctx.specs_dir.parent
+    return Path.cwd()
+
+
+def _load_generation_state(output_dir: Path) -> dict:
+    state_path = output_dir / "doc-generation-state.json"
+    if not state_path.exists():
+        return {}
+    try:
+        return json.loads(state_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _describe_artifacts(output_dir: Path) -> List[dict]:
+    artifacts: List[dict] = []
+    for name in DOC_ARTIFACTS:
+        path = output_dir / name
+        entry = {
+            "name": name,
+            "path": str(path),
+            "exists": path.exists(),
+        }
+        if path.exists():
+            stat = path.stat()
+            entry["size_bytes"] = stat.st_size
+            entry["updated_at"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+        artifacts.append(entry)
+    return artifacts
+
+
+def _clear_generated_docs(output_dir: Path) -> List[str]:
+    removed: List[str] = []
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for name in DOC_ARTIFACTS:
+        path = output_dir / name
+        if path.exists():
+            path.unlink()
+            removed.append(name)
+    return removed

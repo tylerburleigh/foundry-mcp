@@ -630,6 +630,29 @@ class TestReviewCommands:
             assert "status" in tool
             assert "name" in tool
 
+    def test_review_spec_quick_returns_structural_findings(
+        self, cli_runner, temp_specs_dir
+    ):
+        """review spec quick returns native structural findings."""
+        result = cli_runner.invoke(
+            cli,
+            [
+                "--specs-dir",
+                str(temp_specs_dir),
+                "review",
+                "spec",
+                "test-spec-001",
+                "--type",
+                "quick",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        data = json.loads(result.output)
+        assert data["success"] is True
+        assert data["data"]["review_type"] == "quick"
+        assert "findings" in data["data"]
+        assert "progress" in data["data"]
+
 
 class TestModifyCommands:
     """Tests for sdd modify commands."""
@@ -852,16 +875,47 @@ class TestLLMDocGenCommands:
         assert "status" in result.output
         assert "cache" in result.output
 
-    def test_llm_doc_status_returns_config(self, cli_runner, temp_specs_dir):
-        """llm-doc status returns LLM configuration."""
+    def test_llm_doc_status_reports_artifacts(self, cli_runner, temp_specs_dir):
+        """llm-doc status returns artifact summary and paths."""
         result = cli_runner.invoke(
             cli, ["--specs-dir", str(temp_specs_dir), "llm-doc", "status"]
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["success"] is True
-        # Should have configured field even if false
-        assert "configured" in data["data"]
+        assert "output_dir" in data["data"]
+        assert "artifacts" in data["data"]
+
+    def test_llm_doc_generate_creates_artifacts(self, cli_runner, temp_specs_dir):
+        """llm-doc generate creates structured documentation artifacts."""
+        project_root = temp_specs_dir.parent
+        demo_dir = project_root / "src" / "demo"
+        demo_dir.mkdir(parents=True, exist_ok=True)
+        (demo_dir / "__init__.py").write_text(
+            "class Sample:\n    pass\n", encoding="utf-8"
+        )
+
+        result = cli_runner.invoke(
+            cli,
+            [
+                "--specs-dir",
+                str(temp_specs_dir),
+                "llm-doc",
+                "generate",
+                str(project_root),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["success"] is True
+        data = payload["data"]
+        assert data["project"]["name"] == project_root.name
+        assert "statistics" in data
+        assert data["artifacts"], "expected artifacts list"
+
+        output_dir = Path(data["output_dir"])
+        assert (output_dir / "codebase.json").exists()
+        assert (output_dir / "project-overview.md").exists()
 
 
 class TestDevCommands:
