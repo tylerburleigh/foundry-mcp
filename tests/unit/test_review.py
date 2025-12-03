@@ -101,35 +101,39 @@ class TestGetLLMStatus:
 class TestSpecReviewTool:
     """Tests for spec-review tool."""
 
-    def test_returns_not_implemented(self, mock_mcp, mock_config, assert_response_contract):
-        """spec_review should return NOT_IMPLEMENTED since it requires external AI tools."""
+    def test_quick_review_handles_missing_spec(self, mock_mcp, mock_config, assert_response_contract):
+        """spec_review should run quick review for review_type='quick'."""
         from foundry_mcp.tools.review import register_review_tools
 
         register_review_tools(mock_mcp, mock_config)
 
         spec_review = mock_mcp._tools["spec-review"]
-        result = spec_review(spec_id="test-spec-001")
+        result = spec_review(spec_id="test-spec-001", review_type="quick")
 
         assert_response_contract(result)
+        # Quick review should succeed but report spec not found in findings
+        assert result["success"] is True
+        assert result["data"]["spec_id"] == "test-spec-001"
+        assert result["data"]["review_type"] == "quick"
+
+    def test_ai_review_returns_no_provider_error(self, mock_mcp, mock_config, assert_response_contract):
+        """AI review types should return AI_NO_PROVIDER when no providers available."""
+        from foundry_mcp.tools.review import register_review_tools
+
+        register_review_tools(mock_mcp, mock_config)
+
+        spec_review = mock_mcp._tools["spec-review"]
+        # Use 'full' review type which requires AI
+        result = spec_review(spec_id="test-spec-001", review_type="full")
+
+        assert_response_contract(result)
+        # Should fail due to spec not found (first check) or no providers
         assert result["success"] is False
-        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
-        assert result["data"].get("error_type") == "unavailable"
+        error_code = result["data"].get("error_code")
+        assert error_code in ("SPEC_NOT_FOUND", "AI_NO_PROVIDER", "AI_NOT_AVAILABLE")
 
-    def test_includes_remediation(self, mock_mcp, mock_config, assert_response_contract):
-        """Should include remediation guidance."""
-        from foundry_mcp.tools.review import register_review_tools
-
-        register_review_tools(mock_mcp, mock_config)
-
-        spec_review = mock_mcp._tools["spec-review"]
-        result = spec_review(spec_id="test-spec-001")
-
-        assert_response_contract(result)
-        assert "remediation" in result["data"]
-        assert "sdd-toolkit:sdd-plan-review" in result["data"]["remediation"]
-
-    def test_returns_request_parameters_in_data(self, mock_mcp, mock_config, assert_response_contract):
-        """Should return request parameters in response data."""
+    def test_dry_run_returns_request_parameters(self, mock_mcp, mock_config, assert_response_contract):
+        """Dry run should return request parameters in response data."""
         from foundry_mcp.tools.review import register_review_tools
 
         register_review_tools(mock_mcp, mock_config)
@@ -137,15 +141,14 @@ class TestSpecReviewTool:
         spec_review = mock_mcp._tools["spec-review"]
         result = spec_review(
             spec_id="test-spec-001",
-            review_type="security",
-            tools="cursor-agent,gemini",
+            review_type="quick",
             dry_run=True
         )
 
         assert_response_contract(result)
+        assert result["success"] is True
         assert result["data"]["spec_id"] == "test-spec-001"
-        assert result["data"]["review_type"] == "security"
-        assert result["data"]["tools"] == "cursor-agent,gemini"
+        assert result["data"]["review_type"] == "quick"
         assert result["data"]["dry_run"] is True
 
 

@@ -10,7 +10,7 @@
 ## 4.2 Integration & Golden Tests
 
 - Use integration tests to exercise real filesystem/spec fixtures (see [docs/mcp_best_practices/10-testing-fixtures.md](../mcp_best_practices/10-testing-fixtures.md)).
-- For commands that previously lived in the `claude_skills` CLI, capture golden outputs and compare against the native CLI until rollout completes.
+- Capture golden outputs for complex commands and compare against expected results to catch regressions.
 
 ## 4.3 Parity Gates
 

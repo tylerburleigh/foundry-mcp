@@ -1,12 +1,23 @@
 """Review commands for SDD CLI.
 
-Provides commands for structural spec review metadata and exposes
-availability of LLM-powered review workflows.
+Provides commands for spec review including:
+- Quick structural review (no LLM required)
+- AI-powered full/security/feasibility reviews via ConsultationOrchestrator
+- AI-powered fidelity reviews to compare implementation against spec
+
+AI-enhanced reviews use:
+- PLAN_REVIEW_FULL_V1: Comprehensive 6-dimension review
+- PLAN_REVIEW_QUICK_V1: Critical blockers and questions focus
+- PLAN_REVIEW_SECURITY_V1: Security-focused review
+- PLAN_REVIEW_FEASIBILITY_V1: Technical complexity assessment
+- SYNTHESIS_PROMPT_V1: Multi-model response synthesis
+- FIDELITY_REVIEW_V1: Implementation vs specification comparison
 """
 
 from dataclasses import asdict
+import json
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -20,12 +31,26 @@ from foundry_mcp.cli.resilience import (
     with_sync_timeout,
     handle_keyboard_interrupt,
 )
-from foundry_mcp.core.review import quick_review, review_type_requires_llm
+from foundry_mcp.core.review import (
+    quick_review,
+    review_type_requires_llm,
+    prepare_review_context,
+)
 
 logger = get_cli_logger()
 
+# Default AI consultation timeout
+DEFAULT_AI_TIMEOUT = 120.0
+
 # Review types supported
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
+
+# Map review types to PLAN_REVIEW templates
+REVIEW_TYPE_TO_TEMPLATE = {
+    "full": "PLAN_REVIEW_FULL_V1",
+    "security": "PLAN_REVIEW_SECURITY_V1",
+    "feasibility": "PLAN_REVIEW_FEASIBILITY_V1",
+}
 
 REVIEW_TOOL_DEFINITIONS = [
     {
@@ -85,6 +110,21 @@ def review_group() -> None:
     help="LLM model to use for review (LLM types only).",
 )
 @click.option(
+    "--ai-provider",
+    help="Explicit AI provider selection (e.g., gemini, cursor-agent).",
+)
+@click.option(
+    "--ai-timeout",
+    type=float,
+    default=DEFAULT_AI_TIMEOUT,
+    help=f"AI consultation timeout in seconds (default: {DEFAULT_AI_TIMEOUT}).",
+)
+@click.option(
+    "--no-consultation-cache",
+    is_flag=True,
+    help="Bypass AI consultation cache (always query providers fresh).",
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     help="Show what would be reviewed without executing.",
@@ -99,9 +139,12 @@ def review_spec_cmd(
     review_type: str,
     tools: Optional[str],
     model: Optional[str],
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    no_consultation_cache: bool,
     dry_run: bool,
 ) -> None:
-    """Run a structural review or report availability of LLM reviews."""
+    """Run a structural or AI-powered review on a specification."""
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
     specs_dir = cli_ctx.specs_dir
@@ -117,40 +160,48 @@ def review_spec_cmd(
 
     llm_status = _get_llm_status()
 
-    if review_type_requires_llm(review_type):
-        emit_error(
-            f"Review type '{review_type}' is handled by the sdd-toolkit review workflow",
-            code="NOT_IMPLEMENTED",
-            error_type="unavailable",
-            remediation="Use the sdd-toolkit:sdd-plan-review skill for LLM-powered reviews",
-            details={
-                "spec_id": spec_id,
-                "review_type": review_type,
-                "alternative": "sdd-toolkit:sdd-plan-review",
-                "llm_status": llm_status,
-            },
-        )
+    # Quick review doesn't require LLM
+    if not review_type_requires_llm(review_type):
+        if dry_run:
+            emit_success(
+                {
+                    "spec_id": spec_id,
+                    "review_type": review_type,
+                    "dry_run": True,
+                    "llm_status": llm_status,
+                    "message": "Dry run - quick review skipped",
+                }
+            )
+            return
 
-    if dry_run:
+        quick_result = quick_review(spec_id=spec_id, specs_dir=specs_dir)
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        payload = asdict(quick_result)
+        payload["llm_status"] = llm_status
+
         emit_success(
-            {
-                "spec_id": spec_id,
-                "review_type": review_type,
-                "dry_run": True,
-                "llm_status": llm_status,
-                "message": "Dry run - quick review skipped",
-            }
+            payload,
+            telemetry={"duration_ms": round(duration_ms, 2)},
         )
         return
 
-    quick_result = quick_review(spec_id=spec_id, specs_dir=specs_dir)
+    # LLM-powered review types (full, security, feasibility)
+    result = _run_ai_review(
+        spec_id=spec_id,
+        specs_dir=specs_dir,
+        review_type=review_type,
+        ai_provider=ai_provider,
+        ai_timeout=ai_timeout,
+        consultation_cache=not no_consultation_cache,
+        dry_run=dry_run,
+        llm_status=llm_status,
+    )
+
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    payload = asdict(quick_result)
-    payload["llm_status"] = llm_status
-
     emit_success(
-        payload,
+        result,
         telemetry={"duration_ms": round(duration_ms, 2)},
     )
 
@@ -297,6 +348,21 @@ def review_plan_tools_cmd(ctx: click.Context) -> None:
     default="main",
     help="Base branch for git diff.",
 )
+@click.option(
+    "--ai-provider",
+    help="Explicit AI provider selection (e.g., gemini, cursor-agent).",
+)
+@click.option(
+    "--ai-timeout",
+    type=float,
+    default=DEFAULT_AI_TIMEOUT,
+    help=f"AI consultation timeout in seconds (default: {DEFAULT_AI_TIMEOUT}).",
+)
+@click.option(
+    "--no-consultation-cache",
+    is_flag=True,
+    help="Bypass AI consultation cache (always query providers fresh).",
+)
 @click.pass_context
 @cli_command("review-fidelity")
 @handle_keyboard_interrupt()
@@ -309,17 +375,21 @@ def review_fidelity_cmd(
     files: tuple,
     incremental: bool,
     base_branch: str,
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    no_consultation_cache: bool,
 ) -> None:
     """Compare implementation against specification.
 
     SPEC_ID is the specification identifier.
 
     Performs a fidelity review to verify that code implementation
-    matches the specification requirements.
+    matches the specification requirements using the AI consultation layer.
     """
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
     specs_dir = cli_ctx.specs_dir
+    consultation_cache = not no_consultation_cache
 
     if specs_dir is None:
         emit_error(
@@ -342,6 +412,7 @@ def review_fidelity_cmd(
 
     llm_status = _get_llm_status()
 
+    # Determine scope
     scope = "spec"
     if task_id:
         scope = f"task:{task_id}"
@@ -350,20 +421,191 @@ def review_fidelity_cmd(
     elif files:
         scope = f"files:{len(files)}"
 
-    emit_error(
-        "Fidelity review requires the sdd-toolkit fidelity workflow",
-        code="NOT_IMPLEMENTED",
-        error_type="unavailable",
-        remediation="Use the sdd-toolkit:sdd-fidelity-review skill for implementation comparisons",
-        details={
-            "spec_id": spec_id,
-            "scope": scope,
-            "alternative": "sdd-toolkit:sdd-fidelity-review",
-            "llm_status": llm_status,
-            "incremental": incremental,
-            "base_branch": base_branch,
-        },
+    # Run the fidelity review
+    result = _run_fidelity_review(
+        spec_id=spec_id,
+        task_id=task_id,
+        phase_id=phase_id,
+        files=list(files) if files else None,
+        ai_provider=ai_provider,
+        ai_timeout=ai_timeout,
+        consultation_cache=consultation_cache,
+        incremental=incremental,
+        base_branch=base_branch,
+        specs_dir=specs_dir,
+        llm_status=llm_status,
+        start_time=start_time,
     )
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    emit_success(
+        result,
+        telemetry={"duration_ms": round(duration_ms, 2)},
+    )
+
+
+def _run_ai_review(
+    spec_id: str,
+    specs_dir: Any,
+    review_type: str,
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    consultation_cache: bool,
+    dry_run: bool,
+    llm_status: dict,
+) -> dict:
+    """
+    Run an AI-powered review using ConsultationOrchestrator.
+
+    Args:
+        spec_id: Specification ID to review
+        specs_dir: Specs directory path
+        review_type: Type of review (full, security, feasibility)
+        ai_provider: Explicit provider selection
+        ai_timeout: Consultation timeout in seconds
+        consultation_cache: Whether to use consultation cache
+        dry_run: Preview without executing
+        llm_status: LLM configuration status
+
+    Returns:
+        Dict with review results or dry-run preview
+    """
+    from pathlib import Path
+
+    # Get template for review type
+    template_id = REVIEW_TYPE_TO_TEMPLATE.get(review_type)
+    if template_id is None:
+        emit_error(
+            f"Unknown review type: {review_type}",
+            code="INVALID_REVIEW_TYPE",
+            error_type="validation",
+            remediation=f"Use one of: {', '.join(REVIEW_TYPE_TO_TEMPLATE.keys())}",
+            details={"review_type": review_type},
+        )
+
+    # Prepare review context
+    context = prepare_review_context(
+        spec_id=spec_id,
+        specs_dir=Path(specs_dir) if specs_dir else None,
+        include_tasks=True,
+        include_journals=True,
+    )
+
+    if context is None:
+        emit_error(
+            f"Specification '{spec_id}' not found",
+            code="SPEC_NOT_FOUND",
+            error_type="not_found",
+            remediation="Verify the spec ID and that the spec exists in the specs directory",
+            details={"spec_id": spec_id},
+        )
+
+    # Dry run - preview what would be reviewed
+    if dry_run:
+        return {
+            "spec_id": spec_id,
+            "review_type": review_type,
+            "template_id": template_id,
+            "dry_run": True,
+            "llm_status": llm_status,
+            "ai_provider": ai_provider,
+            "consultation_cache": consultation_cache,
+            "message": f"Dry run - {review_type} review would use template {template_id}",
+            "spec_title": context.title,
+            "task_count": context.stats.total_tasks if context.stats else 0,
+        }
+
+    # Import consultation layer components
+    try:
+        from foundry_mcp.core.ai_consultation import (
+            ConsultationOrchestrator,
+            ConsultationRequest,
+            ConsultationWorkflow,
+        )
+    except ImportError as exc:
+        emit_error(
+            "AI consultation layer not available",
+            code="AI_NOT_AVAILABLE",
+            error_type="unavailable",
+            remediation="Ensure foundry_mcp.core.ai_consultation is properly installed",
+            details={"import_error": str(exc)},
+        )
+
+    # Initialize orchestrator with preferred provider if specified
+    preferred_providers = [ai_provider] if ai_provider else []
+    orchestrator = ConsultationOrchestrator(
+        preferred_providers=preferred_providers,
+        default_timeout=ai_timeout,
+    )
+
+    # Check if any providers are available
+    if not orchestrator.is_available(provider_id=ai_provider):
+        provider_msg = f" (requested: {ai_provider})" if ai_provider else ""
+        emit_error(
+            f"AI-enhanced review requested but no providers available{provider_msg}",
+            code="AI_NO_PROVIDER",
+            error_type="unavailable",
+            remediation="Install and configure an AI provider (gemini, cursor-agent, codex) "
+            "or use --type quick for non-AI review.",
+            details={
+                "spec_id": spec_id,
+                "review_type": review_type,
+                "requested_provider": ai_provider,
+                "llm_status": llm_status,
+            },
+        )
+
+    # Build context for prompt template
+    spec_content = json.dumps(context.spec_data, indent=2)
+
+    # Create consultation request - orchestrator handles prompt building
+    request = ConsultationRequest(
+        workflow=ConsultationWorkflow.PLAN_REVIEW,
+        prompt_id=template_id,
+        context={
+            "spec_content": spec_content,
+            "spec_id": spec_id,
+            "title": context.title,
+            "review_type": review_type,
+        },
+        provider_id=ai_provider,
+        timeout=ai_timeout,
+    )
+
+    # Execute consultation
+    try:
+        result = orchestrator.consult(request, use_cache=consultation_cache)
+    except Exception as exc:
+        emit_error(
+            f"AI consultation failed: {exc}",
+            code="AI_CONSULTATION_ERROR",
+            error_type="error",
+            remediation="Check provider configuration and try again",
+            details={
+                "spec_id": spec_id,
+                "review_type": review_type,
+                "error": str(exc),
+            },
+        )
+
+    # Build response
+    return {
+        "spec_id": spec_id,
+        "title": context.title,
+        "review_type": review_type,
+        "template_id": template_id,
+        "llm_status": llm_status,
+        "ai_provider": result.provider_id if result else ai_provider,
+        "consultation_cache": consultation_cache,
+        "response": result.content if result else None,
+        "model": result.model_used if result else None,
+        "cached": result.cache_hit if result else False,
+        "stats": {
+            "total_tasks": context.stats.total_tasks if context.stats else 0,
+            "completed_tasks": context.stats.completed_tasks if context.stats else 0,
+            "progress_percentage": context.progress.get("percentage", 0) if context.progress else 0,
+        },
+    }
 
 
 def _get_llm_status() -> dict:
@@ -383,6 +625,409 @@ def _get_llm_status() -> dict:
         return {"configured": False, "error": str(e)}
 
 
+def _run_fidelity_review(
+    spec_id: str,
+    task_id: Optional[str],
+    phase_id: Optional[str],
+    files: Optional[List[str]],
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    consultation_cache: bool,
+    incremental: bool,
+    base_branch: str,
+    specs_dir: Any,
+    llm_status: Dict[str, Any],
+    start_time: float,
+) -> Dict[str, Any]:
+    """
+    Run a fidelity review using the AI consultation layer.
+
+    Args:
+        spec_id: Specification ID to review against
+        task_id: Optional task ID for task-scoped review
+        phase_id: Optional phase ID for phase-scoped review
+        files: Optional list of files to review
+        ai_provider: Explicit AI provider selection
+        ai_timeout: Consultation timeout in seconds
+        consultation_cache: Whether to use consultation cache
+        incremental: Only review changed files
+        base_branch: Base branch for git diff
+        specs_dir: Path to specs directory
+        llm_status: LLM configuration status
+        start_time: Start time for duration tracking
+
+    Returns:
+        Dict with fidelity review results
+    """
+    from pathlib import Path
+
+    # Import consultation layer components
+    try:
+        from foundry_mcp.core.ai_consultation import (
+            ConsultationOrchestrator,
+            ConsultationRequest,
+            ConsultationWorkflow,
+        )
+    except ImportError as exc:
+        emit_error(
+            "AI consultation layer not available",
+            code="AI_NOT_AVAILABLE",
+            error_type="unavailable",
+            remediation="Ensure foundry_mcp.core.ai_consultation is properly installed",
+            details={"import_error": str(exc)},
+        )
+
+    # Load spec
+    try:
+        from foundry_mcp.core.spec import load_spec, find_spec_file
+        spec_file = find_spec_file(spec_id, specs_dir)
+        if not spec_file:
+            emit_error(
+                f"Specification not found: {spec_id}",
+                code="SPEC_NOT_FOUND",
+                error_type="not_found",
+                remediation="Verify the spec ID exists using 'sdd list'",
+                details={"spec_id": spec_id},
+            )
+        spec_data = load_spec(spec_file)
+    except Exception as exc:
+        emit_error(
+            f"Failed to load spec: {exc}",
+            code="SPEC_LOAD_ERROR",
+            error_type="error",
+            remediation="Check that the spec file is valid JSON",
+            details={"spec_id": spec_id, "error": str(exc)},
+        )
+
+    # Determine review scope
+    if task_id:
+        review_scope = f"Task {task_id}"
+    elif phase_id:
+        review_scope = f"Phase {phase_id}"
+    elif files:
+        review_scope = f"Files: {', '.join(files)}"
+    else:
+        review_scope = "Full specification"
+
+    # Build context for fidelity review
+    spec_title = spec_data.get("title", spec_id)
+    spec_description = spec_data.get("description", "")
+
+    # Build spec requirements from task details
+    spec_requirements = _build_spec_requirements(spec_data, task_id, phase_id)
+
+    # Build implementation artifacts (file contents, git diff if incremental)
+    implementation_artifacts = _build_implementation_artifacts(
+        spec_data, task_id, phase_id, files, incremental, base_branch
+    )
+
+    # Build test results section
+    test_results = _build_test_results(spec_data, task_id, phase_id)
+
+    # Build journal entries section
+    journal_entries = _build_journal_entries(spec_data, task_id, phase_id)
+
+    # Initialize orchestrator
+    preferred_providers = [ai_provider] if ai_provider else []
+    orchestrator = ConsultationOrchestrator(
+        preferred_providers=preferred_providers,
+        default_timeout=ai_timeout,
+    )
+
+    # Check if providers are available
+    if not orchestrator.is_available(provider_id=ai_provider):
+        provider_msg = f" (requested: {ai_provider})" if ai_provider else ""
+        emit_error(
+            f"Fidelity review requested but no providers available{provider_msg}",
+            code="AI_NO_PROVIDER",
+            error_type="unavailable",
+            remediation="Install and configure an AI provider (gemini, cursor-agent, codex)",
+            details={
+                "spec_id": spec_id,
+                "requested_provider": ai_provider,
+                "llm_status": llm_status,
+            },
+        )
+
+    # Create consultation request
+    request = ConsultationRequest(
+        workflow=ConsultationWorkflow.FIDELITY_REVIEW,
+        prompt_id="FIDELITY_REVIEW_V1",
+        context={
+            "spec_id": spec_id,
+            "spec_title": spec_title,
+            "spec_description": f"**Description:** {spec_description}" if spec_description else "",
+            "review_scope": review_scope,
+            "spec_requirements": spec_requirements,
+            "implementation_artifacts": implementation_artifacts,
+            "test_results": test_results,
+            "journal_entries": journal_entries,
+        },
+        provider_id=ai_provider,
+        timeout=ai_timeout,
+    )
+
+    # Execute consultation
+    try:
+        result = orchestrator.consult(request, use_cache=consultation_cache)
+    except Exception as exc:
+        emit_error(
+            f"AI consultation failed: {exc}",
+            code="AI_CONSULTATION_ERROR",
+            error_type="error",
+            remediation="Check provider configuration and try again",
+            details={
+                "spec_id": spec_id,
+                "review_scope": review_scope,
+                "error": str(exc),
+            },
+        )
+
+    # Parse JSON response if possible
+    parsed_response = None
+    if result and result.content:
+        try:
+            # Try to extract JSON from markdown code blocks if present
+            content = result.content
+            if "```json" in content:
+                start = content.find("```json") + 7
+                end = content.find("```", start)
+                if end > start:
+                    content = content[start:end].strip()
+            elif "```" in content:
+                start = content.find("```") + 3
+                end = content.find("```", start)
+                if end > start:
+                    content = content[start:end].strip()
+            parsed_response = json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            # Fall back to raw content
+            pass
+
+    # Build response
+    return {
+        "spec_id": spec_id,
+        "title": spec_title,
+        "review_scope": review_scope,
+        "task_id": task_id,
+        "phase_id": phase_id,
+        "files": files,
+        "verdict": parsed_response.get("verdict", "unknown") if parsed_response else "unknown",
+        "llm_status": llm_status,
+        "ai_provider": result.provider_id if result else ai_provider,
+        "consultation_cache": consultation_cache,
+        "response": parsed_response if parsed_response else result.content if result else None,
+        "raw_response": result.content if result and not parsed_response else None,
+        "model": result.model_used if result else None,
+        "cached": result.cache_hit if result else False,
+        "incremental": incremental,
+        "base_branch": base_branch,
+    }
+
+
+def _build_spec_requirements(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build spec requirements section for fidelity review context."""
+    lines = []
+
+    if task_id:
+        # Find specific task
+        task = _find_task(spec_data, task_id)
+        if task:
+            lines.append(f"### Task: {task.get('title', task_id)}")
+            lines.append(f"- **Status:** {task.get('status', 'unknown')}")
+            if task.get("metadata", {}).get("details"):
+                lines.append("- **Details:**")
+                for detail in task["metadata"]["details"]:
+                    lines.append(f"  - {detail}")
+            if task.get("metadata", {}).get("file_path"):
+                lines.append(f"- **Expected file:** {task['metadata']['file_path']}")
+    elif phase_id:
+        # Find specific phase
+        phase = _find_phase(spec_data, phase_id)
+        if phase:
+            lines.append(f"### Phase: {phase.get('title', phase_id)}")
+            lines.append(f"- **Status:** {phase.get('status', 'unknown')}")
+            if phase.get("children"):
+                lines.append("- **Tasks:**")
+                for child in phase["children"]:
+                    lines.append(f"  - {child.get('id', 'unknown')}: {child.get('title', 'Unknown task')}")
+    else:
+        # Full spec
+        lines.append(f"### Specification: {spec_data.get('title', 'Unknown')}")
+        if spec_data.get("description"):
+            lines.append(f"- **Description:** {spec_data['description']}")
+        if spec_data.get("assumptions"):
+            lines.append("- **Assumptions:**")
+            for assumption in spec_data["assumptions"][:5]:
+                if isinstance(assumption, dict):
+                    lines.append(f"  - {assumption.get('text', str(assumption))}")
+                else:
+                    lines.append(f"  - {assumption}")
+
+    return "\n".join(lines) if lines else "*No requirements available*"
+
+
+def _build_implementation_artifacts(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+    files: Optional[List[str]],
+    incremental: bool,
+    base_branch: str,
+) -> str:
+    """Build implementation artifacts section for fidelity review context."""
+    from pathlib import Path
+    import subprocess
+
+    lines = []
+
+    # Collect file paths to review
+    file_paths = []
+    if files:
+        file_paths = list(files)
+    elif task_id:
+        task = _find_task(spec_data, task_id)
+        if task and task.get("metadata", {}).get("file_path"):
+            file_paths = [task["metadata"]["file_path"]]
+    elif phase_id:
+        phase = _find_phase(spec_data, phase_id)
+        if phase:
+            for child in phase.get("children", []):
+                if child.get("metadata", {}).get("file_path"):
+                    file_paths.append(child["metadata"]["file_path"])
+
+    # If incremental, get changed files from git diff
+    if incremental:
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", base_branch],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                changed_files = result.stdout.strip().split("\n")
+                if file_paths:
+                    # Intersect with specified files
+                    file_paths = [f for f in file_paths if f in changed_files]
+                else:
+                    file_paths = changed_files
+                lines.append(f"*Incremental review: {len(file_paths)} changed files since {base_branch}*\n")
+        except Exception:
+            lines.append(f"*Warning: Could not get git diff from {base_branch}*\n")
+
+    # Read file contents (limited)
+    for file_path in file_paths[:5]:  # Limit to 5 files
+        path = Path(file_path)
+        if path.exists():
+            try:
+                content = path.read_text(encoding="utf-8")
+                # Truncate large files
+                if len(content) > 10000:
+                    content = content[:10000] + "\n... [truncated] ..."
+                file_type = path.suffix.lstrip(".") or "text"
+                lines.append(f"### File: `{file_path}`")
+                lines.append(f"```{file_type}")
+                lines.append(content)
+                lines.append("```\n")
+            except Exception as e:
+                lines.append(f"### File: `{file_path}`")
+                lines.append(f"*Error reading file: {e}*\n")
+        else:
+            lines.append(f"### File: `{file_path}`")
+            lines.append("*File not found*\n")
+
+    if not lines:
+        lines.append("*No implementation artifacts available*")
+
+    return "\n".join(lines)
+
+
+def _build_test_results(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build test results section for fidelity review context."""
+    # Check journal for test-related entries
+    journal = spec_data.get("journal", [])
+    test_entries = [
+        entry for entry in journal
+        if "test" in entry.get("title", "").lower()
+        or "verify" in entry.get("title", "").lower()
+    ]
+
+    if test_entries:
+        lines = ["*Recent test-related journal entries:*"]
+        for entry in test_entries[-3:]:  # Last 3 entries
+            lines.append(f"- **{entry.get('title', 'Unknown')}** ({entry.get('timestamp', 'unknown')})")
+            if entry.get("content"):
+                # Truncate long content
+                content = entry["content"][:500]
+                if len(entry["content"]) > 500:
+                    content += "..."
+                lines.append(f"  {content}")
+        return "\n".join(lines)
+
+    return "*No test results available*"
+
+
+def _build_journal_entries(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build journal entries section for fidelity review context."""
+    journal = spec_data.get("journal", [])
+
+    if task_id:
+        # Filter to task-related entries
+        journal = [
+            entry for entry in journal
+            if entry.get("task_id") == task_id
+        ]
+
+    if journal:
+        lines = [f"*{len(journal)} journal entries found:*"]
+        for entry in journal[-5:]:  # Last 5 entries
+            entry_type = entry.get("entry_type", "note")
+            lines.append(f"- **[{entry_type}]** {entry.get('title', 'Untitled')} ({entry.get('timestamp', 'unknown')[:10]})")
+        return "\n".join(lines)
+
+    return "*No journal entries found*"
+
+
+def _find_task(spec_data: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
+    """Find a task by ID in the spec hierarchy."""
+    def search_children(children: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        for child in children:
+            if child.get("id") == task_id:
+                return child
+            if child.get("children"):
+                result = search_children(child["children"])
+                if result:
+                    return result
+        return None
+
+    hierarchy = spec_data.get("hierarchy", {})
+    if hierarchy.get("children"):
+        return search_children(hierarchy["children"])
+    return None
+
+
+def _find_phase(spec_data: Dict[str, Any], phase_id: str) -> Optional[Dict[str, Any]]:
+    """Find a phase by ID in the spec hierarchy."""
+    hierarchy = spec_data.get("hierarchy", {})
+    for child in hierarchy.get("children", []):
+        if child.get("id") == phase_id:
+            return child
+    return None
+
+
 # Top-level aliases
 @click.command("review-spec")
 @click.argument("spec_id")
@@ -393,6 +1038,21 @@ def _get_llm_status() -> dict:
     default="quick",
     help="Type of review to perform.",
 )
+@click.option(
+    "--ai-provider",
+    help="Explicit AI provider selection.",
+)
+@click.option(
+    "--ai-timeout",
+    type=float,
+    default=DEFAULT_AI_TIMEOUT,
+    help="AI consultation timeout.",
+)
+@click.option(
+    "--no-consultation-cache",
+    is_flag=True,
+    help="Bypass AI consultation cache.",
+)
 @click.pass_context
 @cli_command("review-spec-alias")
 @handle_keyboard_interrupt()
@@ -401,7 +1061,17 @@ def review_spec_alias_cmd(
     ctx: click.Context,
     spec_id: str,
     review_type: str,
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    no_consultation_cache: bool,
 ) -> None:
-    """Run an LLM-powered review on a specification (alias)."""
+    """Run a structural or AI-powered review on a specification (alias)."""
     # Delegate to main command
-    ctx.invoke(review_spec_cmd, spec_id=spec_id, review_type=review_type)
+    ctx.invoke(
+        review_spec_cmd,
+        spec_id=spec_id,
+        review_type=review_type,
+        ai_provider=ai_provider,
+        ai_timeout=ai_timeout,
+        no_consultation_cache=no_consultation_cache,
+    )

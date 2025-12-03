@@ -1,22 +1,49 @@
 """Codebase documentation generator for foundry-mcp.
 
-This module provides a lightweight, deterministic documentation pipeline that
-scans a repository, builds structural metadata (modules, classes, functions),
-and emits markdown and JSON artifacts consumed by the doc-query commands.
+This module provides documentation generation for codebases with optional
+AI-enhanced narrative generation. It scans a repository, builds structural
+metadata (modules, classes, functions), and emits markdown and JSON artifacts.
 
-The generator is intentionally LLM-free and focuses on repeatable summaries so
-that both the CLI and MCP tools can rely on locally produced documentation.
+Documentation modes:
+    - Basic Mode: Deterministic, LLM-free documentation for reproducibility
+    - AI-Enhanced Mode: Uses ConsultationOrchestrator for rich narrative docs
+
+AI-enhanced mode uses:
+    - DOC_GEN_PROJECT_OVERVIEW_V1: Project overview narrative generation
+    - DOC_GEN_ARCHITECTURE_V1: Architecture documentation generation
+    - DOC_GEN_COMPONENT_INVENTORY_V1: Component inventory generation
+
+When AI mode is requested (use_ai=True) but no providers are available,
+raises AIProviderUnavailableError rather than falling back silently.
+
+Example:
+    from foundry_mcp.core.docgen import DocumentationGenerator
+
+    generator = DocumentationGenerator(project_root, output_dir)
+
+    # Basic mode (deterministic)
+    result = generator.generate(project_name="MyProject")
+
+    # AI-enhanced mode
+    result = generator.generate(
+        project_name="MyProject",
+        use_ai=True,
+        ai_provider="gemini",
+    )
 """
 
 from __future__ import annotations
 
 import ast
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+
+logger = logging.getLogger(__name__)
 
 # Directories we never scan
 DEFAULT_EXCLUDE_DIRS = {
@@ -59,6 +86,28 @@ DOC_ARTIFACTS = [
     "index.md",
     "doc-generation-state.json",
 ]
+
+
+class AIProviderUnavailableError(Exception):
+    """Raised when AI mode is requested but no providers are available.
+
+    This exception is raised when use_ai=True is passed to generate()
+    but no AI providers could be initialized. The error includes the
+    AI_NO_PROVIDER error code for structured error handling.
+
+    Attributes:
+        provider_id: The requested provider ID, if any.
+        message: Human-readable error message.
+    """
+
+    def __init__(
+        self,
+        message: str = "AI-enhanced mode requested but no providers available",
+        provider_id: Optional[str] = None,
+    ) -> None:
+        self.message = message
+        self.provider_id = provider_id
+        super().__init__(message)
 
 
 @dataclass
@@ -197,7 +246,18 @@ class DocGenerationResult:
 
 
 class DocumentationGenerator:
-    """Scans a repository and produces documentation artifacts."""
+    """
+    Scans a repository and produces documentation artifacts.
+
+    Supports two modes:
+        - Basic Mode: Deterministic, LLM-free documentation (default)
+        - AI-Enhanced Mode: Uses ConsultationOrchestrator for rich narratives
+
+    Attributes:
+        project_root: Root directory of the project to document
+        output_dir: Directory where documentation artifacts will be written
+        excludes: Set of directory names to exclude from scanning
+    """
 
     def __init__(
         self,
@@ -229,6 +289,9 @@ class DocumentationGenerator:
         except ValueError:
             self._output_rel_parts = None
 
+        # AI consultation orchestrator (lazy-initialized)
+        self._orchestrator: Optional["ConsultationOrchestrator"] = None
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -240,9 +303,32 @@ class DocumentationGenerator:
         description: Optional[str] = None,
         use_cache: bool = True,
         resume: bool = False,
+        use_ai: bool = False,
+        ai_provider: Optional[str] = None,
+        ai_timeout: float = 120.0,
+        consultation_cache: bool = True,
     ) -> DocGenerationResult:
-        """Generate documentation artifacts for the repository."""
+        """
+        Generate documentation artifacts for the repository.
 
+        Args:
+            project_name: Name of the project
+            description: Optional project description
+            use_cache: Use cached results where possible
+            resume: Resume from previous incomplete generation
+            use_ai: Enable AI-enhanced documentation generation
+            ai_provider: Preferred AI provider ID (auto-selects if None)
+            ai_timeout: Timeout in seconds for AI consultations
+            consultation_cache: Use AI consultation cache (default: True)
+
+        Returns:
+            DocGenerationResult with generated artifacts and metadata
+
+        Raises:
+            AIProviderUnavailableError: If use_ai=True but no providers available
+        """
+        # Store consultation cache setting for AI builders
+        self._consultation_cache = consultation_cache
         stats = CodebaseStats()
         modules: List[ModuleRecord] = []
         classes: List[ClassRecord] = []
@@ -291,6 +377,19 @@ class DocumentationGenerator:
         stats.class_count = len(classes)
         stats.function_count = len(functions)
 
+        # Initialize AI orchestrator if AI mode enabled
+        ai_available = False
+        if use_ai:
+            ai_available = self._init_ai_orchestrator(ai_provider, ai_timeout)
+            if not ai_available:
+                # Raise error instead of falling back per spec requirement
+                provider_msg = f" (requested: {ai_provider})" if ai_provider else ""
+                raise AIProviderUnavailableError(
+                    f"AI-enhanced mode requested but no providers available{provider_msg}. "
+                    "Set use_ai=False for basic mode or configure an AI provider.",
+                    provider_id=ai_provider,
+                )
+
         artifacts = self._write_artifacts(
             project_name=project_name,
             description=description,
@@ -302,6 +401,7 @@ class DocumentationGenerator:
             tree_entries=tree_entries,
             use_cache=use_cache,
             resume=resume,
+            use_ai=use_ai and ai_available,
         )
 
         return DocGenerationResult(
@@ -315,6 +415,36 @@ class DocumentationGenerator:
             artifacts=artifacts,
             warnings=warnings,
         )
+
+    def _init_ai_orchestrator(
+        self,
+        provider_id: Optional[str],
+        timeout: float,
+    ) -> bool:
+        """
+        Initialize the AI consultation orchestrator.
+
+        Args:
+            provider_id: Preferred provider ID
+            timeout: Default timeout for consultations
+
+        Returns:
+            True if AI is available, False otherwise
+        """
+        try:
+            from foundry_mcp.core.ai_consultation import ConsultationOrchestrator
+
+            self._orchestrator = ConsultationOrchestrator(
+                preferred_providers=[provider_id] if provider_id else [],
+                default_timeout=timeout,
+            )
+            return self._orchestrator.is_available(provider_id)
+        except ImportError:
+            logger.warning("AI consultation module not available")
+            return False
+        except Exception as exc:
+            logger.warning("Failed to initialize AI orchestrator: %s", exc)
+            return False
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -550,10 +680,12 @@ class DocumentationGenerator:
         tree_entries: List[Tuple[int, Path]],
         use_cache: bool,
         resume: bool,
+        use_ai: bool = False,
     ) -> List[GeneratedArtifact]:
         artifacts: List[GeneratedArtifact] = []
         timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
+        # Write codebase.json first (used as context for AI prompts)
         codebase_payload = {
             "metadata": {
                 "project_name": project_name,
@@ -568,15 +700,39 @@ class DocumentationGenerator:
         }
         artifacts.append(self._write_json("codebase.json", codebase_payload, "json"))
 
-        overview = self._build_project_overview(
-            project_name, description, stats, dir_stats
+        # Build project context for AI prompts (summarized to avoid context overflow)
+        project_context = self._build_project_context(
+            project_name, description, stats, dir_stats, modules
         )
+        key_files = self._select_key_files(modules, classes, functions)
+
+        # Generate project overview (write-as-you-go pattern)
+        if use_ai:
+            overview = self._build_project_overview_ai(
+                project_name, description, stats, dir_stats, project_context, key_files
+            )
+        else:
+            overview = self._build_project_overview(
+                project_name, description, stats, dir_stats
+            )
         artifacts.append(self._write_text("project-overview.md", overview, "markdown"))
 
-        architecture = self._build_architecture_doc(project_name, stats, dir_stats)
+        # Generate architecture doc (write-as-you-go pattern)
+        if use_ai:
+            architecture = self._build_architecture_doc_ai(
+                project_name, stats, dir_stats, project_context, key_files
+            )
+        else:
+            architecture = self._build_architecture_doc(project_name, stats, dir_stats)
         artifacts.append(self._write_text("architecture.md", architecture, "markdown"))
 
-        inventory = self._build_component_inventory(project_name, tree_entries)
+        # Generate component inventory (write-as-you-go pattern)
+        if use_ai:
+            inventory = self._build_component_inventory_ai(
+                project_name, tree_entries, project_context, dir_stats
+            )
+        else:
+            inventory = self._build_component_inventory(project_name, tree_entries)
         artifacts.append(
             self._write_text("component-inventory.md", inventory, "markdown")
         )
@@ -601,6 +757,7 @@ class DocumentationGenerator:
             "options": {
                 "use_cache": use_cache,
                 "resume": resume,
+                "use_ai": use_ai,
             },
         }
         artifacts.append(
@@ -608,6 +765,87 @@ class DocumentationGenerator:
         )
 
         return artifacts
+
+    def _build_project_context(
+        self,
+        project_name: str,
+        description: Optional[str],
+        stats: CodebaseStats,
+        dir_stats: Dict[str, int],
+        modules: List[ModuleRecord],
+    ) -> str:
+        """
+        Build summarized project context for AI prompts.
+
+        Creates a compact representation of project metadata to inject
+        into prompt templates without exceeding context limits.
+        """
+        primary_languages = sorted(stats.language_breakdown.keys()) or ["unknown"]
+        top_dirs = sorted(dir_stats.items(), key=lambda item: item[1], reverse=True)[:5]
+
+        lines = [
+            f"- **Project Name:** {project_name}",
+            f"- **Description:** {description or 'Auto-generated documentation'}",
+            f"- **Primary Languages:** {', '.join(primary_languages)}",
+            f"- **Total Files:** {stats.total_files}",
+            f"- **Total Lines:** {stats.total_lines:,}",
+            f"- **Python Files:** {stats.python_files}",
+            f"- **Python Classes:** {stats.class_count}",
+            f"- **Python Functions:** {stats.function_count}",
+            "",
+            "### Top Directories by File Count",
+        ]
+
+        for directory, count in top_dirs:
+            lines.append(f"- `{directory}/`: {count} files")
+
+        if modules:
+            lines.append("")
+            lines.append("### Module Overview (top 10)")
+            sorted_modules = sorted(
+                modules, key=lambda m: m.lines, reverse=True
+            )[:10]
+            for mod in sorted_modules:
+                lines.append(
+                    f"- `{mod.name}`: {mod.lines} lines, "
+                    f"{len(mod.classes)} classes, {len(mod.functions)} functions"
+                )
+
+        return "\n".join(lines)
+
+    def _select_key_files(
+        self,
+        modules: List[ModuleRecord],
+        classes: List[ClassRecord],
+        functions: List[FunctionRecord],
+        max_files: int = 15,
+    ) -> str:
+        """
+        Select the most important files for AI analysis.
+
+        Prioritizes:
+        1. Entry points (main.py, __main__.py, app.py, etc.)
+        2. Files with most classes
+        3. Files with most functions
+        """
+        file_scores: Dict[str, int] = {}
+
+        # Entry point patterns get high scores
+        entry_patterns = ["main.py", "__main__.py", "app.py", "cli.py", "__init__.py"]
+
+        for mod in modules:
+            score = mod.lines  # Base score on size
+            if any(mod.file.endswith(p) for p in entry_patterns):
+                score += 1000  # Boost entry points
+            score += len(mod.classes) * 50  # Boost files with classes
+            score += len(mod.functions) * 10  # Boost files with functions
+            file_scores[mod.file] = score
+
+        # Sort by score and take top files
+        sorted_files = sorted(file_scores.items(), key=lambda x: x[1], reverse=True)
+        selected = [f"- `{f}`" for f, _ in sorted_files[:max_files]]
+
+        return "\n".join(selected) if selected else "- No Python files found"
 
     def _write_json(
         self, name: str, payload: Dict[str, Any], artifact_type: str
@@ -754,6 +992,330 @@ class DocumentationGenerator:
         lines.append(
             "\nArtifacts live under `docs/generated`. Run `sdd llm-doc generate` to refresh them.\n"
         )
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------
+    # AI-Enhanced Builders
+    # ------------------------------------------------------------------
+
+    def _build_project_overview_ai(
+        self,
+        project_name: str,
+        description: Optional[str],
+        stats: CodebaseStats,
+        dir_stats: Dict[str, int],
+        project_context: str,
+        key_files: str,
+    ) -> str:
+        """
+        Build AI-enhanced project overview using DOC_GEN_PROJECT_OVERVIEW_V1.
+
+        Uses the ConsultationOrchestrator to generate narrative documentation
+        with richer insights than the deterministic basic mode.
+
+        Falls back to basic mode if AI consultation fails.
+        """
+        if not self._orchestrator:
+            logger.warning("AI orchestrator not initialized, falling back to basic mode")
+            return self._build_project_overview(project_name, description, stats, dir_stats)
+
+        try:
+            from foundry_mcp.core.ai_consultation import (
+                ConsultationRequest,
+                ConsultationWorkflow,
+            )
+
+            request = ConsultationRequest(
+                workflow=ConsultationWorkflow.DOC_GENERATION,
+                prompt_id="DOC_GEN_PROJECT_OVERVIEW_V1",
+                context={
+                    "project_context": project_context,
+                    "key_files": key_files,
+                },
+            )
+
+            result = self._orchestrator.consult(
+                request, use_cache=self._consultation_cache
+            )
+
+            if result.success and result.content:
+                # Compose the final document with AI findings
+                return self._compose_overview_doc(
+                    project_name,
+                    description,
+                    stats,
+                    dir_stats,
+                    result.content,
+                    result.provider_id,
+                )
+            else:
+                logger.warning(
+                    "AI consultation for project overview failed: %s. Falling back to basic mode.",
+                    result.error,
+                )
+                return self._build_project_overview(project_name, description, stats, dir_stats)
+
+        except Exception as exc:
+            logger.warning(
+                "AI-enhanced overview generation failed: %s. Falling back to basic mode.",
+                exc,
+            )
+            return self._build_project_overview(project_name, description, stats, dir_stats)
+
+    def _compose_overview_doc(
+        self,
+        project_name: str,
+        description: Optional[str],
+        stats: CodebaseStats,
+        dir_stats: Dict[str, int],
+        ai_findings: str,
+        provider_id: str,
+    ) -> str:
+        """Compose final project overview with AI findings."""
+        primary_languages = sorted(stats.language_breakdown.keys()) or ["unknown"]
+
+        lines = [
+            f"# {project_name} - Project Overview\n",
+            f"**Generated:** {datetime.now().strftime('%Y-%m-%d')}",
+            f"**Mode:** AI-Enhanced (provider: {provider_id})\n",
+            "## Project Classification\n",
+            f"- **Primary Language(s):** {', '.join(primary_languages)}",
+            f"- **Total Files:** {stats.total_files}",
+            f"- **Total Lines:** {stats.total_lines:,}",
+            f"- **Python Classes:** {stats.class_count}",
+            f"- **Python Functions:** {stats.function_count}",
+            "",
+            "---",
+            "",
+            ai_findings,
+            "",
+            "---",
+            "",
+            "## Related Documentation",
+            "",
+            "- `index.md` - Master documentation index",
+            "- `architecture.md` - Detailed architecture",
+            "- `component-inventory.md` - Component inventory",
+            "",
+            "---",
+            "",
+            "*Generated using AI-enhanced documentation workflow*",
+        ]
+        return "\n".join(lines)
+
+    def _build_architecture_doc_ai(
+        self,
+        project_name: str,
+        stats: CodebaseStats,
+        dir_stats: Dict[str, int],
+        project_context: str,
+        key_files: str,
+    ) -> str:
+        """
+        Build AI-enhanced architecture documentation using DOC_GEN_ARCHITECTURE_V1.
+
+        Uses the ConsultationOrchestrator to generate rich architecture analysis
+        with pattern identification and design decision insights.
+
+        Falls back to basic mode if AI consultation fails.
+        """
+        if not self._orchestrator:
+            logger.warning("AI orchestrator not initialized, falling back to basic mode")
+            return self._build_architecture_doc(project_name, stats, dir_stats)
+
+        try:
+            from foundry_mcp.core.ai_consultation import (
+                ConsultationRequest,
+                ConsultationWorkflow,
+            )
+
+            request = ConsultationRequest(
+                workflow=ConsultationWorkflow.DOC_GENERATION,
+                prompt_id="DOC_GEN_ARCHITECTURE_V1",
+                context={
+                    "project_context": project_context,
+                    "key_files": key_files,
+                },
+            )
+
+            result = self._orchestrator.consult(
+                request, use_cache=self._consultation_cache
+            )
+
+            if result.success and result.content:
+                return self._compose_architecture_doc(
+                    project_name,
+                    stats,
+                    dir_stats,
+                    result.content,
+                    result.provider_id,
+                )
+            else:
+                logger.warning(
+                    "AI consultation for architecture doc failed: %s. Falling back to basic mode.",
+                    result.error,
+                )
+                return self._build_architecture_doc(project_name, stats, dir_stats)
+
+        except Exception as exc:
+            logger.warning(
+                "AI-enhanced architecture generation failed: %s. Falling back to basic mode.",
+                exc,
+            )
+            return self._build_architecture_doc(project_name, stats, dir_stats)
+
+    def _compose_architecture_doc(
+        self,
+        project_name: str,
+        stats: CodebaseStats,
+        dir_stats: Dict[str, int],
+        ai_findings: str,
+        provider_id: str,
+    ) -> str:
+        """Compose final architecture document with AI findings."""
+        primary_languages = sorted(stats.language_breakdown.keys()) or ["unknown"]
+
+        lines = [
+            f"# {project_name} - Architecture Documentation\n",
+            f"**Generated:** {datetime.now().strftime('%Y-%m-%d')}",
+            f"**Mode:** AI-Enhanced (provider: {provider_id})\n",
+            "## Technology Stack Details\n",
+            "### Core Technologies\n",
+            f"- **Languages:** {', '.join(primary_languages)}",
+            f"- **Python Classes:** {stats.class_count}",
+            f"- **Python Functions:** {stats.function_count}",
+            "",
+            "---",
+            "",
+            ai_findings,
+            "",
+            "---",
+            "",
+            "## Related Documentation",
+            "",
+            "- `index.md` - Master documentation index",
+            "- `project-overview.md` - Project overview",
+            "- `component-inventory.md` - Component inventory",
+            "",
+            "---",
+            "",
+            "*Generated using AI-enhanced documentation workflow*",
+        ]
+        return "\n".join(lines)
+
+    def _build_component_inventory_ai(
+        self,
+        project_name: str,
+        tree_entries: List[Tuple[int, Path]],
+        project_context: str,
+        dir_stats: Dict[str, int],
+    ) -> str:
+        """
+        Build AI-enhanced component inventory using DOC_GEN_COMPONENT_INVENTORY_V1.
+
+        Uses the ConsultationOrchestrator to analyze directory structure and
+        provide insights about component organization and purposes.
+
+        Falls back to basic mode if AI consultation fails.
+        """
+        if not self._orchestrator:
+            logger.warning("AI orchestrator not initialized, falling back to basic mode")
+            return self._build_component_inventory(project_name, tree_entries)
+
+        try:
+            from foundry_mcp.core.ai_consultation import (
+                ConsultationRequest,
+                ConsultationWorkflow,
+            )
+
+            # Build directory structure string
+            sorted_entries = sorted(tree_entries, key=lambda item: (item[0], item[1]))[:200]
+            tree_lines = []
+            for _, rel_path in sorted_entries:
+                indent = "  " * (len(rel_path.parts) - 1)
+                prefix = "└── " if len(rel_path.parts) > 1 else ""
+                tree_lines.append(f"{indent}{prefix}{rel_path.name}")
+            directory_structure = "\n".join(tree_lines)
+
+            # Build directories to analyze
+            top_dirs = sorted(dir_stats.items(), key=lambda x: x[1], reverse=True)[:15]
+            directories_to_analyze = "\n".join(f"- `{d}/`" for d, _ in top_dirs)
+
+            request = ConsultationRequest(
+                workflow=ConsultationWorkflow.DOC_GENERATION,
+                prompt_id="DOC_GEN_COMPONENT_INVENTORY_V1",
+                context={
+                    "project_context": project_context,
+                    "directory_structure": directory_structure,
+                    "directories_to_analyze": directories_to_analyze,
+                },
+            )
+
+            result = self._orchestrator.consult(
+                request, use_cache=self._consultation_cache
+            )
+
+            if result.success and result.content:
+                return self._compose_component_inventory_doc(
+                    project_name,
+                    tree_entries,
+                    result.content,
+                    result.provider_id,
+                )
+            else:
+                logger.warning(
+                    "AI consultation for component inventory failed: %s. Falling back to basic mode.",
+                    result.error,
+                )
+                return self._build_component_inventory(project_name, tree_entries)
+
+        except Exception as exc:
+            logger.warning(
+                "AI-enhanced component inventory generation failed: %s. Falling back to basic mode.",
+                exc,
+            )
+            return self._build_component_inventory(project_name, tree_entries)
+
+    def _compose_component_inventory_doc(
+        self,
+        project_name: str,
+        tree_entries: List[Tuple[int, Path]],
+        ai_findings: str,
+        provider_id: str,
+    ) -> str:
+        """Compose final component inventory with AI findings."""
+        lines = [
+            f"# {project_name} - Component Inventory\n",
+            f"**Generated:** {datetime.now().strftime('%Y-%m-%d')}",
+            f"**Mode:** AI-Enhanced (provider: {provider_id})\n",
+            "## Complete Directory Structure\n",
+            "```",
+        ]
+
+        sorted_entries = sorted(tree_entries, key=lambda item: (item[0], item[1]))[:400]
+        for _, rel_path in sorted_entries:
+            indent = "  " * (len(rel_path.parts) - 1)
+            prefix = "└── " if len(rel_path.parts) > 1 else ""
+            lines.append(f"{indent}{prefix}{rel_path.name}")
+        lines.append("```\n")
+
+        lines.extend([
+            "---",
+            "",
+            ai_findings,
+            "",
+            "---",
+            "",
+            "## Related Documentation",
+            "",
+            "- `index.md` - Master documentation index",
+            "- `project-overview.md` - Project overview",
+            "- `architecture.md` - Architecture documentation",
+            "",
+            "---",
+            "",
+            "*Generated using AI-enhanced documentation workflow*",
+        ])
         return "\n".join(lines)
 
 

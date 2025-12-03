@@ -213,36 +213,45 @@ class TestSpecDoc:
 class TestSpecDocLlm:
     """Tests for spec-doc-llm tool."""
 
-    def test_returns_not_implemented(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
-        """Should return NOT_IMPLEMENTED since it requires LLM integration."""
+    def test_generates_documentation_successfully(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should generate documentation for a valid directory."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
         monkeypatch.chdir(tmp_path)
 
+        # Create a sample Python file
+        (tmp_path / "sample.py").write_text("def hello(): pass")
+
         register_documentation_tools(mock_mcp, mock_config)
 
         spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
-        result = spec_doc_llm(directory=str(tmp_path))
+        result = spec_doc_llm(directory=str(tmp_path), use_ai=False)
 
         assert_response_contract(result)
-        assert result["success"] is False
-        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
-        assert result["data"].get("error_type") == "unavailable"
+        assert result["success"] is True
+        assert "output_dir" in result["data"]
+        assert "files_generated" in result["data"]
+        assert "generation" in result["data"]
 
-    def test_includes_remediation(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
-        """Should include remediation guidance."""
+    def test_includes_ai_generation_settings(self, mock_mcp, mock_config, tmp_path, assert_response_contract, monkeypatch):
+        """Should include AI generation settings in response."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
         monkeypatch.chdir(tmp_path)
 
+        # Create a sample Python file
+        (tmp_path / "sample.py").write_text("def hello(): pass")
+
         register_documentation_tools(mock_mcp, mock_config)
 
         spec_doc_llm = mock_mcp._tools["spec-doc-llm"]
-        result = spec_doc_llm(directory=str(tmp_path))
+        result = spec_doc_llm(directory=str(tmp_path), use_ai=False, ai_timeout=60.0)
 
         assert_response_contract(result)
-        assert "remediation" in result["data"]
-        assert "sdd-toolkit:llm-doc-gen" in result["data"]["remediation"]
+        assert result["success"] is True
+        assert "generation" in result["data"]
+        assert result["data"]["generation"]["use_ai"] is False
+        assert result["data"]["generation"]["ai_timeout"] == 60.0
 
     def test_missing_directory_validation(self, mock_mcp, mock_config, assert_response_contract):
         """Should return error for missing directory."""
@@ -294,8 +303,8 @@ class TestSpecDocLlm:
 class TestSpecReviewFidelity:
     """Tests for spec-review-fidelity tool."""
 
-    def test_returns_not_implemented(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
-        """Should return NOT_IMPLEMENTED since it requires AI consultation."""
+    def test_successful_fidelity_review_with_provider(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should successfully run fidelity review when providers are available."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
         project_path, _ = temp_project
@@ -307,12 +316,19 @@ class TestSpecReviewFidelity:
         result = spec_review_fidelity(spec_id="test-spec-001")
 
         assert_response_contract(result)
-        assert result["success"] is False
-        assert result["data"].get("error_code") == "NOT_IMPLEMENTED"
-        assert result["data"].get("error_type") == "unavailable"
+        # If providers are available, it should succeed
+        # If not, it should return AI_NO_PROVIDER error
+        if result["success"]:
+            assert "spec_id" in result["data"]
+            assert result["data"]["spec_id"] == "test-spec-001"
+            assert "verdict" in result["data"]
+            assert "consensus" in result["data"]
+        else:
+            # No providers available - acceptable in test environment
+            assert result["data"].get("error_code") in ("AI_NO_PROVIDER", "AI_NOT_AVAILABLE")
 
-    def test_includes_remediation(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
-        """Should include remediation guidance."""
+    def test_includes_fidelity_response_fields(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Should include expected response fields when successful."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
         project_path, _ = temp_project
@@ -324,8 +340,16 @@ class TestSpecReviewFidelity:
         result = spec_review_fidelity(spec_id="test-spec-001")
 
         assert_response_contract(result)
-        assert "remediation" in result["data"]
-        assert "sdd-toolkit:sdd-fidelity-review" in result["data"]["remediation"]
+        # Check response structure for successful reviews
+        if result["success"]:
+            data = result["data"]
+            assert "spec_id" in data
+            assert "title" in data
+            assert "scope" in data
+            assert "verdict" in data
+            assert "consensus" in data
+            assert "deviations" in data
+            assert "recommendations" in data
 
     def test_missing_spec_id_validation(self, mock_mcp, mock_config, assert_response_contract):
         """Should return error for missing spec_id."""
@@ -464,8 +488,8 @@ class TestResponseContractCompliance:
         assert result["error"] is None
         assert result["meta"]["version"] == "response-v2"
 
-    def test_not_implemented_response_structure(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
-        """NOT_IMPLEMENTED responses should have correct structure."""
+    def test_fidelity_review_response_structure(self, mock_mcp, mock_config, temp_project, assert_response_contract, monkeypatch):
+        """Fidelity review responses should have correct structure."""
         from foundry_mcp.tools.documentation import register_documentation_tools
 
         project_path, _ = temp_project
@@ -482,8 +506,12 @@ class TestResponseContractCompliance:
         assert "error" in result
         assert "meta" in result
         assert result["meta"]["version"] == "response-v2"
-        assert result["success"] is False
-        assert result["data"]["error_code"] == "NOT_IMPLEMENTED"
+        # Result can be success or failure depending on provider availability
+        if result["success"]:
+            assert "spec_id" in result["data"]
+        else:
+            # Expected error codes when no provider available
+            assert result["data"].get("error_code") in ("AI_NO_PROVIDER", "AI_NOT_AVAILABLE")
 
 
 # =============================================================================

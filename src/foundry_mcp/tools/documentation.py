@@ -27,7 +27,10 @@ from foundry_mcp.core.security import (
     MAX_STRING_LENGTH,
 )
 from foundry_mcp.core.spec import find_specs_directory, load_spec, find_spec_file
+import json
+import subprocess
 from foundry_mcp.core.rendering import render_spec_to_markdown, RenderOptions, RenderResult
+from foundry_mcp.core.docgen import DocumentationGenerator, resolve_output_directory
 
 logger = logging.getLogger(__name__)
 
@@ -273,6 +276,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         use_cache: bool = True,
         resume: bool = False,
         clear_cache: bool = False,
+        use_ai: bool = True,
+        ai_provider: Optional[str] = None,
+        ai_timeout: float = 120.0,
+        consultation_cache: bool = True,
         workspace: Optional[str] = None,
     ) -> dict:
         """
@@ -291,6 +298,9 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
             use_cache: Enable persistent caching of parse results
             resume: Resume from previous interrupted generation
             clear_cache: Clear the cache before generating documentation
+            use_ai: Enable AI-enhanced documentation (default: True)
+            ai_provider: Explicit AI provider selection (e.g., gemini, cursor-agent)
+            ai_timeout: AI consultation timeout in seconds (default: 120)
             workspace: Optional workspace path (defaults to config)
 
         Returns:
@@ -307,6 +317,8 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Document complex projects with architectural insights
         - Resume interrupted documentation generation
         """
+        start_time = time.perf_counter()
+
         try:
             # Validate directory
             if not directory:
@@ -330,12 +342,24 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
                 )
 
+            # Validate ai_timeout
+            if ai_timeout <= 0 or ai_timeout > 600:
+                return asdict(
+                    error_response(
+                        f"Invalid ai_timeout: {ai_timeout}. Must be between 0 and 600 seconds.",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation="Use an ai_timeout between 1 and 600 seconds.",
+                    )
+                )
+
             # Input validation: check for prompt injection in user-controlled fields
             for field_name, field_value in [
                 ("directory", directory),
                 ("output_dir", output_dir),
                 ("name", name),
                 ("description", description),
+                ("ai_provider", ai_provider),
                 ("workspace", workspace),
             ]:
                 if field_value and is_prompt_injection(field_value):
@@ -368,7 +392,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
 
             # Validate directory exists
-            dir_path = Path(directory)
+            dir_path = Path(directory).expanduser().resolve()
             if not dir_path.exists():
                 metrics.counter(
                     "documentation.errors",
@@ -393,25 +417,120 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
                 )
 
-            # LLM doc generation requires external LLM integration
-            # Return informative response about feature status
-            metrics.counter(
-                "documentation.errors",
-                labels={"tool": "spec-doc-llm", "error_type": "not_implemented"},
+            # Resolve output directory
+            dest_path = (
+                Path(output_dir).expanduser().resolve()
+                if output_dir
+                else resolve_output_directory(dir_path)
             )
+
+            # Clear cache if requested
+            if clear_cache and dest_path.exists():
+                from foundry_mcp.core.docgen import DOC_ARTIFACTS
+                for artifact_name in DOC_ARTIFACTS:
+                    artifact_path = dest_path / artifact_name
+                    if artifact_path.exists():
+                        artifact_path.unlink()
+
+            # Initialize generator and run documentation generation
+            project_name = name or dir_path.name
+            project_description = description or f"Documentation for {project_name}"
+
+            try:
+                generator = DocumentationGenerator(dir_path, dest_path)
+            except FileNotFoundError as exc:
+                return asdict(
+                    error_response(
+                        str(exc),
+                        error_code="NOT_FOUND",
+                        error_type="not_found",
+                        remediation="Verify the directory path exists.",
+                    )
+                )
+
+            # Generate documentation with AI if requested
+            # AIProviderUnavailableError is raised if use_ai=True but no provider available
+            from foundry_mcp.core.docgen import AIProviderUnavailableError
+            try:
+                result = generator.generate(
+                    project_name=project_name,
+                    description=project_description,
+                    use_cache=use_cache,
+                    resume=resume,
+                    use_ai=use_ai,
+                    ai_provider=ai_provider,
+                    ai_timeout=ai_timeout,
+                    consultation_cache=consultation_cache,
+                )
+            except AIProviderUnavailableError as exc:
+                # AI was requested but no provider available - return structured error
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-doc-llm", "error_type": "ai_no_provider"},
+                )
+                provider_info = f" (requested: {exc.provider_id})" if exc.provider_id else ""
+                return asdict(
+                    error_response(
+                        f"AI-enhanced mode requested but no providers available{provider_info}.",
+                        error_code="AI_NO_PROVIDER",
+                        error_type="unavailable",
+                        data={
+                            "directory": str(dir_path),
+                            "requested_provider": ai_provider,
+                        },
+                        remediation="Install and configure an AI provider (gemini, cursor-agent, codex) "
+                        "or run without --use-ai for basic documentation.",
+                    )
+                )
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            duration_seconds = duration_ms / 1000
+
+            # AI was used successfully if we got here with use_ai=True
+            ai_used = use_ai
+
+            metrics.timer(
+                "documentation.spec_doc_llm_time",
+                duration_ms,
+                labels={"use_ai": str(use_ai), "ai_used": str(ai_used)},
+            )
+
+            metrics.counter(
+                "documentation.success",
+                labels={"tool": "spec-doc-llm", "use_ai": str(use_ai), "ai_used": str(ai_used)},
+            )
+            logger.info(
+                f"spec-doc-llm completed for {project_name}",
+                extra={"project_name": project_name, "duration_ms": round(duration_ms, 2)},
+            )
+
+            # Build response with documentation metadata
+            response_data: Dict[str, Any] = {
+                "output_dir": str(dest_path),
+                "files_generated": len(result.artifacts),
+                "total_shards": result.stats.total_shards if hasattr(result.stats, "total_shards") else 0,
+                "duration_seconds": round(duration_seconds, 2),
+                "project_name": project_name,
+                "statistics": result.stats.to_dict(),
+                "artifacts": [artifact.to_dict() for artifact in result.artifacts],
+                "generation": {
+                    "use_ai": use_ai,
+                    "ai_used": ai_used,
+                    "ai_provider": ai_provider,
+                    "ai_timeout": ai_timeout,
+                    "use_cache": use_cache,
+                    "resume": resume,
+                    "consultation_cache": consultation_cache,
+                },
+            }
+
+            warnings = result.warnings if result.warnings else None
+
             return asdict(
-                error_response(
-                    "LLM documentation generation requires external LLM integration. "
-                    "Use the sdd-toolkit:llm-doc-gen skill for AI-powered documentation.",
-                    error_code="NOT_IMPLEMENTED",
-                    error_type="unavailable",
-                    data={
-                        "directory": directory,
-                        "alternative": "sdd-toolkit:llm-doc-gen skill",
-                        "feature_status": "requires_llm_integration",
-                    },
-                    remediation="Use the sdd-toolkit:llm-doc-gen skill which provides "
-                    "LLM-powered documentation generation with proper AI integration.",
+                success_response(
+                    **response_data,
+                    warnings=warnings,
+                    telemetry={"duration_ms": round(duration_ms, 2)},
                 )
             )
 
@@ -591,31 +710,188 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                     )
                 )
 
-            # Determine scope for informative response
+            # Determine scope for review
             scope = "task" if task_id else ("phase" if phase_id else "spec")
 
-            # Fidelity review requires external AI consultation
-            # Return informative response about feature status
+            # Load spec data
+            spec_data = load_spec(spec_file)
+            spec_title = spec_data.get("title", spec_id)
+            spec_description = spec_data.get("description", "")
+
+            # Check if AI is disabled
+            if not use_ai:
+                return asdict(
+                    error_response(
+                        "Fidelity review requires AI consultation (use_ai=True)",
+                        error_code="AI_REQUIRED",
+                        error_type="validation",
+                        data={
+                            "spec_id": spec_id,
+                            "scope": scope,
+                        },
+                        remediation="Set use_ai=True to enable AI consultation for fidelity review.",
+                    )
+                )
+
+            # Import consultation layer components
+            try:
+                from foundry_mcp.core.ai_consultation import (
+                    ConsultationOrchestrator,
+                    ConsultationRequest,
+                    ConsultationWorkflow,
+                )
+            except ImportError as exc:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-review-fidelity", "error_type": "import_error"},
+                )
+                return asdict(
+                    error_response(
+                        "AI consultation layer not available",
+                        error_code="AI_NOT_AVAILABLE",
+                        error_type="unavailable",
+                        data={"import_error": str(exc)},
+                        remediation="Ensure foundry_mcp.core.ai_consultation is properly installed",
+                    )
+                )
+
+            # Determine review scope description
+            if task_id:
+                review_scope = f"Task {task_id}"
+            elif phase_id:
+                review_scope = f"Phase {phase_id}"
+            elif files:
+                review_scope = f"Files: {', '.join(files)}"
+            else:
+                review_scope = "Full specification"
+
+            # Build context for fidelity review
+            spec_requirements = _build_spec_requirements(spec_data, task_id, phase_id)
+            implementation_artifacts = _build_implementation_artifacts(
+                spec_data, task_id, phase_id, files, incremental, base_branch
+            )
+            test_results = _build_test_results(spec_data, task_id, phase_id)
+            journal_entries = _build_journal_entries(spec_data, task_id, phase_id)
+
+            # Initialize orchestrator with preferred provider if specified
+            # ai_tools param maps to provider list
+            preferred_providers = ai_tools if ai_tools else []
+            if model:
+                # If specific model requested, it may indicate a provider preference
+                pass  # model handled in request
+
+            orchestrator = ConsultationOrchestrator(
+                preferred_providers=preferred_providers,
+            )
+
+            # Check if providers are available
+            first_provider = ai_tools[0] if ai_tools else None
+            if not orchestrator.is_available(provider_id=first_provider):
+                provider_msg = f" (requested: {first_provider})" if first_provider else ""
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-review-fidelity", "error_type": "no_provider"},
+                )
+                return asdict(
+                    error_response(
+                        f"Fidelity review requested but no providers available{provider_msg}",
+                        error_code="AI_NO_PROVIDER",
+                        error_type="unavailable",
+                        data={
+                            "spec_id": spec_id,
+                            "requested_provider": first_provider,
+                        },
+                        remediation="Install and configure an AI provider (gemini, cursor-agent, codex)",
+                    )
+                )
+
+            # Create consultation request
+            request = ConsultationRequest(
+                workflow=ConsultationWorkflow.FIDELITY_REVIEW,
+                prompt_id="FIDELITY_REVIEW_V1",
+                context={
+                    "spec_id": spec_id,
+                    "spec_title": spec_title,
+                    "spec_description": f"**Description:** {spec_description}" if spec_description else "",
+                    "review_scope": review_scope,
+                    "spec_requirements": spec_requirements,
+                    "implementation_artifacts": implementation_artifacts,
+                    "test_results": test_results,
+                    "journal_entries": journal_entries,
+                },
+                provider_id=first_provider,
+            )
+
+            # Execute consultation
+            try:
+                result = orchestrator.consult(request, use_cache=True)
+            except Exception as exc:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={"tool": "spec-review-fidelity", "error_type": "consultation_error"},
+                )
+                return asdict(
+                    error_response(
+                        f"AI consultation failed: {exc}",
+                        error_code="AI_CONSULTATION_ERROR",
+                        error_type="error",
+                        data={
+                            "spec_id": spec_id,
+                            "review_scope": review_scope,
+                            "error": str(exc),
+                        },
+                        remediation="Check provider configuration and try again",
+                    )
+                )
+
+            # Parse JSON response if possible
+            parsed_response = None
+            if result and result.content:
+                try:
+                    content = result.content
+                    if "```json" in content:
+                        start = content.find("```json") + 7
+                        end = content.find("```", start)
+                        if end > start:
+                            content = content[start:end].strip()
+                    elif "```" in content:
+                        start = content.find("```") + 3
+                        end = content.find("```", start)
+                        if end > start:
+                            content = content[start:end].strip()
+                    parsed_response = json.loads(content)
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+            # Build successful response
             metrics.counter(
-                "documentation.errors",
-                labels={"tool": "spec-review-fidelity", "error_type": "not_implemented"},
+                "documentation.success",
+                labels={"tool": "spec-review-fidelity"},
             )
             return asdict(
-                error_response(
-                    "Fidelity review requires external AI consultation. "
-                    "Use the sdd-toolkit:sdd-fidelity-review skill for AI-powered compliance checking.",
-                    error_code="NOT_IMPLEMENTED",
-                    error_type="unavailable",
-                    data={
+                success_response(
+                    {
                         "spec_id": spec_id,
+                        "title": spec_title,
                         "scope": scope,
+                        "review_scope": review_scope,
                         "task_id": task_id,
                         "phase_id": phase_id,
-                        "alternative": "sdd-toolkit:sdd-fidelity-review skill",
-                        "feature_status": "requires_ai_integration",
-                    },
-                    remediation="Use the sdd-toolkit:sdd-fidelity-review skill which provides "
-                    "AI-powered fidelity review with proper multi-model consultation.",
+                        "files": files,
+                        "verdict": parsed_response.get("verdict", "unknown") if parsed_response else "unknown",
+                        "deviations": parsed_response.get("deviations", []) if parsed_response else [],
+                        "recommendations": parsed_response.get("recommendations", []) if parsed_response else [],
+                        "consensus": {
+                            "provider": result.provider_id if result else None,
+                            "model": result.model_used if result else None,
+                            "cached": result.cache_hit if result else False,
+                            "threshold": consensus_threshold,
+                        },
+                        "response": parsed_response if parsed_response else result.content if result else None,
+                        "raw_response": result.content if result and not parsed_response else None,
+                        "incremental": incremental,
+                        "base_branch": base_branch,
+                    }
                 )
             )
 
@@ -634,3 +910,208 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
     logger.debug("Registered documentation tools: spec-doc, spec-doc-llm, spec-review-fidelity")
+
+
+# =============================================================================
+# Helper Functions for Fidelity Review
+# =============================================================================
+
+
+def _build_spec_requirements(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build spec requirements section for fidelity review context."""
+    lines = []
+
+    if task_id:
+        # Find specific task
+        task = _find_task(spec_data, task_id)
+        if task:
+            lines.append(f"### Task: {task.get('title', task_id)}")
+            lines.append(f"- **Status:** {task.get('status', 'unknown')}")
+            if task.get("metadata", {}).get("details"):
+                lines.append("- **Details:**")
+                for detail in task["metadata"]["details"]:
+                    lines.append(f"  - {detail}")
+            if task.get("metadata", {}).get("file_path"):
+                lines.append(f"- **Expected file:** {task['metadata']['file_path']}")
+    elif phase_id:
+        # Find specific phase
+        phase = _find_phase(spec_data, phase_id)
+        if phase:
+            lines.append(f"### Phase: {phase.get('title', phase_id)}")
+            lines.append(f"- **Status:** {phase.get('status', 'unknown')}")
+            if phase.get("children"):
+                lines.append("- **Tasks:**")
+                for child in phase["children"]:
+                    lines.append(f"  - {child.get('id', 'unknown')}: {child.get('title', 'Unknown task')}")
+    else:
+        # Full spec
+        lines.append(f"### Specification: {spec_data.get('title', 'Unknown')}")
+        if spec_data.get("description"):
+            lines.append(f"- **Description:** {spec_data['description']}")
+        if spec_data.get("assumptions"):
+            lines.append("- **Assumptions:**")
+            for assumption in spec_data["assumptions"][:5]:
+                if isinstance(assumption, dict):
+                    lines.append(f"  - {assumption.get('text', str(assumption))}")
+                else:
+                    lines.append(f"  - {assumption}")
+
+    return "\n".join(lines) if lines else "*No requirements available*"
+
+
+def _build_implementation_artifacts(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+    files: Optional[List[str]],
+    incremental: bool,
+    base_branch: str,
+) -> str:
+    """Build implementation artifacts section for fidelity review context."""
+    lines = []
+
+    # Collect file paths to review
+    file_paths = []
+    if files:
+        file_paths = list(files)
+    elif task_id:
+        task = _find_task(spec_data, task_id)
+        if task and task.get("metadata", {}).get("file_path"):
+            file_paths = [task["metadata"]["file_path"]]
+    elif phase_id:
+        phase = _find_phase(spec_data, phase_id)
+        if phase:
+            for child in phase.get("children", []):
+                if child.get("metadata", {}).get("file_path"):
+                    file_paths.append(child["metadata"]["file_path"])
+
+    # If incremental, get changed files from git diff
+    if incremental:
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", base_branch],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                changed_files = result.stdout.strip().split("\n")
+                if file_paths:
+                    # Intersect with specified files
+                    file_paths = [f for f in file_paths if f in changed_files]
+                else:
+                    file_paths = changed_files
+                lines.append(f"*Incremental review: {len(file_paths)} changed files since {base_branch}*\n")
+        except Exception:
+            lines.append(f"*Warning: Could not get git diff from {base_branch}*\n")
+
+    # Read file contents (limited)
+    for file_path in file_paths[:5]:  # Limit to 5 files
+        path = Path(file_path)
+        if path.exists():
+            try:
+                content = path.read_text(encoding="utf-8")
+                # Truncate large files
+                if len(content) > 10000:
+                    content = content[:10000] + "\n... [truncated] ..."
+                file_type = path.suffix.lstrip(".") or "text"
+                lines.append(f"### File: `{file_path}`")
+                lines.append(f"```{file_type}")
+                lines.append(content)
+                lines.append("```\n")
+            except Exception as e:
+                lines.append(f"### File: `{file_path}`")
+                lines.append(f"*Error reading file: {e}*\n")
+        else:
+            lines.append(f"### File: `{file_path}`")
+            lines.append("*File not found*\n")
+
+    if not lines:
+        lines.append("*No implementation artifacts available*")
+
+    return "\n".join(lines)
+
+
+def _build_test_results(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build test results section for fidelity review context."""
+    # Check journal for test-related entries
+    journal = spec_data.get("journal", [])
+    test_entries = [
+        entry for entry in journal
+        if "test" in entry.get("title", "").lower()
+        or "verify" in entry.get("title", "").lower()
+    ]
+
+    if test_entries:
+        lines = ["*Recent test-related journal entries:*"]
+        for entry in test_entries[-3:]:  # Last 3 entries
+            lines.append(f"- **{entry.get('title', 'Unknown')}** ({entry.get('timestamp', 'unknown')})")
+            if entry.get("content"):
+                # Truncate long content
+                content = entry["content"][:500]
+                if len(entry["content"]) > 500:
+                    content += "..."
+                lines.append(f"  {content}")
+        return "\n".join(lines)
+
+    return "*No test results available*"
+
+
+def _build_journal_entries(
+    spec_data: Dict[str, Any],
+    task_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Build journal entries section for fidelity review context."""
+    journal = spec_data.get("journal", [])
+
+    if task_id:
+        # Filter to task-related entries
+        journal = [
+            entry for entry in journal
+            if entry.get("task_id") == task_id
+        ]
+
+    if journal:
+        lines = [f"*{len(journal)} journal entries found:*"]
+        for entry in journal[-5:]:  # Last 5 entries
+            entry_type = entry.get("entry_type", "note")
+            lines.append(f"- **[{entry_type}]** {entry.get('title', 'Untitled')} ({entry.get('timestamp', 'unknown')[:10] if entry.get('timestamp') else 'unknown'})")
+        return "\n".join(lines)
+
+    return "*No journal entries found*"
+
+
+def _find_task(spec_data: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
+    """Find a task by ID in the spec hierarchy."""
+    def search_children(children: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        for child in children:
+            if child.get("id") == task_id:
+                return child
+            if child.get("children"):
+                result = search_children(child["children"])
+                if result:
+                    return result
+        return None
+
+    hierarchy = spec_data.get("hierarchy", {})
+    if hierarchy.get("children"):
+        return search_children(hierarchy["children"])
+    return None
+
+
+def _find_phase(spec_data: Dict[str, Any], phase_id: str) -> Optional[Dict[str, Any]]:
+    """Find a phase by ID in the spec hierarchy."""
+    hierarchy = spec_data.get("hierarchy", {})
+    for child in hierarchy.get("children", []):
+        if child.get("id") == phase_id:
+            return child
+    return None

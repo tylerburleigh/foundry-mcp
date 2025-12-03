@@ -38,7 +38,7 @@ Consistent naming shortens discovery time, improves LLM selection accuracy, and 
 ### Binary & Entry Points
 
 1. **`sdd`** – Primary end-user CLI that mirrors the canonical command set. Every doc, spec, and test assumes this name.
-2. **`sdd-native`** – Development/testing alias wired to the same entry point. Use when co-installing with the historical `claude_skills` CLI to avoid PATH collisions.
+2. **`sdd-native`** – Development/testing alias wired to the same entry point. Useful for development environments or when multiple CLI versions need to coexist.
 3. **`sdd-dev-*` helpers** – Temporary binaries (e.g., `sdd-dev-smoke`) may exist inside CI scaffolding but MUST remain unadvertised outside internal scripts.
 
 All binaries import `foundry_mcp.sdd_cli.__main__` so the same parser/runtime stack powers both aliases.

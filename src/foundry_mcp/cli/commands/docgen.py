@@ -1,9 +1,17 @@
 """Documentation generation commands for the SDD CLI.
 
-This command group now provides deterministic, local documentation generation
-without relying on claude_skills. It scans the repository, emits structured
-artifacts (codebase.json, markdown summaries), and exposes basic cache/status
-operations.
+This command group provides documentation generation with optional AI-enhanced
+narrative generation. It scans the repository, emits structured artifacts
+(codebase.json, markdown summaries), and exposes basic cache/status operations.
+
+Documentation modes:
+    - Basic Mode (default): Deterministic, LLM-free documentation
+    - AI-Enhanced Mode (--use-ai): Uses ConsultationOrchestrator for rich narratives
+
+AI-related flags:
+    --use-ai: Enable AI-enhanced documentation generation
+    --ai-provider: Explicit provider selection (e.g., gemini, cursor-agent)
+    --ai-timeout: Consultation timeout in seconds (default: 120)
 """
 
 import json
@@ -32,6 +40,9 @@ logger = get_cli_logger()
 
 # Default timeout for LLM doc generation (can be long)
 DOCGEN_TIMEOUT = 600  # 10 minutes
+
+# Default AI consultation timeout
+DEFAULT_AI_TIMEOUT = 120.0  # seconds
 
 
 @click.group("llm-doc")
@@ -75,6 +86,26 @@ def llm_doc_group() -> None:
     is_flag=True,
     help="Clear the cache before generating documentation.",
 )
+@click.option(
+    "--use-ai",
+    is_flag=True,
+    help="Enable AI-enhanced documentation generation.",
+)
+@click.option(
+    "--ai-provider",
+    help="Explicit AI provider selection (e.g., gemini, cursor-agent).",
+)
+@click.option(
+    "--ai-timeout",
+    type=float,
+    default=DEFAULT_AI_TIMEOUT,
+    help=f"AI consultation timeout in seconds (default: {DEFAULT_AI_TIMEOUT}).",
+)
+@click.option(
+    "--no-consultation-cache",
+    is_flag=True,
+    help="Bypass AI consultation cache (always query providers fresh).",
+)
 @click.pass_context
 @cli_command("llm-doc-generate")
 @handle_keyboard_interrupt()
@@ -89,6 +120,10 @@ def llm_doc_generate_cmd(
     use_cache: bool,
     resume: bool,
     clear_cache: bool,
+    use_ai: bool,
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    no_consultation_cache: bool,
 ) -> None:
     """Generate project documentation artifacts."""
     start_time = time.perf_counter()
@@ -136,12 +171,30 @@ def llm_doc_generate_cmd(
             details={"directory": directory},
         )
 
-    result = generator.generate(
-        project_name=project_name,
-        description=project_description,
-        use_cache=use_cache,
-        resume=resume,
-    )
+    from foundry_mcp.core.docgen import AIProviderUnavailableError
+    try:
+        result = generator.generate(
+            project_name=project_name,
+            description=project_description,
+            use_cache=use_cache,
+            resume=resume,
+            use_ai=use_ai,
+            ai_provider=ai_provider,
+            ai_timeout=ai_timeout,
+            consultation_cache=not no_consultation_cache,
+        )
+    except AIProviderUnavailableError as exc:
+        emit_error(
+            str(exc),
+            code="AI_NO_PROVIDER",
+            error_type="unavailable",
+            remediation="Install and configure an AI provider (gemini, cursor-agent, codex) "
+            "or run without --use-ai for basic documentation.",
+            details={
+                "directory": directory,
+                "requested_provider": exc.provider_id,
+            },
+        )
 
     duration_ms = (time.perf_counter() - start_time) * 1000
     artifacts = [artifact.to_dict() for artifact in result.artifacts]
@@ -168,6 +221,10 @@ def llm_doc_generate_cmd(
             "use_cache": use_cache,
             "resume": resume,
             "cleared_before_run": clear_cache,
+            "use_ai": use_ai,
+            "ai_provider": ai_provider,
+            "ai_timeout": ai_timeout,
+            "consultation_cache": not no_consultation_cache,
         },
     }
 
@@ -270,6 +327,10 @@ def llm_doc_cache_cmd(
 @click.option("--output-dir", help="Output directory.")
 @click.option("--name", help="Project name.")
 @click.option("--resume", is_flag=True, help="Resume interrupted generation.")
+@click.option("--use-ai", is_flag=True, help="Enable AI-enhanced documentation.")
+@click.option("--ai-provider", help="AI provider selection.")
+@click.option("--ai-timeout", type=float, default=DEFAULT_AI_TIMEOUT, help="AI timeout.")
+@click.option("--no-consultation-cache", is_flag=True, help="Bypass AI consultation cache.")
 @click.pass_context
 @cli_command("generate-docs-alias")
 @handle_keyboard_interrupt()
@@ -280,6 +341,10 @@ def generate_docs_alias_cmd(
     output_dir: Optional[str],
     name: Optional[str],
     resume: bool,
+    use_ai: bool,
+    ai_provider: Optional[str],
+    ai_timeout: float,
+    no_consultation_cache: bool,
 ) -> None:
     """Generate documentation (alias for llm-doc generate)."""
     ctx.invoke(
@@ -292,6 +357,10 @@ def generate_docs_alias_cmd(
         use_cache=True,
         resume=resume,
         clear_cache=False,
+        use_ai=use_ai,
+        ai_provider=ai_provider,
+        ai_timeout=ai_timeout,
+        no_consultation_cache=no_consultation_cache,
     )
 
 
