@@ -38,7 +38,41 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
+
+
+@dataclass
+class GitSettings:
+    """Git workflow preferences for CLI + MCP surfaces."""
+
+    enabled: bool = False
+    auto_branch: bool = False
+    auto_commit: bool = False
+    auto_push: bool = False
+    auto_pr: bool = False
+    commit_cadence: str = "manual"
+    show_before_commit: bool = True
+
+
+_VALID_COMMIT_CADENCE = {"manual", "task", "phase"}
+
+
+def _normalize_commit_cadence(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized not in _VALID_COMMIT_CADENCE:
+        logger.warning(
+            "Invalid commit cadence '%s'. Falling back to 'manual'. Valid options: %s",
+            value,
+            ", ".join(sorted(_VALID_COMMIT_CADENCE)),
+        )
+        return "manual"
+    return normalized
+
+
+def _parse_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes", "on"}
 
 
 @dataclass
@@ -61,6 +95,9 @@ class ServerConfig:
     # Server configuration
     server_name: str = "foundry-mcp"
     server_version: str = "0.1.0"
+
+    # Git workflow configuration
+    git: GitSettings = field(default_factory=GitSettings)
 
     @classmethod
     def from_env(cls, config_file: Optional[str] = None) -> "ServerConfig":
@@ -134,6 +171,28 @@ class ServerConfig:
                 if "version" in srv:
                     self.server_version = srv["version"]
 
+            # Git workflow settings
+            if "git" in data:
+                git_cfg = data["git"]
+                if "enabled" in git_cfg:
+                    self.git.enabled = _parse_bool(git_cfg["enabled"])
+                if "auto_branch" in git_cfg:
+                    self.git.auto_branch = _parse_bool(git_cfg["auto_branch"])
+                if "auto_commit" in git_cfg:
+                    self.git.auto_commit = _parse_bool(git_cfg["auto_commit"])
+                if "auto_push" in git_cfg:
+                    self.git.auto_push = _parse_bool(git_cfg["auto_push"])
+                if "auto_pr" in git_cfg:
+                    self.git.auto_pr = _parse_bool(git_cfg["auto_pr"])
+                if "show_before_commit" in git_cfg:
+                    self.git.show_before_commit = _parse_bool(
+                        git_cfg["show_before_commit"]
+                    )
+                if "commit_cadence" in git_cfg:
+                    self.git.commit_cadence = _normalize_commit_cadence(
+                        str(git_cfg["commit_cadence"])
+                    )
+
         except Exception as e:
             logger.error(f"Error loading config file {path}: {e}")
 
@@ -162,6 +221,22 @@ class ServerConfig:
         # Require auth
         if require := os.environ.get("FOUNDRY_MCP_REQUIRE_AUTH"):
             self.require_auth = require.lower() in ("true", "1", "yes")
+
+        # Git settings
+        if git_enabled := os.environ.get("FOUNDRY_MCP_GIT_ENABLED"):
+            self.git.enabled = _parse_bool(git_enabled)
+        if git_auto_branch := os.environ.get("FOUNDRY_MCP_GIT_AUTO_BRANCH"):
+            self.git.auto_branch = _parse_bool(git_auto_branch)
+        if git_auto_commit := os.environ.get("FOUNDRY_MCP_GIT_AUTO_COMMIT"):
+            self.git.auto_commit = _parse_bool(git_auto_commit)
+        if git_auto_push := os.environ.get("FOUNDRY_MCP_GIT_AUTO_PUSH"):
+            self.git.auto_push = _parse_bool(git_auto_push)
+        if git_auto_pr := os.environ.get("FOUNDRY_MCP_GIT_AUTO_PR"):
+            self.git.auto_pr = _parse_bool(git_auto_pr)
+        if git_show_preview := os.environ.get("FOUNDRY_MCP_GIT_SHOW_PREVIEW"):
+            self.git.show_before_commit = _parse_bool(git_show_preview)
+        if git_cadence := os.environ.get("FOUNDRY_MCP_GIT_COMMIT_CADENCE"):
+            self.git.commit_cadence = _normalize_commit_cadence(git_cadence)
 
     def validate_api_key(self, key: Optional[str]) -> bool:
         """
@@ -224,49 +299,66 @@ def set_config(config: ServerConfig) -> None:
 
 # Metrics and observability decorators
 
-def log_call(logger_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
+
+def log_call(
+    logger_name: Optional[str] = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to log function calls with structured data.
 
     Args:
         logger_name: Optional logger name (defaults to function module)
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         log = logging.getLogger(logger_name or func.__module__)
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            log.debug(f"Calling {func.__name__}", extra={
-                "function": func.__name__,
-                "args_count": len(args),
-                "kwargs_keys": list(kwargs.keys()),
-            })
+            log.debug(
+                f"Calling {func.__name__}",
+                extra={
+                    "function": func.__name__,
+                    "args_count": len(args),
+                    "kwargs_keys": list(kwargs.keys()),
+                },
+            )
             try:
                 result = func(*args, **kwargs)
-                log.debug(f"Completed {func.__name__}", extra={
-                    "function": func.__name__,
-                    "success": True,
-                })
+                log.debug(
+                    f"Completed {func.__name__}",
+                    extra={
+                        "function": func.__name__,
+                        "success": True,
+                    },
+                )
                 return result
             except Exception as e:
-                log.error(f"Error in {func.__name__}: {e}", extra={
-                    "function": func.__name__,
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                })
+                log.error(
+                    f"Error in {func.__name__}: {e}",
+                    extra={
+                        "function": func.__name__,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
                 raise
 
         return wrapper
+
     return decorator
 
 
-def timed(metric_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
+def timed(
+    metric_name: Optional[str] = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to measure and log function execution time.
 
     Args:
         metric_name: Optional metric name (defaults to function name)
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         name = metric_name or func.__name__
         log = logging.getLogger(func.__module__)
@@ -277,23 +369,30 @@ def timed(metric_name: Optional[str] = None) -> Callable[[Callable[..., T]], Cal
             try:
                 result = func(*args, **kwargs)
                 elapsed = time.perf_counter() - start
-                log.info(f"Timer: {name}", extra={
-                    "metric": name,
-                    "duration_ms": round(elapsed * 1000, 2),
-                    "success": True,
-                })
+                log.info(
+                    f"Timer: {name}",
+                    extra={
+                        "metric": name,
+                        "duration_ms": round(elapsed * 1000, 2),
+                        "success": True,
+                    },
+                )
                 return result
             except Exception as e:
                 elapsed = time.perf_counter() - start
-                log.info(f"Timer: {name}", extra={
-                    "metric": name,
-                    "duration_ms": round(elapsed * 1000, 2),
-                    "success": False,
-                    "error": str(e),
-                })
+                log.info(
+                    f"Timer: {name}",
+                    extra={
+                        "metric": name,
+                        "duration_ms": round(elapsed * 1000, 2),
+                        "success": False,
+                        "error": str(e),
+                    },
+                )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -304,6 +403,7 @@ def require_auth(func: Callable[..., T]) -> Callable[..., T]:
     The function must accept an 'api_key' keyword argument.
     Raises ValueError if authentication fails.
     """
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> T:
         config = get_config()

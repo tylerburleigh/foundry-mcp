@@ -111,6 +111,26 @@ batch_size = 5
 context_threshold = 85
 
 # =============================================================================
+# Git Workflow Configuration
+# =============================================================================
+
+[git]
+# Enable git-aware workflows (automatic commit prompts, commit cadence, etc.)
+enabled = false
+
+# Determine when to offer automatic commits: "manual", "task", or "phase"
+commit_cadence = "manual"
+
+# Control automated behaviors (all default to false for safety)
+auto_branch = false
+auto_commit = false
+auto_push = false
+auto_pr = false
+
+# Show staged file preview before committing (recommended)
+show_before_commit = true
+
+# =============================================================================
 # Provider-Specific Examples
 # =============================================================================
 
