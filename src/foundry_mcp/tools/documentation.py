@@ -558,7 +558,6 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         task_id: Optional[str] = None,
         phase_id: Optional[str] = None,
         files: Optional[List[str]] = None,
-        use_ai: bool = True,
         ai_tools: Optional[List[str]] = None,
         model: Optional[str] = None,
         consensus_threshold: int = 2,
@@ -579,7 +578,6 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
             task_id: Review specific task implementation (mutually exclusive with phase_id)
             phase_id: Review entire phase implementation (mutually exclusive with task_id)
             files: Review specific file(s) only
-            use_ai: Enable AI consultation for analysis (default: True)
             ai_tools: Specific AI tools to consult (default: all available)
             model: Specific model to use for AI consultation
             consensus_threshold: Minimum models that must agree (default: 2)
@@ -602,6 +600,10 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
         - Check for drift between code and documented behavior
         - Review completed tasks/phases for compliance
         - Generate fidelity reports for documentation
+
+        LIMITATIONS:
+        - Requires AI consultation (no non-AI mode available)
+        - At least one AI provider must be configured (gemini, codex, cursor-agent, claude, opencode)
         """
         try:
             # Validate spec_id
@@ -717,21 +719,6 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
             spec_data = load_spec(spec_file)
             spec_title = spec_data.get("title", spec_id)
             spec_description = spec_data.get("description", "")
-
-            # Check if AI is disabled
-            if not use_ai:
-                return asdict(
-                    error_response(
-                        "Fidelity review requires AI consultation (use_ai=True)",
-                        error_code="AI_REQUIRED",
-                        error_type="validation",
-                        data={
-                            "spec_id": spec_id,
-                            "scope": scope,
-                        },
-                        remediation="Set use_ai=True to enable AI consultation for fidelity review.",
-                    )
-                )
 
             # Import consultation layer components
             try:
