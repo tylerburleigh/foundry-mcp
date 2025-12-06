@@ -1,247 +1,282 @@
-# SDD Toolkit
+# foundry-mcp
 
-> Spec-Driven Development: Structured, trackable AI-assisted development through machine-readable specifications
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Development Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://pypi.org/project/foundry-mcp/)
 
-[![Plugin Version](https://img.shields.io/badge/version-0.7.7-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
-[![Python](https://img.shields.io/badge/python-3.9+-green.svg)]()
+**An MCP server and native CLI that bring spec-driven development to your AI assistant.**
 
-## What & Why
+foundry-mcp packages the spec lifecycle, a single CLI/service layer, and MCP adapters described in the completed specs under `specs/completed/`. Every MCP response uses the standardized `response-v2` envelope, the CLI shares the same service layer, and feature-flagged tool suites cover environment setup, authoring, validation, LLM review, and automated testing.
 
-**The Problem:**
-AI-assisted development without structure leads to scope drift, lost context, unclear progress, and difficulty resuming work after interruptions.
+## 🚀 Why foundry-mcp?
 
-**The Solution:**
-SDD Toolkit provides a plan-first methodology using machine-readable JSON specifications. Each feature is broken into atomic tasks with dependency tracking, automatic progress recording, and built-in verification.
+- **Single service layer for CLI + MCP** — The completed CLI re-implementation and subprocess elimination specs ensure the CLI and MCP tools share contracts, observability, and feature flags.
+- **Spec lifecycle automation** — Tools manage creation, validation, lifecycle transitions, blockers, and journaling with cursor-based pagination and dependency tracking.
+- **Quality gates & behavioral testing** — A dedicated regression harness keeps foundry-mcp aligned with the legacy claude-sdd-toolkit CLI while integration/unit/property suites guard regressions.
+- **LLM-ready workflows** — Provider abstractions, prompt shielding, and graceful fallbacks power AI review, documentation, and PR creation workflows when LLM access is available.
+- **Security & governance baked in** — API keys, workspace scoping, rate limiting, structured logging, and audit trails are enforced before business logic as mandated by the MCP best-practices remediation spec.
+- **Discovery-first design** — Capabilities are declared through `mcp/capabilities_manifest.json` so clients can negotiate response contracts, feature flags, and tool availability.
 
-**The Outcome:**
-Systematic development where AI understands the full plan, tracks what's done, knows what's next, and can resume work seamlessly after context clears or session breaks.
+## 📦 Installation
 
-**Architecture:**
-183 Python modules, 154 classes, and 915 functions organized into independent, composable skills. Claude skills orchestrate workflows, Python CLI executes operations, results inform next steps.
+### Pre-requisites
 
-## Quick Start
+- Python 3.10 or higher
+- macOS, Linux, or Windows
+- MCP-compatible client (e.g., Claude Code)
 
-### Installation
+### Quick install
 
-1. **Install Plugin:**
-   ```
-   claude  # Launch Claude Code
-   /plugin → Add from marketplace → tylerburleigh/claude-sdd-toolkit
-   ```
+#### Run instantly with `uvx`
 
-2. **Install Dependencies:**
-   ```bash
-   cd ~/.claude/plugins/marketplaces/claude-sdd-toolkit/src/claude_skills
-   pip install -e .
-   sdd skills-dev install  # Installs pip and npm dependencies
-   ```
-
-3. **Restart Claude Code**, then **Configure Project:**
-   ```
-   /sdd-setup
-   ```
-
-**Requirements:** Python 3.9+, Node.js >= 18.x. See [Getting Started](docs/getting-started.md) for detailed instructions.
-
-### First Workflow
-
-```
-You: Create a spec for a CLI Pomodoro timer
-
-Claude: [Analyzes codebase, creates specs/pending/pomodoro-timer-001.json]
-
-You: /sdd-begin
-
-Claude: Found pending spec "pomodoro-timer-001"
-        Ready to activate and start implementing?
-
-You: Yes
-
-Claude: [Moves to specs/active/, starts first task]
-        Task 1-1: Create Timer class with start/pause/stop methods
-        [Implements task, updates status]
-
-You: /sdd-begin
-
-Claude: Task 1-2: Add notification system...
-        [Continues through tasks]
+```bash
+uvx foundry-mcp
 ```
 
-## How It Works
+#### Install from PyPI with `pip`
 
-### Specifications: Machine-Readable Plans
+```bash
+pip install foundry-mcp
+```
 
-Specs are JSON files defining features as tasks with dependencies:
+#### Install from source (development)
+
+```bash
+git clone https://github.com/tylerburleigh/foundry-mcp.git
+cd foundry-mcp
+pip install -e ".[test]"
+```
+
+#### Launch the native SDD CLI
+
+```bash
+python -m foundry_mcp.cli --help
+```
+
+## 📅 Release cadence & support channels
+
+- The project currently ships **alpha** releases after each spec milestone; see [CHANGELOG.md](CHANGELOG.md) for the latest tagged version.
+- PyPI publishes semantic versions that align with the spec roadmap (`response_contract_v2`, feature flags, test suites, etc.).
+- MCP capabilities expose rollout state so clients can opt-in to new contracts (for example `response_contract=v2`).
+
+## 📋 Key features
+
+### Spec lifecycle & governance
+
+```
+specs/
+├── pending/      # New specs awaiting activation
+├── active/       # Currently being worked on
+├── completed/    # Finished specs (automatically journaled)
+└── archived/     # Historical reference
+```
+
+- Scaffold, validate, activate, complete, and archive specs via `spec-*` tools.
+- Automatically journal decisions, blockers, and dependency updates with audit metadata.
+- Cursor-based pagination and metadata envelopes keep long-running specs manageable.
+
+### Task operations & execution
+
+- `task-next`, `task-prepare`, `task-start`, `task-complete`, and blocker flows expose the full dependency graph.
+- Planning helpers (`plan_format`, `phase_list`, `phase_report_time`, etc.) provide progress metrics powered by `planning_tools` feature flags.
+- Notifications and sampling channels surface phase completions to MCP clients.
+
+### Code, docs, and testing intelligence
+
+- Doc query tools (`doc-query`, `doc-stats`, scoped search utilities) surface architecture docs generated under `docs/generated/`.
+- Testing tools (`test-run`, `test-run-quick`, `test-presets`, `test-discover`) run pytest presets or quick validations with structured output.
+- Shared adapters mirror claude-sdd-toolkit behavior and integrate with the regression testing harness.
+
+### LLM-powered workflows
+
+- Configurable provider abstraction with OpenAI, Anthropic, and local backends (Ollama, etc.) plus prompt shielding and observability hooks.
+- AI-enhanced review (`spec-review`, `spec-review-fidelity`), documentation (`spec-doc-llm`, `doc-query-llm`), and PR helpers degrade gracefully when no LLM is configured.
+- Timeouts, retries, and circuit breakers follow the resilience patterns from the remediation specs.
+
+### CLI + MCP integration
+
+- Run `foundry-mcp` as an MCP server or `python -m foundry_mcp.cli` for the JSON-first CLI.
+- Both surfaces share response helpers, validation, feature flags, and discovery metadata so you can switch between automated MCP clients and terminal workflows without drift.
+
+### Resources & prompts
+
+- `foundry://specs/` resources expose full spec hierarchies, journals, and templates for AI assistants.
+- Workflow prompts (`start_feature`, `debug_test`, `complete_phase`, etc.) guide SDD operations end-to-end.
+
+## 🔐 Access & security
+
+- Workspace roots are scoped via configuration to prevent directory escape.
+- Optional API keys (`FOUNDRY_MCP_API_KEYS`) or tenant TOML overrides enforce authentication before any tool runs.
+- Rate limits and concurrency budgets are declared in the capabilities manifest and enforced server-side with structured audit logs.
+- Sensitive data redaction, prompt shielding, and validation helpers protect against prompt injection or oversized payloads.
+
+## 🧾 Response contract & discovery
+
+All MCP tools emit the standardized envelope defined in `docs/codebase_standards/mcp_response_schema.md`:
 
 ```json
 {
-  "metadata": {
-    "name": "User Authentication",
-    "version": "1.0.0"
-  },
-  "phases": [
-    {
-      "id": "phase-1",
-      "title": "Core Auth System",
-      "tasks": [...]
-    }
-  ],
-  "tasks": [
-    {
-      "id": "task-1-1",
-      "title": "Create User model",
-      "dependencies": [],
-      "status": "pending",
-      "verification": ["Model validates email", "Password hashing works"]
-    }
-  ]
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "meta": {
+    "version": "response-v2",
+    "pagination": { ... },
+    "warnings": []
+  }
 }
 ```
 
-**Lifecycle folders:**
-- `specs/pending/` - Planned work
-- `specs/active/` - Current implementation
-- `specs/completed/` - Finished features
-- `specs/archived/` - Cancelled work
+- `success`, `data`, `error`, and `meta` are always present so clients never guess at output shape.
+- `response_contract_v2` is feature-flagged; clients advertise support via capability negotiation.
+- `mcp/capabilities_manifest.json` lists every tool, resource, prompt, feature flag, and response contract so MCP clients can auto-configure themselves.
 
-All specs are Git-trackable. Validated against JSON Schema.
+## ⚙️ Configuration
 
-### Task Orchestration
+### Environment variables
 
-The `sdd-next` skill uses dependencies to determine which tasks are ready versus blocked. Tasks can't start until their dependencies complete. Independent tasks can be worked on in parallel.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FOUNDRY_MCP_SPECS_DIR` | Path to specs directory | Auto-detected from workspace |
+| `FOUNDRY_MCP_LOG_LEVEL` | Logging level (DEBUG, INFO, etc.) | `INFO` |
+| `FOUNDRY_MCP_WORKFLOW_MODE` | Execution mode: `single`, `autonomous`, `batch` | `single` |
+| `FOUNDRY_MCP_API_KEYS` | Comma-separated API keys required for tool access | Disabled |
+| `FOUNDRY_MCP_FEATURE_FLAGS` | Additional feature flags to enable (e.g., `planning_tools`) | Based on spec rollout |
+| `FOUNDRY_MCP_RESPONSE_CONTRACT` | Force response contract version (`v2`) | Auto-negotiated |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | LLM provider credentials | Not set |
 
-**Automatic time tracking:**
-- `started_at` recorded when task status changes to `in-progress`
-- `completed_at` recorded when task status changes to `completed`
-- `actual_hours` calculated from timestamps
+### TOML configuration
 
-### Multi-Model AI Consultation
+Create `foundry-mcp.toml` for shared settings:
 
-Skills like `sdd-plan-review` and `sdd-fidelity-review` consult multiple AI models in parallel (default: cursor-agent + gemini). Results are synthesized into unified reports. Caching reduces API costs on subsequent runs.
+```toml
+[workspace]
+specs_dir = "/path/to/specs"
 
-**Trade-off:** Higher API cost for multiple perspectives and reduced bias.
+[logging]
+level = "INFO"
+structured = true
 
-### Documentation Integration
+[workflow]
+mode = "single"
+auto_validate = true
+journal_enabled = true
 
-Generate machine-readable documentation:
+[llm]
+provider = "openai"        # or "anthropic", "local"
+model = "gpt-4"
+timeout = 30
 
-```bash
-sdd doc analyze-with-ai . --name "MyProject" --version "1.0.0"
+[security]
+require_api_key = true
+allowed_keys = ["tenant-prod", "tenant-dev"]
+workspace_roots = ["/repos/specs"]
+
+[feature_flags]
+enabled = ["environment_tools", "spec_helpers", "planning_tools", "response_contract_v2"]
 ```
 
-**Outputs:**
-- `docs/codebase.json` - AST, dependencies, metrics
-- `docs/index.md` - Structural reference
-- `docs/project-overview.md` - Executive summary
-- `docs/architecture.md` - Architecture overview
+## 🚀 Getting started
 
-**Used by:**
-- `sdd-plan` - Understands existing patterns
-- `sdd-next` - Provides code context for tasks
-- `doc-query` - Fast queries without re-parsing
+### Launch as an MCP server
 
-**Query capabilities:**
 ```bash
-sdd doc stats                       # Project statistics
-sdd doc search "authentication"     # Find code
-sdd doc callers authenticate_user   # Function callers
-sdd doc call-graph login_endpoint   # Call relationships
-sdd doc scope src/auth.py --plan    # Lightweight context for planning
-sdd doc scope src/auth.py --implement  # Detailed implementation context
+foundry-mcp
 ```
 
-### Context Tracking
+The server will advertise its capabilities, feature flags, and response contract so MCP clients (Claude Code, Gemini CLI, etc.) can connect automatically.
 
-Claude Code has a 200k token context window. The toolkit monitors usage and recommends clearing context at 85% (136k tokens). Specs track all progress, so resuming after `/clear` is seamless using `/sdd-begin`.
+### Use the native SDD CLI
 
-## Essential Skills Reference
+```bash
+python -m foundry_mcp.cli task next --specs-dir /path/to/specs
+```
 
-### Planning & Workflow
+All CLI commands output JSON for reliable parsing by AI coding tools and mirror the legacy `claude-sdd-toolkit` surface.
 
-| Skill | Purpose | Usage |
-|-------|---------|-------|
-| **sdd-plan** | Create specifications | "Plan a user authentication feature" |
-| **sdd-next** | Find next actionable task | "What should I work on next?" |
-| **sdd-update** | Update status, journal, move specs | "Mark task complete" |
-| **sdd-validate** | Check spec validity | "Validate my spec for errors" |
+### Claude Code setup
 
-### Quality Assurance
+Add foundry-mcp through Claude Code settings (Command Palette → **Claude Code: Configure MCP Servers**) and include:
 
-| Skill | Purpose | Usage |
-|-------|---------|-------|
-| **sdd-plan-review** | Multi-model spec review | "Review my spec before implementing" |
-| **sdd-fidelity-review** | Verify implementation matches spec | "Did I implement what the spec said?" |
-| **sdd-modify** | Apply review feedback | "Apply review suggestions to spec" |
-| **run-tests** | Test execution with AI debugging | "Run tests and fix failures" |
+```json
+{
+  "mcpServers": {
+    "foundry-mcp": {
+      "command": "uvx",
+      "args": ["foundry-mcp"],
+      "env": {
+        "FOUNDRY_MCP_SPECS_DIR": "/path/to/specs",
+        "FOUNDRY_MCP_RESPONSE_CONTRACT": "v2"
+      }
+    }
+  }
+}
+```
 
-### Documentation & Analysis
+<details>
+<summary>Using a pip installation instead?</summary>
 
-| Skill | Purpose | Usage |
-|-------|---------|-------|
-| **doc-query** | Query and analyze code | "What calls authenticate()?" |
-| **llm-doc-gen** | AI-powered documentation | "Generate architecture docs" |
-| **sdd-render** | Generate markdown from specs | "Render spec with AI insights" |
+```json
+{
+  "mcpServers": {
+    "foundry-mcp": {
+      "command": "foundry-mcp",
+      "env": {
+        "FOUNDRY_MCP_SPECS_DIR": "/path/to/specs"
+      }
+    }
+  }
+}
+```
+</details>
 
-### Workflow Commands
+### Quick usage examples
 
-| Command | Purpose |
-|---------|---------|
-| `/sdd-begin` | Resume work (shows pending/active specs) |
-| `/sdd-setup` | Configure project permissions |
+```bash
+# List specs via MCP tool
+echo '{"path": "specs"}' | foundry-mcp --tool spec-list
 
-See [docs/skills-reference.md](docs/skills-reference.md) for complete skill documentation.
+# Run CLI command without an MCP client
+python -m foundry_mcp.cli spec validate --specs-dir ./specs
 
-## Documentation
+# Generate AI-assisted docs when LLM configured
+python -m foundry_mcp.cli doc generate --format overview --spec-id sdd-core-operations-2025-11-27-001
+```
 
-### For Users
+## 📚 Documentation
 
-- [Getting Started](docs/getting-started.md) - Installation and setup guide
-- [Core Concepts](docs/core-concepts.md) - Specifications, tasks, dependencies
-- [Workflows](docs/workflows.md) - Common development patterns and examples
-- [Configuration](docs/configuration.md) - Setup and configuration options
+| Guide | Description |
+|-------|-------------|
+| [SDD Philosophy](docs/concepts/sdd-philosophy.md) | Why spec-driven development matters |
+| [Architecture Overview](docs/generated/architecture.md) | Auto-generated system architecture |
+| [Development Guide](docs/guides/development-guide.md) | Setup, architecture, contributing |
+| [Testing Guide](docs/guides/testing.md) | Running and debugging tests / fixtures |
+| [LLM Configuration](docs/guides/llm-configuration.md) | Provider setup & fallbacks |
+| [MCP Best Practices](docs/mcp_best_practices/README.md) | Canonical implementation checklist |
+| [Response Schema](docs/codebase_standards/mcp_response_schema.md) | Standardized envelope reference |
+| [CLI Output Contract](docs/codebase_standards/cli-output.md) | JSON-first CLI expectations |
 
-### For Developers
+## 🧪 Testing & quality gates
 
-- [Architecture](docs/architecture.md) - System architecture and design patterns
-- [Advanced Topics](docs/advanced-topics.md) - Extension points, design patterns
-- [CLI Reference](docs/cli-reference.md) - Command-line interface
-- [Skills Reference](docs/skills-reference.md) - Detailed skill documentation
+```bash
+pytest                          # Full suite
+pytest tests/integration/test_mcp_smoke.py  # MCP smoke tests
+pytest tests/doc_query/test_scope_command.py
+```
 
-### Project Statistics
+- Regression tests keep MCP/CLI adapters aligned with the legacy claude-sdd-toolkit contracts.
+- Golden fixtures (`tests/fixtures/golden`) ensure response envelopes, error semantics, and pagination never regress.
+- Freshness checks (doc generation, capability manifests) run alongside core unit and integration suites.
 
-- 183 Python modules
-- 154 classes
-- 915 functions
-- 72,268 lines of code
-- Average complexity: 6.93
+## 🤝 Contributing
 
-## Version History
+Contributions are welcome! Please read the [MCP Best Practices](docs/mcp_best_practices/README.md) before submitting PRs. All changes should keep specs, docs, code, and fixtures in sync and follow the decision matrix in `AGENTS.md`.
 
-**0.7.7** - Documentation context enhancements: automatic `context.file_docs` in `prepare-task` output with file-focused documentation, dependencies, and provenance metadata. Enhanced doc helper with `file_path`/`spec_id` parameters. Git-based staleness detection, call context integration, and test coverage improvements.
+## 📄 License
 
-**0.7.6** - Prepare-task default context enhancement: comprehensive context in default output including dependencies, phase, siblings, and journal. One-call workflow with <100ms latency. 30% token reduction.
-
-**0.7.5** - Provider security enhancements: read-only/tool restrictions across all AI providers (Codex, Claude, Gemini, Cursor Agent, OpenCode). Comprehensive security documentation with threat model and testing guides.
-
-**0.7.1** - Journal accessibility improvements: ergonomic positional syntax, journal data in `prepare-task` output. Full backward compatibility.
-
-**0.7.0** - New `sdd doc scope` command with `--plan`/`--implement` presets. 49x speedup in llm-doc-gen. Parallel processing, persistent caching, streaming output.
-
-**0.6.8** - New llm-doc-gen skill for LLM-powered narrative documentation. Integrated code-doc as analysis module.
-
-**0.6.5** - OpenCode AI provider with Node.js integration. Read-only security mode.
-
-**0.6.0** - Three-tier verbosity system. AI consultation enhancements. Work mode configuration.
-
-See [docs/changelog.md](docs/changelog.md) for complete version history.
-
-## Getting Help
-
-- **Issues:** [GitHub Issues](https://github.com/tylerburleigh/claude-sdd-toolkit/issues)
-- **Docs:** [Claude Code Documentation](https://docs.claude.com/claude-code)
-- **Architecture:** [docs/architecture.md](docs/architecture.md)
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Version:** 0.7.7 | **License:** MIT | **Author:** Tyler Burleigh
+**Built by [Tyler Burleigh](https://github.com/tylerburleigh)** · [Report an Issue](https://github.com/tylerburleigh/foundry-mcp/issues) · [View on GitHub](https://github.com/tylerburleigh/foundry-mcp)

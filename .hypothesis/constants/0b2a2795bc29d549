@@ -1,0 +1,4 @@
+# file: /Users/tylerburleigh/Documents/GitHub/foundry-mcp/src/foundry_mcp/core/pagination.py
+# hypothesis_version: 6.148.3
+
+[100, 1000, ',', ':', 'cursor', 'decode_failed', 'empty', 'has_more', 'not_a_dict', 'page_size', 'total_count', 'version']
