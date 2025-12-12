@@ -17,7 +17,11 @@ from typing import Any, Dict, List, Optional, Set
 from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
-from foundry_mcp.core.responses import success_response, error_response, sanitize_error_message
+from foundry_mcp.core.responses import (
+    success_response,
+    error_response,
+    sanitize_error_message,
+)
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
 from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec
@@ -76,12 +80,14 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not file_path:
-                return asdict(error_response(
-                    "file_path is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a file_path parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "file_path is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a file_path parameter",
+                    )
+                )
 
             # Log the operation
             audit_log(
@@ -98,10 +104,12 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             # Find specs directory
             specs_dir = find_specs_directory(ws_path)
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    data={"file_path": file_path, "workspace": str(ws_path)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        data={"file_path": file_path, "workspace": str(ws_path)},
+                    )
+                )
 
             # Normalize the file path for comparison
             normalized_file_path = str(Path(file_path).resolve())
@@ -141,46 +149,63 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
                     # Check if this node references the target file
                     if node_file_path:
-                        node_path_resolved = str(Path(node_file_path).resolve()) if not Path(node_file_path).is_absolute() else node_file_path
+                        node_path_resolved = (
+                            str(Path(node_file_path).resolve())
+                            if not Path(node_file_path).is_absolute()
+                            else node_file_path
+                        )
 
-                        if normalized_file_path == node_path_resolved or file_path in node_file_path:
-                            spec_references.append({
-                                "spec_id": current_spec_id,
-                                "node_id": node_id,
-                                "title": node.get("title", ""),
-                                "relationship": "references",
-                            })
+                        if (
+                            normalized_file_path == node_path_resolved
+                            or file_path in node_file_path
+                        ):
+                            spec_references.append(
+                                {
+                                    "spec_id": current_spec_id,
+                                    "node_id": node_id,
+                                    "title": node.get("title", ""),
+                                    "relationship": "references",
+                                }
+                            )
 
                         # Also track related files from the same spec
                         if node_file_path not in [f.get("path") for f in related_files]:
-                            related_files.append({
-                                "path": node_file_path,
-                                "spec_id": current_spec_id,
-                                "node_id": node_id,
-                                "relationship": "sibling" if spec_references else "same_spec",
-                            })
+                            related_files.append(
+                                {
+                                    "path": node_file_path,
+                                    "spec_id": current_spec_id,
+                                    "node_id": node_id,
+                                    "relationship": "sibling"
+                                    if spec_references
+                                    else "same_spec",
+                                }
+                            )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
             _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
 
-            return asdict(success_response(
-                file_path=file_path,
-                related_files=related_files,
-                spec_references=spec_references,
-                total_count=len(related_files),
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    file_path=file_path,
+                    related_files=related_files,
+                    spec_references=spec_references,
+                    total_count=len(related_files),
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception("Unexpected error in spec-find-related-files")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="spec helpers"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="spec helpers"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -220,12 +245,14 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not pattern:
-                return asdict(error_response(
-                    "pattern is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a glob pattern (e.g., '*.ts', 'src/**/*.py')",
-                ))
+                return asdict(
+                    error_response(
+                        "pattern is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a glob pattern (e.g., '*.ts', 'src/**/*.py')",
+                    )
+                )
 
             # Log the operation
             audit_log(
@@ -239,13 +266,15 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             # Resolve search directory
             search_dir = Path(directory) if directory else Path.cwd()
             if not search_dir.exists():
-                return asdict(error_response(
-                    f"Directory does not exist: {search_dir}",
-                    error_code="NOT_FOUND",
-                    error_type="validation",
-                    data={"directory": str(search_dir)},
-                    remediation="Provide a valid directory path",
-                ))
+                return asdict(
+                    error_response(
+                        f"Directory does not exist: {search_dir}",
+                        error_code="NOT_FOUND",
+                        error_type="validation",
+                        data={"directory": str(search_dir)},
+                        remediation="Provide a valid directory path",
+                    )
+                )
 
             # Use glob to find matching files
             # Handle both relative and absolute patterns
@@ -291,12 +320,14 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         except Exception as e:
             logger.exception("Unexpected error in spec-find-patterns")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="spec helpers"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="spec helpers"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -336,12 +367,14 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             # Log the operation
             audit_log(
@@ -357,28 +390,34 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             # Find specs directory
             specs_dir = find_specs_directory(ws_path)
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    )
+                )
 
             # Find and load spec
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="SPEC_NOT_FOUND",
-                    error_type="not_found",
-                    data={"spec_id": spec_id},
-                    remediation="Verify the spec ID exists using spec-list",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        data={"spec_id": spec_id},
+                        remediation='Verify the spec ID exists using spec(action="list")',
+                    )
+                )
 
             spec_data = load_spec(spec_file)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
 
             hierarchy = spec_data.get("hierarchy", {})
 
@@ -442,24 +481,28 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "success"})
             _metrics.timer(f"spec_helpers.{tool_name}.duration_ms", duration_ms)
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                has_cycles=len(unique_cycles) > 0,
-                cycles=unique_cycles,
-                cycle_count=len(unique_cycles),
-                affected_tasks=affected_tasks,
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    has_cycles=len(unique_cycles) > 0,
+                    cycles=unique_cycles,
+                    cycle_count=len(unique_cycles),
+                    affected_tasks=affected_tasks,
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception("Unexpected error in spec-detect-cycles")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="spec helpers"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="spec helpers"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -502,12 +545,14 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not paths:
-                return asdict(error_response(
-                    "paths is required and must be a non-empty list",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a list of file paths to validate",
-                ))
+                return asdict(
+                    error_response(
+                        "paths is required and must be a non-empty list",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a list of file paths to validate",
+                    )
+                )
 
             # Log the operation
             audit_log(
@@ -560,9 +605,11 @@ def register_spec_helper_tools(mcp: FastMCP, config: ServerConfig) -> None:
         except Exception as e:
             logger.exception("Unexpected error in spec-validate-paths")
             _metrics.counter(f"spec_helpers.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="spec helpers"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="spec helpers"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )

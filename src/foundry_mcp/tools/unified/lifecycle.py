@@ -107,7 +107,7 @@ def _classify_error(error_message: str) -> tuple[ErrorCode, ErrorType, str]:
         return (
             ErrorCode.SPEC_NOT_FOUND,
             ErrorType.NOT_FOUND,
-            "Verify the spec ID via spec-list",
+            'Verify the spec ID via spec(action="list")',
         )
     if "invalid folder" in lowered:
         return (
@@ -218,7 +218,7 @@ def _handle_move(
             action=action,
             field="spec_id",
             message="Provide a non-empty spec identifier",
-            remediation="Call spec-list to locate the correct spec_id",
+            remediation='Call spec(action="list") to locate the correct spec_id',
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
         )
@@ -303,7 +303,7 @@ def _handle_activate(
             action=action,
             field="spec_id",
             message="Provide a non-empty spec identifier",
-            remediation="Call spec-list to locate the correct spec_id",
+            remediation='Call spec(action="list") to locate the correct spec_id',
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
         )
@@ -367,7 +367,7 @@ def _handle_complete(
             action=action,
             field="spec_id",
             message="Provide a non-empty spec identifier",
-            remediation="Call spec-list to locate the correct spec_id",
+            remediation='Call spec(action="list") to locate the correct spec_id',
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
         )
@@ -439,7 +439,7 @@ def _handle_archive(
             action=action,
             field="spec_id",
             message="Provide a non-empty spec identifier",
-            remediation="Call spec-list to locate the correct spec_id",
+            remediation='Call spec(action="list") to locate the correct spec_id',
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
         )
@@ -502,7 +502,7 @@ def _handle_state(
             action=action,
             field="spec_id",
             message="Provide a non-empty spec identifier",
-            remediation="Call spec-list to locate the correct spec_id",
+            remediation='Call spec(action="list") to locate the correct spec_id',
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
         )
@@ -544,7 +544,7 @@ def _handle_state(
                 f"Spec '{spec_id.strip()}' not found",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Verify the spec exists via spec-list",
+                remediation='Verify the spec exists via spec(action="list")',
                 request_id=request_id,
             )
         )

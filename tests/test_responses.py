@@ -216,6 +216,7 @@ class TestResponseContractCompliance:
         """Test that not found scenarios return error."""
         response = error_response("Spec not found: my-spec")
         assert response.success is False
+        assert response.error is not None
         assert "not found" in response.error.lower()
 
 
@@ -451,9 +452,11 @@ class TestNotFoundError:
     def test_custom_remediation(self):
         """Test that custom remediation overrides default."""
         response = not_found_error(
-            "Spec", "x", remediation="Use spec-list to find valid IDs."
+            "Spec", "x", remediation='Use spec(action="list") to find valid IDs.'
         )
-        assert response.data["remediation"] == "Use spec-list to find valid IDs."
+        assert (
+            response.data["remediation"] == 'Use spec(action="list") to find valid IDs.'
+        )
 
 
 class TestRateLimitError:

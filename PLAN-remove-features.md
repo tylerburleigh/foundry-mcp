@@ -131,7 +131,7 @@ Remove three feature sets from foundry-mcp while preserving two critical tools:
 1. Update `docs/guides/llm-configuration.md` - remove spec-doc-llm references
 2. Update `docs/guides/development-guide.md` - remove doc-query/rendering references
 3. Update `docs/codebase_standards/naming-conventions.md` - remove removed tool references
-4. Consider removing `docs/generated/` directory
+4. Remove `docs/generated/` directory (now removed)
 
 **Verification**: Documentation builds, no broken references
 

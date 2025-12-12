@@ -165,7 +165,7 @@ def _load_spec_data(
                 f"Specification '{spec_id}' not found",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Run spec-list to verify the spec ID",
+                remediation='Run spec(action="list") to verify the spec ID',
                 details={"spec_id": spec_id, "action": f"journal.{action}"},
             )
         )

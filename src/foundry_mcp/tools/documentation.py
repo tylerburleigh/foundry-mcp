@@ -9,7 +9,7 @@ import logging
 import subprocess
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -181,7 +181,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             # Resolve workspace and find spec
             ws_path = Path(workspace) if workspace else Path.cwd()
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
                 metrics.counter(
                     "documentation.errors",
@@ -211,7 +211,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         f"Specification not found: {spec_id}",
                         error_code="SPEC_NOT_FOUND",
                         error_type="not_found",
-                        remediation="Verify the spec ID exists using spec-list.",
+                        remediation='Verify the spec ID exists using spec(action="list").',
                     )
                 )
 
@@ -219,7 +219,25 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
             scope = "task" if task_id else ("phase" if phase_id else "spec")
 
             # Load spec data
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
+            if not spec_data:
+                metrics.counter(
+                    "documentation.errors",
+                    labels={
+                        "tool": "spec-review-fidelity",
+                        "error_type": "load_failed",
+                    },
+                )
+                return asdict(
+                    error_response(
+                        f"Failed to load specification: {spec_id}",
+                        error_code="SPEC_LOAD_FAILED",
+                        error_type="internal",
+                        remediation="Ensure the spec JSON is valid and readable",
+                    )
+                )
+
+            spec_data = cast(Dict[str, Any], spec_data)
             spec_title = spec_data.get("title", spec_id)
             spec_description = spec_data.get("description", "")
 
@@ -404,7 +422,11 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             "error_details": error_msg,
                             "provider_id": result.responses[0].provider_id
                             if is_consensus and result.responses
-                            else (result.provider_id if result else "none"),
+                            else (
+                                getattr(result, "provider_id", "none")
+                                if result
+                                else "none"
+                            ),
                             "provider_status": unavailability_reasons,
                             "mode": "multi_model" if is_consensus else "single_model",
                         },
@@ -440,7 +462,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         result.responses[0].model_used if result.responses else "none"
                     )
                 else:
-                    provider_info = result.provider_id
+                    provider_info = getattr(result, "provider_id", "none")
                     model_info = result.model_used
                 return asdict(
                     error_response(
@@ -501,7 +523,7 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             else "none"
                         )
                     else:
-                        provider_info = result.provider_id
+                        provider_info = getattr(result, "provider_id", "none")
                         model_info = result.model_used
                     return asdict(
                         error_response(
@@ -562,7 +584,9 @@ def register_documentation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 # Single-model result
                 consensus_info = {
                     "mode": "single_model",
-                    "provider": result.provider_id if result else None,
+                    "provider": getattr(result, "provider_id", None)
+                    if result
+                    else None,
                     "model": result.model_used if result else None,
                     "cached": result.cache_hit if result else False,
                     "threshold": consensus_threshold,

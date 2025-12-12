@@ -189,7 +189,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         "Specification not found or invalid",
                         error_code="SPEC_NOT_FOUND",
                         error_type="not_found",
-                        remediation="Verify the spec ID exists using spec-list",
+                        remediation='Verify the spec ID exists using spec(action="list")',
                     )
                 )
 
@@ -721,7 +721,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                             f"Specification '{spec_id}' not found",
                             error_code="SPEC_NOT_FOUND",
                             error_type="not_found",
-                            remediation="Verify the spec ID exists using spec-list",
+                            remediation='Verify the spec ID exists using spec(action="list")',
                         )
                     )
 
@@ -776,7 +776,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                                 error_msg,
                                 error_code="SPEC_NOT_FOUND",
                                 error_type="not_found",
-                                remediation="Verify the spec ID exists using spec-list",
+                                remediation='Verify the spec ID exists using spec(action="list")',
                             )
                         )
                     else:
@@ -906,7 +906,7 @@ def register_mutation_tools(mcp: FastMCP, config: ServerConfig) -> None:
                         f"Specification '{spec_id}' not found",
                         error_code="SPEC_NOT_FOUND",
                         error_type="not_found",
-                        remediation="Verify the spec ID exists using spec-list",
+                        remediation='Verify the spec ID exists using spec(action="list")',
                     )
                 )
 

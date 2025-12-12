@@ -74,7 +74,7 @@ def _handle_run(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         return _validation_error(
             message="preset must be a string",
             request_id=request_id,
-            remediation="Use one of the preset names returned by test-presets",
+            remediation="Use preset=quick|unit|full",
         )
 
     if isinstance(preset, str):

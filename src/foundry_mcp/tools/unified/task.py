@@ -142,7 +142,7 @@ def _load_spec_data(
                 f"Spec not found: {spec_id}",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Verify the spec ID via spec-list",
+                remediation='Verify the spec ID via spec(action="list")',
                 request_id=request_id,
             )
         )

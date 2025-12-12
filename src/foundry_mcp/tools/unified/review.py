@@ -391,7 +391,7 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
                 f"Specification not found: {spec_id}",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Verify the spec ID exists using spec-list.",
+                remediation='Verify the spec ID exists using spec(action="list").',
             )
         )
 

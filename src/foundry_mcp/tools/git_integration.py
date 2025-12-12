@@ -14,10 +14,19 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
-from foundry_mcp.core.responses import success_response, error_response, sanitize_error_message
+from foundry_mcp.core.responses import (
+    success_response,
+    error_response,
+    sanitize_error_message,
+)
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
-from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec, save_spec
+from foundry_mcp.core.spec import (
+    find_specs_directory,
+    find_spec_file,
+    load_spec,
+    save_spec,
+)
 from foundry_mcp.core.journal import bulk_journal, find_unjournaled_tasks
 
 logger = logging.getLogger(__name__)
@@ -140,22 +149,26 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             # Validate template if provided
             valid_templates = ("completion", "decision", "blocker")
             if template and template not in valid_templates:
-                return asdict(error_response(
-                    f"Invalid template '{template}'. Must be one of: {', '.join(valid_templates)}",
-                    error_code="VALIDATION_ERROR",
-                    error_type="validation",
-                    remediation=f"Use one of: {', '.join(valid_templates)}",
-                ))
+                return asdict(
+                    error_response(
+                        f"Invalid template '{template}'. Must be one of: {', '.join(valid_templates)}",
+                        error_code="VALIDATION_ERROR",
+                        error_type="validation",
+                        remediation=f"Use one of: {', '.join(valid_templates)}",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -174,26 +187,32 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
             # Find and load spec
             specs_dir = find_specs_directory(ws_path)
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="SPEC_NOT_FOUND",
-                    error_type="not_found",
-                    remediation="Verify the spec ID exists using spec-list",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="SPEC_NOT_FOUND",
+                        error_type="not_found",
+                        remediation='Verify the spec ID exists using spec(action="list")',
+                    )
+                )
 
             spec_data = load_spec(spec_file)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
 
             # Determine which tasks to journal
             task_ids: List[str] = []
@@ -206,13 +225,15 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 task_ids = [t["task_id"] for t in unjournaled]
 
             if not task_ids:
-                return asdict(success_response(
-                    spec_id=spec_id,
-                    tasks_journaled=0,
-                    task_ids=[],
-                    dry_run=dry_run,
-                    message="No unjournaled tasks found",
-                ))
+                return asdict(
+                    success_response(
+                        spec_id=spec_id,
+                        tasks_journaled=0,
+                        task_ids=[],
+                        dry_run=dry_run,
+                        message="No unjournaled tasks found",
+                    )
+                )
 
             # Build journal entries based on template
             author = template_author or "claude-code"
@@ -262,54 +283,68 @@ def register_git_integration_tools(mcp: FastMCP, config: ServerConfig) -> None:
             # If dry run, just return what would be journaled
             if dry_run:
                 duration_ms = (time.perf_counter() - start_time) * 1000
-                _metrics.counter(f"git_integration.{tool_name}", labels={
-                    "status": "success",
-                    "dry_run": "True",
-                })
+                _metrics.counter(
+                    f"git_integration.{tool_name}",
+                    labels={
+                        "status": "success",
+                        "dry_run": "True",
+                    },
+                )
 
-                return asdict(success_response(
-                    spec_id=spec_id,
-                    tasks_journaled=len(entries),
-                    task_ids=task_ids,
-                    template_used=template,
-                    dry_run=True,
-                    preview=entries,
-                    duration_ms=round(duration_ms, 2),
-                ))
+                return asdict(
+                    success_response(
+                        spec_id=spec_id,
+                        tasks_journaled=len(entries),
+                        task_ids=task_ids,
+                        template_used=template,
+                        dry_run=True,
+                        preview=entries,
+                        duration_ms=round(duration_ms, 2),
+                    )
+                )
 
             # Apply bulk journal entries
             created_entries = bulk_journal(spec_data, entries)
 
             # Save the spec
             if not save_spec(spec_data, spec_file):
-                return asdict(error_response(
-                    "Failed to save spec after journaling",
-                    data={"spec_id": spec_id},
-                ))
+                return asdict(
+                    error_response(
+                        "Failed to save spec after journaling",
+                        data={"spec_id": spec_id},
+                    )
+                )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.counter(f"git_integration.{tool_name}", labels={
-                "status": "success",
-                "dry_run": "False",
-                "has_template": str(bool(template)),
-            })
+            _metrics.counter(
+                f"git_integration.{tool_name}",
+                labels={
+                    "status": "success",
+                    "dry_run": "False",
+                    "has_template": str(bool(template)),
+                },
+            )
             _metrics.timer(f"git_integration.{tool_name}.duration_ms", duration_ms)
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                tasks_journaled=len(created_entries),
-                task_ids=[e.task_id for e in created_entries if e.task_id],
-                template_used=template,
-                dry_run=False,
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    tasks_journaled=len(created_entries),
+                    task_ids=[e.task_id for e in created_entries if e.task_id],
+                    template_used=template,
+                    dry_run=False,
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception("Unexpected error in journal-bulk-add")
             _metrics.counter(f"git_integration.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="git integration"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="git integration"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )

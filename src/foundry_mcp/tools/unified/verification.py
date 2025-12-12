@@ -89,7 +89,7 @@ def _handle_add(
             field="spec_id",
             message="Provide a non-empty spec_id",
             request_id=request_id,
-            remediation="Use spec-list to discover valid specification IDs",
+            remediation='Use spec(action="list") to discover valid specification IDs',
             code=ErrorCode.MISSING_REQUIRED,
         )
     spec_id = spec_id.strip()
@@ -170,7 +170,7 @@ def _handle_add(
                 f"Specification '{spec_id}' not found",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Verify the spec ID exists using spec-list",
+                remediation='Verify the spec ID exists using spec(action="list")',
                 request_id=request_id,
             )
         )
@@ -360,7 +360,7 @@ def _handle_execute(
                 f"Specification '{spec_id}' not found",
                 error_code=ErrorCode.SPEC_NOT_FOUND,
                 error_type=ErrorType.NOT_FOUND,
-                remediation="Verify the spec ID exists using spec-list",
+                remediation='Verify the spec ID exists using spec(action="list")',
                 request_id=request_id,
             )
         )

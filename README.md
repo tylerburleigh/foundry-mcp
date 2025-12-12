@@ -244,14 +244,14 @@ Add foundry-mcp through Claude Code settings (Command Palette → **Claude Code:
 ### Quick usage examples
 
 ```bash
-# List specs via MCP tool
-echo '{"path": "specs"}' | foundry-mcp --tool spec-list
+# List specs via MCP tool (unified router)
+echo '{"action": "list"}' | foundry-mcp --tool spec
 
-# Run CLI command without an MCP client
-python -m foundry_mcp.cli spec validate --specs-dir ./specs
+# Validate a spec via MCP tool
+echo '{"action": "validate", "spec_id": "sdd-core-operations-2025-11-27-001"}' | foundry-mcp --tool spec
 
-# Generate AI-assisted docs when LLM configured
-python -m foundry_mcp.cli doc generate --format overview --spec-id sdd-core-operations-2025-11-27-001
+# Run CLI validation without an MCP client
+python -m foundry_mcp.cli --specs-dir ./specs validate check sdd-core-operations-2025-11-27-001
 ```
 
 ## 📚 Documentation
@@ -259,7 +259,7 @@ python -m foundry_mcp.cli doc generate --format overview --spec-id sdd-core-oper
 | Guide | Description |
 |-------|-------------|
 | [SDD Philosophy](docs/concepts/sdd-philosophy.md) | Why spec-driven development matters |
-| [Architecture Overview](docs/generated/architecture.md) | Auto-generated system architecture |
+| [Architecture Overview](docs/architecture/adr-001-cli-architecture.md) | CLI/MCP architecture decision record |
 | [Development Guide](docs/guides/development-guide.md) | Setup, architecture, contributing |
 | [Testing Guide](docs/guides/testing.md) | Running and debugging tests / fixtures |
 | [LLM Configuration](docs/guides/llm-configuration.md) | Provider setup & fallbacks |
@@ -272,7 +272,7 @@ python -m foundry_mcp.cli doc generate --format overview --spec-id sdd-core-oper
 ```bash
 pytest                          # Full suite
 pytest tests/integration/test_mcp_smoke.py  # MCP smoke tests
-pytest tests/doc_query/test_scope_command.py
+pytest tests/integration/test_mcp_tools.py  # Tool contract coverage
 ```
 
 - Regression tests keep MCP/CLI adapters aligned with the legacy claude-sdd-toolkit contracts.

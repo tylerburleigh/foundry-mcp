@@ -478,7 +478,7 @@ def _handle_spec_update_frontmatter(*, config: ServerConfig, **payload: Any) -> 
                     f"Specification '{spec_id.strip()}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID exists using spec-list",
+                    remediation='Verify the spec ID exists using spec(action="list")',
                     request_id=request_id,
                     telemetry={"duration_ms": round(elapsed_ms, 2)},
                 )
@@ -700,7 +700,7 @@ def _handle_phase_add(*, config: ServerConfig, **payload: Any) -> dict:
                     f"Specification '{spec_id}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID via spec-list",
+                    remediation='Verify the spec ID via spec(action="list")',
                     request_id=request_id,
                 )
             )
@@ -843,7 +843,7 @@ def _handle_phase_remove(*, config: ServerConfig, **payload: Any) -> dict:
                     f"Specification '{spec_id}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID via spec-list",
+                    remediation='Verify the spec ID via spec(action="list")',
                     request_id=request_id,
                 )
             )
@@ -1035,7 +1035,7 @@ def _handle_assumption_add(*, config: ServerConfig, **payload: Any) -> dict:
                     f"Specification '{spec_id}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID via spec-list",
+                    remediation='Verify the spec ID via spec(action="list")',
                     request_id=request_id,
                 )
             )
@@ -1147,7 +1147,7 @@ def _handle_assumption_list(*, config: ServerConfig, **payload: Any) -> dict:
                     f"Specification '{spec_id}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID via spec-list",
+                    remediation='Verify the spec ID via spec(action="list")',
                     request_id=request_id,
                 )
             )
@@ -1307,7 +1307,7 @@ def _handle_revision_add(*, config: ServerConfig, **payload: Any) -> dict:
                     f"Specification '{spec_id}' not found",
                     error_code=ErrorCode.SPEC_NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Verify the spec ID via spec-list",
+                    remediation='Verify the spec ID via spec(action="list")',
                     request_id=request_id,
                 )
             )

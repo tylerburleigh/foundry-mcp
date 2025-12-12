@@ -424,7 +424,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                                 f"Specification '{spec_id}' not found",
                                 error_code="SPEC_NOT_FOUND",
                                 error_type="not_found",
-                                remediation="Verify the spec ID exists using spec-list",
+                                remediation='Verify the spec ID exists using spec(action="list")',
                             )
                         )
                     elif "parent" in error.lower() or parent in error:
@@ -661,7 +661,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                                 f"Specification '{spec_id}' not found",
                                 error_code="SPEC_NOT_FOUND",
                                 error_type="not_found",
-                                remediation="Verify the spec ID exists using spec-list",
+                                remediation='Verify the spec ID exists using spec(action="list")',
                             )
                         )
                     else:
@@ -926,7 +926,7 @@ def register_authoring_tools(mcp: FastMCP, config: ServerConfig) -> None:
                                 f"Specification '{spec_id}' not found",
                                 error_code="SPEC_NOT_FOUND",
                                 error_type="not_found",
-                                remediation="Verify the spec ID exists using spec-list",
+                                remediation='Verify the spec ID exists using spec(action="list")',
                             )
                         )
                     elif "key" in error.lower():

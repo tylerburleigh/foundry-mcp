@@ -15,7 +15,11 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 
 from foundry_mcp.config import ServerConfig
-from foundry_mcp.core.responses import success_response, error_response, sanitize_error_message
+from foundry_mcp.core.responses import (
+    success_response,
+    error_response,
+    sanitize_error_message,
+)
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import audit_log, get_metrics
 from foundry_mcp.core.spec import find_specs_directory, find_spec_file, load_spec
@@ -74,20 +78,24 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             if not task_id:
-                return asdict(error_response(
-                    "task_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a task_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "task_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a task_id parameter",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -102,44 +110,52 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
             # Find and load spec
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                    remediation="Ensure specs/ directory exists in workspace",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                        remediation="Ensure specs/ directory exists in workspace",
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    remediation="Verify the spec ID exists using spec-list",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        remediation='Verify the spec ID exists using spec(action="list")',
+                    )
+                )
 
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    error_code="LOAD_ERROR",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        error_code="LOAD_ERROR",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
 
             # Get task from hierarchy
             hierarchy = spec_data.get("hierarchy", {})
             task = hierarchy.get(task_id)
             if not task:
-                return asdict(error_response(
-                    f"Task '{task_id}' not found in spec '{spec_id}'",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    remediation="Verify the task ID exists in the spec",
-                ))
+                return asdict(
+                    error_response(
+                        f"Task '{task_id}' not found in spec '{spec_id}'",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        remediation="Verify the task ID exists in the spec",
+                    )
+                )
 
             # Format the task plan directly from task data
             task_title = task.get("title", "Untitled Task")
@@ -178,24 +194,28 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
             _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                task_id=task_id,
-                title=task_title,
-                status=task_status,
-                formatted=formatted,
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    task_id=task_id,
+                    title=task_title,
+                    status=task_status,
+                    formatted=formatted,
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception(f"Unexpected error in {tool_name}")
             _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="planning"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="planning"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -233,12 +253,14 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -252,33 +274,39 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
             # Find and load spec
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                    remediation="Ensure specs/ directory exists in workspace",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                        remediation="Ensure specs/ directory exists in workspace",
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    remediation="Verify the spec ID exists using spec-list",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        remediation='Verify the spec ID exists using spec(action="list")',
+                    )
+                )
 
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    error_code="LOAD_ERROR",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        error_code="LOAD_ERROR",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
 
             # Use list_phases from core
             phases = list_phases(spec_data)
@@ -288,23 +316,27 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
             _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                phases=phases,
-                total_phases=len(phases),
-                completed_phases=completed_count,
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    phases=phases,
+                    total_phases=len(phases),
+                    completed_phases=completed_count,
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception(f"Unexpected error in {tool_name}")
             _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="planning"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="planning"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -349,21 +381,25 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             # Validate mutual exclusivity
             if phase_id and task_id:
-                return asdict(error_response(
-                    "phase_id and task_id are mutually exclusive",
-                    error_code="INVALID_PARAMS",
-                    error_type="validation",
-                    remediation="Provide either phase_id or task_id, not both",
-                ))
+                return asdict(
+                    error_response(
+                        "phase_id and task_id are mutually exclusive",
+                        error_code="INVALID_PARAMS",
+                        error_type="validation",
+                        remediation="Provide either phase_id or task_id, not both",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -389,33 +425,39 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
             # Find and load spec
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                    remediation="Ensure specs/ directory exists in workspace",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                        remediation="Ensure specs/ directory exists in workspace",
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    remediation="Verify the spec ID exists using spec-list",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        remediation='Verify the spec ID exists using spec(action="list")',
+                    )
+                )
 
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    error_code="LOAD_ERROR",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "spec_file": str(spec_file)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        error_code="LOAD_ERROR",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "spec_file": str(spec_file)},
+                    )
+                )
 
             # Get progress for scope using get_progress_summary
             root_id = phase_id or task_id or "spec-root"
@@ -446,7 +488,9 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
-            _metrics.counter(f"planning.{tool_name}", labels={"status": "success", "scope": scope})
+            _metrics.counter(
+                f"planning.{tool_name}", labels={"status": "success", "scope": scope}
+            )
 
             # Craft appropriate message
             if is_complete:
@@ -471,20 +515,24 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             elif task_id:
                 result_data["task_id"] = task_id
 
-            return asdict(success_response(
-                message=message,
-                **result_data,
-            ))
+            return asdict(
+                success_response(
+                    message=message,
+                    **result_data,
+                )
+            )
 
         except Exception as e:
             logger.exception(f"Unexpected error in {tool_name}")
             _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="planning"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="planning"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -526,20 +574,24 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             if not phase_id:
-                return asdict(error_response(
-                    "phase_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a phase_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "phase_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a phase_id parameter",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -554,40 +606,48 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
             # Find and load spec
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                    data={"spec_id": spec_id, "workspace": str(ws_path)},
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                        data={"spec_id": spec_id, "workspace": str(ws_path)},
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                    )
+                )
 
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    error_code="LOAD_ERROR",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        error_code="LOAD_ERROR",
+                        error_type="planning",
+                    )
+                )
 
             # Get phase data
             hierarchy = spec_data.get("hierarchy", {})
             phase = hierarchy.get(phase_id)
             if not phase:
-                return asdict(error_response(
-                    f"Phase '{phase_id}' not found in spec '{spec_id}'",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Phase '{phase_id}' not found in spec '{spec_id}'",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                    )
+                )
 
             # Calculate time metrics by traversing phase tasks
             estimated_hours = 0.0
@@ -612,34 +672,40 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             collect_task_times(phase_id)
 
             variance = actual_hours - estimated_hours
-            variance_pct = (variance / estimated_hours * 100) if estimated_hours > 0 else 0
+            variance_pct = (
+                (variance / estimated_hours * 100) if estimated_hours > 0 else 0
+            )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
             _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                phase_id=phase_id,
-                phase_title=phase.get("title", ""),
-                estimated_hours=round(estimated_hours, 2),
-                actual_hours=round(actual_hours, 2),
-                variance_hours=round(variance, 2),
-                variance_percent=round(variance_pct, 1),
-                task_count=task_count,
-                completed_count=completed_count,
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    phase_id=phase_id,
+                    phase_title=phase.get("title", ""),
+                    estimated_hours=round(estimated_hours, 2),
+                    actual_hours=round(actual_hours, 2),
+                    variance_hours=round(variance, 2),
+                    variance_percent=round(variance_pct, 1),
+                    task_count=task_count,
+                    completed_count=completed_count,
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception(f"Unexpected error in {tool_name}")
             _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="planning"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="planning"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -733,12 +799,14 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
         try:
             # Validate required parameters
             if not spec_id:
-                return asdict(error_response(
-                    "spec_id is required",
-                    error_code="MISSING_REQUIRED",
-                    error_type="validation",
-                    remediation="Provide a spec_id parameter",
-                ))
+                return asdict(
+                    error_response(
+                        "spec_id is required",
+                        error_code="MISSING_REQUIRED",
+                        error_type="validation",
+                        remediation="Provide a spec_id parameter",
+                    )
+                )
 
             # Resolve workspace path
             ws_path = Path(path) if path else Path.cwd()
@@ -752,29 +820,35 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
             )
 
             # Find and load spec
-            specs_dir = find_specs_directory(ws_path)
+            specs_dir = find_specs_directory(str(ws_path))
             if not specs_dir:
-                return asdict(error_response(
-                    f"Specs directory not found in {ws_path}",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specs directory not found in {ws_path}",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                    )
+                )
 
             spec_file = find_spec_file(spec_id, specs_dir)
             if not spec_file:
-                return asdict(error_response(
-                    f"Specification '{spec_id}' not found",
-                    error_code="NOT_FOUND",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Specification '{spec_id}' not found",
+                        error_code="NOT_FOUND",
+                        error_type="planning",
+                    )
+                )
 
-            spec_data = load_spec(spec_file)
+            spec_data = load_spec(spec_id, specs_dir)
             if not spec_data:
-                return asdict(error_response(
-                    f"Failed to load spec '{spec_id}'",
-                    error_code="LOAD_ERROR",
-                    error_type="planning",
-                ))
+                return asdict(
+                    error_response(
+                        f"Failed to load spec '{spec_id}'",
+                        error_code="LOAD_ERROR",
+                        error_type="planning",
+                    )
+                )
 
             hierarchy = spec_data.get("hierarchy", {})
 
@@ -799,7 +873,11 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 phase_completed = 0
 
                 def collect_phase_times(node_id: str) -> None:
-                    nonlocal phase_estimated, phase_actual, phase_task_count, phase_completed
+                    nonlocal \
+                        phase_estimated, \
+                        phase_actual, \
+                        phase_task_count, \
+                        phase_completed
                     node = hierarchy.get(node_id, {})
                     node_type = node.get("type", "")
                     if node_type in ("task", "subtask"):
@@ -814,14 +892,16 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
 
                 collect_phase_times(phase_id)
 
-                phase_summaries.append({
-                    "phase_id": phase_id,
-                    "title": phase.get("title", ""),
-                    "estimated_hours": round(phase_estimated, 2),
-                    "actual_hours": round(phase_actual, 2),
-                    "task_count": phase_task_count,
-                    "completed_count": phase_completed,
-                })
+                phase_summaries.append(
+                    {
+                        "phase_id": phase_id,
+                        "title": phase.get("title", ""),
+                        "estimated_hours": round(phase_estimated, 2),
+                        "actual_hours": round(phase_actual, 2),
+                        "task_count": phase_task_count,
+                        "completed_count": phase_completed,
+                    }
+                )
 
                 total_estimated += phase_estimated
                 total_actual += phase_actual
@@ -829,36 +909,44 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 completed_tasks += phase_completed
 
             variance = total_actual - total_estimated
-            variance_pct = (variance / total_estimated * 100) if total_estimated > 0 else 0
-            completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            variance_pct = (
+                (variance / total_estimated * 100) if total_estimated > 0 else 0
+            )
+            completion_rate = (
+                (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             _metrics.timer(f"planning.{tool_name}.duration_ms", duration_ms)
             _metrics.counter(f"planning.{tool_name}", labels={"status": "success"})
 
-            return asdict(success_response(
-                spec_id=spec_id,
-                spec_title=spec_data.get("metadata", {}).get("title", ""),
-                total_estimated_hours=round(total_estimated, 2),
-                total_actual_hours=round(total_actual, 2),
-                total_variance_hours=round(variance, 2),
-                total_variance_percent=round(variance_pct, 1),
-                phases=phase_summaries,
-                total_tasks=total_tasks,
-                completed_tasks=completed_tasks,
-                completion_rate=round(completion_rate, 1),
-                duration_ms=round(duration_ms, 2),
-            ))
+            return asdict(
+                success_response(
+                    spec_id=spec_id,
+                    spec_title=spec_data.get("metadata", {}).get("title", ""),
+                    total_estimated_hours=round(total_estimated, 2),
+                    total_actual_hours=round(total_actual, 2),
+                    total_variance_hours=round(variance, 2),
+                    total_variance_percent=round(variance_pct, 1),
+                    phases=phase_summaries,
+                    total_tasks=total_tasks,
+                    completed_tasks=completed_tasks,
+                    completion_rate=round(completion_rate, 1),
+                    duration_ms=round(duration_ms, 2),
+                )
+            )
 
         except Exception as e:
             logger.exception(f"Unexpected error in {tool_name}")
             _metrics.counter(f"planning.{tool_name}", labels={"status": "error"})
-            return asdict(error_response(
-                sanitize_error_message(e, context="planning"),
-                error_code="INTERNAL_ERROR",
-                error_type="internal",
-                remediation="Check logs for details",
-            ))
+            return asdict(
+                error_response(
+                    sanitize_error_message(e, context="planning"),
+                    error_code="INTERNAL_ERROR",
+                    error_type="internal",
+                    remediation="Check logs for details",
+                )
+            )
 
     @canonical_tool(
         mcp,
@@ -908,6 +996,6 @@ def register_planning_tools(mcp: FastMCP, config: ServerConfig) -> None:
                 },
                 remediation="Use the sdd-toolkit:sdd-plan-review skill which provides "
                 "multi-model AI consultation and comprehensive quality analysis. "
-                "For basic validation, use the spec-validate MCP tool.",
+                "For basic validation, use spec(action='validate').",
             )
         )
