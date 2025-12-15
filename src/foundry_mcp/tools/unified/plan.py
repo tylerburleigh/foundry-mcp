@@ -727,15 +727,8 @@ def register_unified_plan_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified plan tool")
 
 
-def legacy_plan_action(action: str, **payload: Any) -> dict:
-    """Expose dispatcher for legacy plan tools during migration."""
-
-    return _dispatch_plan_action(action=action, payload=payload)
-
-
 __all__ = [
     "register_unified_plan_tool",
-    "legacy_plan_action",
     "perform_plan_review",
     "perform_plan_create",
     "perform_plan_list",

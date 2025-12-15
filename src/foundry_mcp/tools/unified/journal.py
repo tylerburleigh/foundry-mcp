@@ -836,21 +836,6 @@ def register_unified_journal_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified journal tool")
 
 
-def legacy_journal_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy journal tools."""
-
-    return _dispatch_journal_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_journal_tool",
-    "legacy_journal_action",
-    "perform_journal_add",
-    "perform_journal_list",
-    "perform_journal_list_unjournaled",
 ]

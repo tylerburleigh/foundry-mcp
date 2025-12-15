@@ -521,13 +521,6 @@ def register_unified_server_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified server tool")
 
 
-def legacy_server_action(action: str, *, config: ServerConfig, **payload: Any) -> dict:
-    """Dispatcher entry point for legacy discovery/context tools."""
-
-    return _dispatch_server_action(action=action, payload=dict(payload), config=config)
-
-
 __all__ = [
-    "legacy_server_action",
     "register_unified_server_tool",
 ]

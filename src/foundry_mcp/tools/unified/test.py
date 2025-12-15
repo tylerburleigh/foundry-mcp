@@ -340,21 +340,6 @@ def register_unified_test_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified test tool")
 
 
-def legacy_test_action(action: str, *, config: ServerConfig, **payload: Any) -> dict:
-    """Dispatcher entry point for legacy test tools."""
-
-    return _dispatch_test_action(action=action, payload=dict(payload), config=config)
-
-
-def list_test_presets() -> dict:
-    """Helper used by CLI tooling to expose preset metadata."""
-
-    presets = get_presets()
-    return asdict(success_response(presets=presets, available=list(presets.keys())))
-
-
 __all__ = [
-    "legacy_test_action",
-    "list_test_presets",
     "register_unified_test_tool",
 ]

@@ -276,15 +276,6 @@ def register_unified_pr_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified pr tool")
 
 
-def legacy_pr_action(action: str, **payload: Any) -> dict:
-    """Expose dispatcher for legacy pr tools."""
-
-    return _dispatch_pr_action(action=action, payload=payload)
-
-
 __all__ = [
     "register_unified_pr_tool",
-    "perform_pr_create_with_spec",
-    "perform_pr_get_context",
-    "legacy_pr_action",
 ]

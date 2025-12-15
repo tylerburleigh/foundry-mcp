@@ -452,20 +452,8 @@ def register_unified_error_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified error tool")
 
 
-def legacy_error_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy error tools."""
-
-    return _dispatch_error_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_error_tool",
-    "legacy_error_action",
     "perform_error_list",
     "perform_error_get",
     "perform_error_stats",

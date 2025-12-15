@@ -643,13 +643,6 @@ def register_unified_spec_tool(mcp: FastMCP, config: ServerConfig) -> None:
         return _dispatch_spec_action(action=action, payload=payload, config=config)
 
 
-def legacy_spec_action(action: str, *, config: ServerConfig, **payload: Any) -> dict:
-    """Expose dispatcher for legacy spec tools during migration."""
-
-    return _dispatch_spec_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_spec_tool",
-    "legacy_spec_action",
 ]

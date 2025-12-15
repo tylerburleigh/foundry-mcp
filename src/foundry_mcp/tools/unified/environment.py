@@ -934,21 +934,6 @@ def register_unified_environment_tool(mcp: FastMCP, config: ServerConfig) -> Non
     logger.debug("Registered unified environment tool")
 
 
-def legacy_environment_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy environment tools during migration."""
-
-    return _dispatch_environment_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_environment_tool",
-    "legacy_environment_action",
-    "_update_permissions",
-    "_write_default_toml",
-    "_init_specs_directory",
 ]

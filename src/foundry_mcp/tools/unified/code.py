@@ -950,11 +950,6 @@ def register_unified_code_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified code tool")
 
 
-def legacy_code_action(action: str, *, config: ServerConfig, **payload: Any) -> dict:
-    return _dispatch_code_action(action=action, payload=dict(payload), config=config)
-
-
 __all__ = [
-    "legacy_code_action",
     "register_unified_code_tool",
 ]

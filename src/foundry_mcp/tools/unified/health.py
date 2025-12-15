@@ -208,16 +208,6 @@ def register_unified_health_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified health tool")
 
 
-def legacy_health_action(action: str, *, include_details: bool = True) -> dict:
-    """Expose action dispatcher for legacy tools during transition."""
-
-    return _dispatch_health_action(action=action, include_details=include_details)
-
-
 __all__ = [
     "register_unified_health_tool",
-    "perform_health_liveness",
-    "perform_health_readiness",
-    "perform_health_check",
-    "legacy_health_action",
 ]

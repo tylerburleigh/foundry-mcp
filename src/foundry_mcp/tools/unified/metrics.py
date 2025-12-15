@@ -767,20 +767,8 @@ def register_unified_metrics_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified metrics tool")
 
 
-def legacy_metrics_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy metrics tools."""
-
-    return _dispatch_metrics_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_metrics_tool",
-    "legacy_metrics_action",
     "perform_metrics_query",
     "perform_metrics_list",
     "perform_metrics_summary",

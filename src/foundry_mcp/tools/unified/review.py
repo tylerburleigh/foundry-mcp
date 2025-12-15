@@ -559,13 +559,6 @@ def register_unified_review_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified review tool")
 
 
-def legacy_review_action(action: str, *, config: ServerConfig, **payload: Any) -> dict:
-    """Expose dispatcher for legacy review tools during migration."""
-
-    return _dispatch_review_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_review_tool",
-    "legacy_review_action",
 ]

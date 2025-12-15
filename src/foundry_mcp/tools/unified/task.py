@@ -2200,18 +2200,6 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified task tool")
 
 
-def legacy_task_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy task tools during migration."""
-
-    return _dispatch_task_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_task_tool",
-    "legacy_task_action",
 ]

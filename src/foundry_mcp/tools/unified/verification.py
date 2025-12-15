@@ -515,18 +515,6 @@ def register_unified_verification_tool(mcp: FastMCP, config: ServerConfig) -> No
     logger.debug("Registered unified verification tool")
 
 
-def legacy_verification_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy verification tools during migration."""
-
-    return _dispatch_verification_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_verification_tool",
-    "legacy_verification_action",
 ]

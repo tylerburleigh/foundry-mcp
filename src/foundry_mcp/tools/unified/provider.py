@@ -624,18 +624,6 @@ def register_unified_provider_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified provider tool")
 
 
-def legacy_provider_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy provider tools during migration."""
-
-    return _dispatch_provider_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_provider_tool",
-    "legacy_provider_action",
 ]

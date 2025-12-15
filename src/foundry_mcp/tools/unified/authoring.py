@@ -1482,18 +1482,6 @@ def register_unified_authoring_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified authoring tool")
 
 
-def legacy_authoring_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy authoring tools during migration."""
-
-    return _dispatch_authoring_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_authoring_tool",
-    "legacy_authoring_action",
 ]
