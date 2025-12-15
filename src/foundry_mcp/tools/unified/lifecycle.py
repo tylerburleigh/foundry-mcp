@@ -560,31 +560,26 @@ _LIFECYCLE_ROUTER = ActionRouter(
             name="move",
             handler=_handle_move,
             summary=_ACTION_SUMMARY["move"],
-            aliases=("spec_lifecycle_move", "spec-lifecycle-move"),
         ),
         ActionDefinition(
             name="activate",
             handler=_handle_activate,
             summary=_ACTION_SUMMARY["activate"],
-            aliases=("spec_lifecycle_activate", "spec-lifecycle-activate"),
         ),
         ActionDefinition(
             name="complete",
             handler=_handle_complete,
             summary=_ACTION_SUMMARY["complete"],
-            aliases=("spec_lifecycle_complete", "spec-lifecycle-complete"),
         ),
         ActionDefinition(
             name="archive",
             handler=_handle_archive,
             summary=_ACTION_SUMMARY["archive"],
-            aliases=("spec_lifecycle_archive", "spec-lifecycle-archive"),
         ),
         ActionDefinition(
             name="state",
             handler=_handle_state,
             summary=_ACTION_SUMMARY["state"],
-            aliases=("spec_lifecycle_state", "spec-lifecycle-state"),
         ),
     ],
 )
@@ -632,18 +627,6 @@ def register_unified_lifecycle_tool(mcp: FastMCP, config: ServerConfig) -> None:
     logger.debug("Registered unified lifecycle tool")
 
 
-def legacy_lifecycle_action(
-    action: str,
-    *,
-    config: ServerConfig,
-    **payload: Any,
-) -> dict:
-    """Expose dispatcher for legacy lifecycle tools during migration."""
-
-    return _dispatch_lifecycle_action(action=action, payload=payload, config=config)
-
-
 __all__ = [
     "register_unified_lifecycle_tool",
-    "legacy_lifecycle_action",
 ]

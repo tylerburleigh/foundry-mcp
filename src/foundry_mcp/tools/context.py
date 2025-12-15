@@ -1,8 +1,7 @@
-"""
-Server context tools for foundry-mcp.
+"""Server context helpers for foundry-mcp.
 
-Provides MCP tools for querying server capabilities, workspace info,
-and configuration (with sensitive data masked).
+Used by the unified `server(action=...)` router to build context and LLM status
+responses without registering additional top-level tools.
 """
 
 import json
@@ -11,14 +10,9 @@ import time
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from mcp.server.fastmcp import FastMCP
-
 from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.capabilities import get_capabilities_registry
-from foundry_mcp.core.discovery import get_tool_registry
-from foundry_mcp.core.feature_flags import get_flag_service
-from foundry_mcp.core.observability import get_metrics, mcp_tool
-from foundry_mcp.core.naming import canonical_tool
+from foundry_mcp.core.observability import get_metrics
 from foundry_mcp.core.responses import (
     success_response,
     error_response,
@@ -165,7 +159,7 @@ def build_server_context_response(
             status = _context_breaker.get_status()
             metrics.counter(
                 "context.circuit_breaker_open",
-                labels={"tool": "get-server-context"},
+                labels={"tool": "server"},
             )
             return asdict(
                 error_response(
@@ -233,21 +227,13 @@ def build_server_context_response(
             }
 
         # Report manifest size so `/context` can validate token reduction.
-        flag_service = get_flag_service()
-        unified_enabled = flag_service.is_enabled("unified_manifest")
-        manifest_mode = "unified" if unified_enabled else "legacy"
-
-        manifest_payload: list[Any]
-        if unified_enabled:
-            manifest = get_capabilities_registry().load_manifest()
-            manifest_payload = (
-                manifest.get("tools", {}).get("unified", [])
-                if isinstance(manifest, dict)
-                else []
-            )
-        else:
-            registry = get_tool_registry()
-            manifest_payload = registry.list_tools(include_deprecated=True)
+        manifest = get_capabilities_registry().load_manifest()
+        manifest_payload: list[Any] = (
+            manifest.get("tools", {}).get("unified", [])
+            if isinstance(manifest, dict)
+            else []
+        )
+        manifest_mode = "unified"
 
         manifest_tokens = _estimate_tokens(
             json.dumps(
@@ -265,7 +251,7 @@ def build_server_context_response(
             "token_budget_max": MANIFEST_TOKEN_BUDGET_MAX,
         }
 
-        if unified_enabled and manifest_tokens > MANIFEST_TOKEN_BUDGET:
+        if manifest_tokens > MANIFEST_TOKEN_BUDGET:
             warnings.append(
                 "Manifest token estimate exceeds budget; run server(action=tools) to inspect action metadata."
             )
@@ -275,7 +261,7 @@ def build_server_context_response(
         metrics.histogram(
             "context.duration_ms",
             duration_ms,
-            labels={"tool": "get-server-context"},
+            labels={"tool": "server"},
         )
 
         return asdict(
@@ -329,7 +315,7 @@ def build_llm_status_response(*, request_id: Optional[str] = None) -> dict:
         metrics.histogram(
             "context.duration_ms",
             duration_ms,
-            labels={"tool": "get-llm-status"},
+            labels={"tool": "server"},
         )
 
         return asdict(
@@ -350,85 +336,7 @@ def build_llm_status_response(*, request_id: Optional[str] = None) -> dict:
         )
 
 
-def register_context_tools(mcp: FastMCP, config: ServerConfig) -> None:
-    """
-    Register context tools with the FastMCP server.
-
-    Args:
-        mcp: FastMCP server instance
-        config: Server configuration
-    """
-    metrics = get_metrics()
-
-    @canonical_tool(
-        mcp,
-        canonical_name="get-server-context",
-    )
-    @mcp_tool(tool_name="get-server-context", emit_metrics=True, audit=False)
-    def get_server_context(
-        include_llm: bool = True,
-        include_workflow: bool = True,
-        include_workspace: bool = True,
-        include_capabilities: bool = True,
-    ) -> dict:
-        """
-        Get server context including capabilities, workspace info, and configuration.
-
-        Returns workspace paths, LLM provider settings (with masked secrets),
-        workflow configuration, and negotiated capabilities.
-
-        Args:
-            include_llm: Include LLM provider configuration
-            include_workflow: Include workflow mode configuration
-            include_workspace: Include workspace paths and spec directory info
-            include_capabilities: Include server capabilities and feature flags
-
-        Returns:
-            JSON object with:
-            - server: Server name and version
-            - workspace: Paths and spec directory info (if requested)
-            - llm: LLM provider config with masked API keys (if requested)
-            - workflow: Workflow mode settings (if requested)
-            - capabilities: Enabled features and tool categories (if requested)
-
-        WHEN TO USE:
-        - Discover server capabilities before using features
-        - Check which LLM provider is configured
-        - Verify workspace paths are correct
-        - Debug configuration issues
-        - Check workflow mode before starting tasks
-        """
-        return build_server_context_response(
-            config,
-            include_llm=include_llm,
-            include_workflow=include_workflow,
-            include_workspace=include_workspace,
-            include_capabilities=include_capabilities,
-        )
-
-    @canonical_tool(
-        mcp,
-        canonical_name="get-llm-status",
-    )
-    @mcp_tool(tool_name="get-llm-status", emit_metrics=True, audit=False)
-    def get_llm_status() -> dict:
-        """
-        Get LLM provider status and health check.
-
-        Returns current LLM configuration and performs a lightweight
-        connectivity check if possible.
-
-        Returns:
-            JSON object with:
-            - provider: Current provider type
-            - model: Configured model
-            - configured: Whether API key is available
-            - source: Where API key is sourced from
-            - health: Provider health status (if checkable)
-
-        WHEN TO USE:
-        - Verify LLM provider is correctly configured
-        - Check API key availability before LLM operations
-        - Debug LLM connection issues
-        """
-        return build_llm_status_response()
+__all__ = [
+    "build_llm_status_response",
+    "build_server_context_response",
+]

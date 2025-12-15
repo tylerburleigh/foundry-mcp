@@ -13,7 +13,6 @@ import pytest
 from pathlib import Path
 from foundry_mcp.server import create_server
 from foundry_mcp.config import ServerConfig
-from foundry_mcp.core.feature_flags import get_flag_service
 
 
 # =============================================================================
@@ -144,15 +143,8 @@ def mcp_server(test_config):
     return create_server(test_config)
 
 
-def _unified_manifest_enabled() -> bool:
-    return get_flag_service().is_enabled("unified_manifest")
-
-
 def _call_tool(tools, tool_name: str, **kwargs):
-    """Call legacy tools or unified routers depending on flags."""
-
-    if not _unified_manifest_enabled():
-        return tools[tool_name].fn(**kwargs)
+    """Call unified routers for authoring workflows."""
 
     if tool_name in {
         "spec-create",
@@ -195,128 +187,68 @@ class TestAuthoringToolsRegistration:
     def test_spec_create_registered(self, mcp_server):
         """Test that spec creation entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "spec-create" in tools
-            assert callable(tools["spec-create"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_spec_template_registered(self, mcp_server):
         """Test that spec template entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "spec-template" in tools
-            assert callable(tools["spec-template"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_task_add_registered(self, mcp_server):
         """Test that task add entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "task" in tools
-            assert callable(tools["task"].fn)
-        else:
-            assert "task-add" in tools
-            assert callable(tools["task-add"].fn)
+        assert "task" in tools
+        assert callable(tools["task"].fn)
 
     def test_phase_add_registered(self, mcp_server):
         """Test that phase add entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "phase-add" in tools
-            assert callable(tools["phase-add"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_task_remove_registered(self, mcp_server):
         """Test that task remove entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "task" in tools
-            assert callable(tools["task"].fn)
-        else:
-            assert "task-remove" in tools
-            assert callable(tools["task-remove"].fn)
+        assert "task" in tools
+        assert callable(tools["task"].fn)
 
     def test_assumption_add_registered(self, mcp_server):
         """Test that assumption add entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "assumption-add" in tools
-            assert callable(tools["assumption-add"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_assumption_list_registered(self, mcp_server):
         """Test that assumption list entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "assumption-list" in tools
-            assert callable(tools["assumption-list"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_revision_add_registered(self, mcp_server):
         """Test that revision add entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "revision-add" in tools
-            assert callable(tools["revision-add"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_spec_update_frontmatter_registered(self, mcp_server):
         """Test that spec update frontmatter entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "spec-update-frontmatter" in tools
-            assert callable(tools["spec-update-frontmatter"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_phase_remove_registered(self, mcp_server):
         """Test that phase remove entrypoint is registered."""
         tools = mcp_server._tool_manager._tools
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert callable(tools["authoring"].fn)
-        else:
-            assert "phase-remove" in tools
-            assert callable(tools["phase-remove"].fn)
+        assert "authoring" in tools
+        assert callable(tools["authoring"].fn)
 
     def test_all_authoring_tools_count(self, mcp_server):
-        """Test that authoring tools are registered."""
+        """Test that authoring surface is registered."""
         tools = mcp_server._tool_manager._tools
-
-        if _unified_manifest_enabled():
-            assert "authoring" in tools
-            assert "task" in tools
-            return
-
-        authoring_tools = [
-            "spec-create",
-            "spec-template",
-            "task-add",
-            "phase-add",
-            "phase-remove",
-            "task-remove",
-            "assumption-add",
-            "assumption-list",
-            "revision-add",
-            "spec-update-frontmatter",
-        ]
-        registered = [t for t in authoring_tools if t in tools]
-        assert len(registered) == 10, (
-            f"Expected 10 authoring tools, got {len(registered)}: {registered}"
-        )
+        assert "authoring" in tools
+        assert "task" in tools
 
 
 # =============================================================================

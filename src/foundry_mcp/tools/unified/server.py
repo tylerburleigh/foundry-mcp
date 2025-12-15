@@ -1,7 +1,7 @@
 """Unified server discovery tool with action routing.
 
 Consolidates discovery/context helpers into a single `server(action=...)` tool.
-Legacy tools remain registered for backward compatibility.
+Only the unified tool surface is exposed.
 """
 
 from __future__ import annotations
@@ -368,7 +368,7 @@ def _handle_schema(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         return _validation_error(
             message="tool_name is required",
             request_id=request_id,
-            remediation="Provide a tool name like 'spec-get'",
+            remediation="Provide a tool name like 'spec'",
         )
 
     registry = get_tool_registry()

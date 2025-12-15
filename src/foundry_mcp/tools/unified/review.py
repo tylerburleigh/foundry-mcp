@@ -1,8 +1,7 @@
 """Unified review tooling with action routing.
 
-Consolidates spec review, review tool discovery, and (optionally) fidelity review
-into a single `review(action=...)` entry point while keeping legacy tools as thin
-delegates.
+Consolidates spec review, review tool discovery, and fidelity review
+into a single `review(action=...)` entry point.
 """
 
 from __future__ import annotations
@@ -42,10 +41,8 @@ from foundry_mcp.tools.documentation import (
 )
 from foundry_mcp.tools.review import (
     DEFAULT_AI_TIMEOUT,
-    LEGACY_REVIEW_TOOLS,
     REVIEW_TYPES,
     _get_llm_status,
-    _is_provider_integration_enabled,
     _run_ai_review,
     _run_quick_review,
 )
@@ -137,31 +134,18 @@ def _handle_list_tools(*, config: ServerConfig, payload: Dict[str, Any]) -> dict
 
     try:
         llm_status = _get_llm_status()
-        use_provider_integration = _is_provider_integration_enabled()
 
-        if use_provider_integration:
-            provider_statuses = get_provider_statuses()
-            tools_info = [
-                {
-                    "name": provider_id,
-                    "available": is_available,
-                    "status": "available" if is_available else "unavailable",
-                    "reason": None,
-                    "checked_at": None,
-                }
-                for provider_id, is_available in provider_statuses.items()
-            ]
-        else:
-            tools_info = [
-                {
-                    "name": tool,
-                    "available": None,
-                    "status": "unknown",
-                    "reason": "Legacy mode - external shell check required",
-                    "checked_at": None,
-                }
-                for tool in LEGACY_REVIEW_TOOLS
-            ]
+        provider_statuses = get_provider_statuses()
+        tools_info = [
+            {
+                "name": provider_id,
+                "available": is_available,
+                "status": "available" if is_available else "unavailable",
+                "reason": None,
+                "checked_at": None,
+            }
+            for provider_id, is_available in provider_statuses.items()
+        ]
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         _metrics.timer("review.review_list_tools.duration_ms", duration_ms)
@@ -174,7 +158,6 @@ def _handle_list_tools(*, config: ServerConfig, payload: Dict[str, Any]) -> dict
                 available_count=sum(1 for tool in tools_info if tool.get("available")),
                 total_count=len(tools_info),
                 duration_ms=round(duration_ms, 2),
-                provider_integration=use_provider_integration,
             )
         )
 

@@ -1,12 +1,10 @@
-"""Integration tests for advanced SDD CLI workflows.
+"""Integration tests for the structured CLI groups.
 
-Tests cover:
-- Render workflows (basic and enhanced modes)
-- Doc-query workflows (find-class, find-function, trace-calls)
-- Spec modification workflows (apply, task add/remove)
-- Run-tests workflows (presets, discovery)
-- LLM doc generation workflows
-- Dev utility workflows
+Covers:
+- `modify` commands
+- `test` commands
+- `dev` commands
+- Cross-group registration
 """
 
 import json
@@ -215,20 +213,3 @@ class TestCrossWorkflowIntegration:
         ]
         for group in expected_groups:
             assert group in result.output, f"Missing command group: {group}"
-
-    def test_all_top_level_aliases_registered(self, cli_runner, temp_specs_dir):
-        """All top-level command aliases are registered."""
-        result = cli_runner.invoke(cli, ["--specs-dir", str(temp_specs_dir), "--help"])
-        assert result.exit_code == 0
-
-        # Check key aliases
-        expected_aliases = [
-            "create",
-            "analyze",
-            "next-task",
-            "review-spec",
-            "create-pr",
-            "run-tests",
-        ]
-        for alias in expected_aliases:
-            assert alias in result.output, f"Missing alias: {alias}"

@@ -130,7 +130,7 @@ def review_group() -> None:
     help="Show what would be reviewed without executing.",
 )
 @click.pass_context
-@cli_command("review-spec")
+@cli_command("spec")
 @handle_keyboard_interrupt()
 @with_sync_timeout(SLOW_TIMEOUT, "Review timed out")
 def review_spec_cmd(
@@ -208,7 +208,7 @@ def review_spec_cmd(
 
 @review_group.command("tools")
 @click.pass_context
-@cli_command("review-tools")
+@cli_command("tools")
 @handle_keyboard_interrupt()
 @with_sync_timeout(FAST_TIMEOUT, "Review tools lookup timed out")
 def review_tools_cmd(ctx: click.Context) -> None:
@@ -248,7 +248,7 @@ def review_tools_cmd(ctx: click.Context) -> None:
 
 @review_group.command("plan-tools")
 @click.pass_context
-@cli_command("review-plan-tools")
+@cli_command("plan-tools")
 @handle_keyboard_interrupt()
 @with_sync_timeout(FAST_TIMEOUT, "Plan tools lookup timed out")
 def review_plan_tools_cmd(ctx: click.Context) -> None:
@@ -364,7 +364,7 @@ def review_plan_tools_cmd(ctx: click.Context) -> None:
     help="Bypass AI consultation cache (always query providers fresh).",
 )
 @click.pass_context
-@cli_command("review-fidelity")
+@cli_command("fidelity")
 @handle_keyboard_interrupt()
 @with_sync_timeout(FIDELITY_TIMEOUT, "Fidelity review timed out")
 def review_fidelity_cmd(
@@ -1116,52 +1116,3 @@ def _get_child_nodes(
             if child_node:
                 resolved.append(child_node)
     return resolved
-
-
-# Top-level aliases
-@click.command("review-spec")
-@click.argument("spec_id")
-@click.option(
-    "--type",
-    "review_type",
-    type=click.Choice(REVIEW_TYPES),
-    default="quick",
-    help="Type of review to perform.",
-)
-@click.option(
-    "--ai-provider",
-    help="Explicit AI provider selection.",
-)
-@click.option(
-    "--ai-timeout",
-    type=float,
-    default=DEFAULT_AI_TIMEOUT,
-    help="AI consultation timeout.",
-)
-@click.option(
-    "--no-consultation-cache",
-    is_flag=True,
-    help="Bypass AI consultation cache.",
-)
-@click.pass_context
-@cli_command("review-spec-alias")
-@handle_keyboard_interrupt()
-@with_sync_timeout(SLOW_TIMEOUT, "Review timed out")
-def review_spec_alias_cmd(
-    ctx: click.Context,
-    spec_id: str,
-    review_type: str,
-    ai_provider: Optional[str],
-    ai_timeout: float,
-    no_consultation_cache: bool,
-) -> None:
-    """Run a structural or AI-powered review on a specification (alias)."""
-    # Delegate to main command
-    ctx.invoke(
-        review_spec_cmd,
-        spec_id=spec_id,
-        review_type=review_type,
-        ai_provider=ai_provider,
-        ai_timeout=ai_timeout,
-        no_consultation_cache=no_consultation_cache,
-    )

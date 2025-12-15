@@ -1,86 +1,38 @@
-"""
-Review tools for foundry-mcp.
+"""Review helpers for the unified `review(action=...)` router.
 
-Provides MCP tools for spec review including:
-- Quick structural review (no LLM required)
-- AI-powered full/security/feasibility reviews via ConsultationOrchestrator
-
-AI-enhanced reviews use:
-- PLAN_REVIEW_FULL_V1: Comprehensive 6-dimension review
-- PLAN_REVIEW_QUICK_V1: Critical blockers and questions focus
-- PLAN_REVIEW_SECURITY_V1: Security-focused review
-- PLAN_REVIEW_FEASIBILITY_V1: Technical complexity assessment
+This module contains the reusable review execution functions (quick structural
+review + AI-backed plan review). It intentionally does not register any
+standalone MCP tools.
 """
+
+from __future__ import annotations
 
 import json
 import logging
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from mcp.server.fastmcp import FastMCP
-
-from foundry_mcp.config import ServerConfig
-from foundry_mcp.core.responses import (
-    success_response,
-    error_response,
-    sanitize_error_message,
-)
-from foundry_mcp.core.naming import canonical_tool
-from foundry_mcp.core.observability import get_metrics, mcp_tool
-from foundry_mcp.core.providers import (
-    get_provider_statuses,
-    available_providers,
-)
+from foundry_mcp.core.observability import get_metrics
+from foundry_mcp.core.responses import error_response, success_response
 
 logger = logging.getLogger(__name__)
-
-# Metrics singleton for review tools
 _metrics = get_metrics()
 
-# Available review types
 REVIEW_TYPES = ["quick", "full", "security", "feasibility"]
-
-# Map review types to PLAN_REVIEW templates
 REVIEW_TYPE_TO_TEMPLATE = {
     "full": "PLAN_REVIEW_FULL_V1",
     "security": "PLAN_REVIEW_SECURITY_V1",
     "feasibility": "PLAN_REVIEW_FEASIBILITY_V1",
 }
 
-# Default AI consultation timeout
 DEFAULT_AI_TIMEOUT = 120.0
-
-# Legacy list - used as fallback when review_provider_integration flag is disabled
-LEGACY_REVIEW_TOOLS = ["cursor-agent", "gemini", "codex"]
-
-# Feature flag name for provider integration
-REVIEW_PROVIDER_FLAG = "review_provider_integration"
-
-
-def _is_provider_integration_enabled() -> bool:
-    """Check if provider integration feature flag is enabled.
-
-    Returns:
-        True if provider integration should be used, False for legacy behavior.
-    """
-    # Default to True (use provider integration)
-    # This can be overridden by environment variable for rollback
-    import os
-
-    flag_override = os.environ.get("FOUNDRY_REVIEW_PROVIDER_INTEGRATION", "").lower()
-    if flag_override == "false" or flag_override == "0":
-        return False
-    return True
 
 
 def _get_llm_status() -> Dict[str, Any]:
-    """Get LLM configuration status for review operations.
+    """Return basic LLM configuration status."""
 
-    Returns:
-        Dict with LLM status info
-    """
     try:
         from foundry_mcp.core.llm_config import get_llm_config
 
@@ -92,42 +44,25 @@ def _get_llm_status() -> Dict[str, Any]:
         }
     except ImportError:
         return {"configured": False, "error": "LLM config not available"}
-    except Exception as e:
-        logger.debug(f"Failed to get LLM config: {e}")
+    except Exception as exc:
+        logger.debug("Failed to get LLM config: %s", exc)
         return {"configured": False, "error": "Failed to load LLM configuration"}
 
 
 def _run_quick_review(
+    *,
     spec_id: str,
     path: Optional[str],
     dry_run: bool,
     llm_status: Dict[str, Any],
     start_time: float,
 ) -> dict:
-    """
-    Run a quick (non-LLM) structural review.
+    """Run a quick (non-LLM) structural review."""
 
-    Args:
-        spec_id: Specification ID to review
-        path: Project root path
-        dry_run: Preview without executing
-        llm_status: LLM configuration status
-        start_time: Start time for duration calculation
-
-    Returns:
-        Dict with review results
-    """
-    from foundry_mcp.core.review import quick_review, prepare_review_context
+    from foundry_mcp.core.review import quick_review
     from foundry_mcp.core.spec import find_specs_directory
 
-    # Resolve specs directory
-    specs_dir = None
-    if path:
-        specs_dir = Path(path) / "specs"
-        if not specs_dir.exists():
-            specs_dir = find_specs_directory(path)
-    else:
-        specs_dir = find_specs_directory()
+    specs_dir = find_specs_directory(path) if path else find_specs_directory()
 
     if dry_run:
         duration_ms = (time.perf_counter() - start_time) * 1000
@@ -142,21 +77,19 @@ def _run_quick_review(
             )
         )
 
-    # Run quick review
     result = quick_review(spec_id=spec_id, specs_dir=specs_dir)
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    # Convert findings to dicts
     findings = [
         {
-            "code": f.code,
-            "message": f.message,
-            "severity": f.severity,
-            "category": f.category,
-            "location": f.location,
-            "suggestion": f.suggestion,
+            "code": finding.code,
+            "message": finding.message,
+            "severity": finding.severity,
+            "category": finding.category,
+            "location": finding.location,
+            "suggestion": finding.suggestion,
         }
-        for f in result.findings
+        for finding in result.findings
     ]
 
     return asdict(
@@ -177,6 +110,7 @@ def _run_quick_review(
 
 
 def _run_ai_review(
+    *,
     spec_id: str,
     review_type: str,
     ai_provider: Optional[str],
@@ -187,36 +121,13 @@ def _run_ai_review(
     llm_status: Dict[str, Any],
     start_time: float,
 ) -> dict:
-    """
-    Run an AI-powered review using ConsultationOrchestrator.
+    """Run an AI-backed plan review using ConsultationOrchestrator."""
 
-    Args:
-        spec_id: Specification ID to review
-        review_type: Type of review (full, security, feasibility)
-        ai_provider: Explicit provider selection
-        ai_timeout: Consultation timeout in seconds
-        consultation_cache: Whether to use consultation cache
-        path: Project root path
-        dry_run: Preview without executing
-        llm_status: LLM configuration status
-        start_time: Start time for duration calculation
-
-    Returns:
-        Dict with review results
-    """
     from foundry_mcp.core.review import prepare_review_context
     from foundry_mcp.core.spec import find_specs_directory
 
-    # Resolve specs directory
-    specs_dir = None
-    if path:
-        specs_dir = Path(path) / "specs"
-        if not specs_dir.exists():
-            specs_dir = find_specs_directory(path)
-    else:
-        specs_dir = find_specs_directory()
+    specs_dir = find_specs_directory(path) if path else find_specs_directory()
 
-    # Get template for review type
     template_id = REVIEW_TYPE_TO_TEMPLATE.get(review_type)
     if template_id is None:
         return asdict(
@@ -229,7 +140,6 @@ def _run_ai_review(
             )
         )
 
-    # Prepare review context
     context = prepare_review_context(
         spec_id=spec_id,
         specs_dir=specs_dir,
@@ -244,11 +154,10 @@ def _run_ai_review(
                 error_code="SPEC_NOT_FOUND",
                 error_type="not_found",
                 data={"spec_id": spec_id},
-                remediation="Verify the spec ID and that the spec exists in the specs directory",
+                remediation="Verify the spec_id exists in specs/",
             )
         )
 
-    # Dry run - preview what would be reviewed
     if dry_run:
         duration_ms = (time.perf_counter() - start_time) * 1000
         return asdict(
@@ -267,38 +176,23 @@ def _run_ai_review(
             )
         )
 
-    # Import consultation layer components
-    try:
-        from foundry_mcp.core.ai_consultation import (
-            ConsensusResult,
-            ConsultationOrchestrator,
-            ConsultationRequest,
-            ConsultationWorkflow,
-        )
-    except ImportError as exc:
-        logger.debug(f"AI consultation import error: {exc}")
-        return asdict(
-            error_response(
-                "AI consultation layer not available",
-                error_code="AI_NOT_AVAILABLE",
-                error_type="unavailable",
-                remediation="Ensure foundry_mcp.core.ai_consultation is properly installed",
-            )
-        )
+    from foundry_mcp.core.ai_consultation import (
+        ConsensusResult,
+        ConsultationOrchestrator,
+        ConsultationRequest,
+        ConsultationWorkflow,
+    )
 
-    # Initialize orchestrator with preferred provider if specified
-    preferred_providers = [ai_provider] if ai_provider else []
     orchestrator = ConsultationOrchestrator(
-        preferred_providers=preferred_providers,
+        preferred_providers=[ai_provider] if ai_provider else [],
         default_timeout=ai_timeout,
     )
 
-    # Check if any providers are available
     if not orchestrator.is_available(provider_id=ai_provider):
         provider_msg = f" (requested: {ai_provider})" if ai_provider else ""
         _metrics.counter(
             "review.errors",
-            labels={"tool": "spec-review", "error_type": "ai_no_provider"},
+            labels={"tool": "review", "error_type": "ai_no_provider"},
         )
         return asdict(
             error_response(
@@ -311,15 +205,11 @@ def _run_ai_review(
                     "requested_provider": ai_provider,
                     "llm_status": llm_status,
                 },
-                remediation="Install and configure an AI provider (gemini, cursor-agent, codex) "
-                "or use review_type='quick' for non-AI review.",
+                remediation="Install/configure an AI provider or use review_type='quick'",
             )
         )
 
-    # Build context for prompt template
     spec_content = json.dumps(context.spec_data, indent=2)
-
-    # Create consultation request - orchestrator handles prompt building
     request = ConsultationRequest(
         workflow=ConsultationWorkflow.PLAN_REVIEW,
         prompt_id=template_id,
@@ -333,41 +223,36 @@ def _run_ai_review(
         timeout=ai_timeout,
     )
 
-    # Execute consultation
     try:
         result = orchestrator.consult(request, use_cache=consultation_cache)
     except Exception as exc:
-        logger.exception(f"AI consultation failed for {spec_id}")
+        logger.exception("AI consultation failed for %s", spec_id)
         return asdict(
             error_response(
                 "AI consultation failed",
                 error_code="AI_CONSULTATION_ERROR",
                 error_type="error",
-                data={
-                    "spec_id": spec_id,
-                    "review_type": review_type,
-                },
+                data={"spec_id": spec_id, "review_type": review_type},
                 remediation="Check provider configuration and try again",
             )
         )
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
-    # Build response - handle both single-model and multi-model results
     if isinstance(result, ConsensusResult):
-        # Multi-model consensus result
         responses_data = [
             {
-                "provider_id": r.provider_id,
-                "model_used": r.model_used,
-                "content": r.content,
-                "success": r.success,
-                "error": r.error,
-                "tokens": r.tokens,
-                "duration_ms": r.duration_ms,
+                "provider_id": response.provider_id,
+                "model_used": response.model_used,
+                "content": response.content,
+                "success": response.success,
+                "error": response.error,
+                "tokens": response.tokens,
+                "duration_ms": response.duration_ms,
             }
-            for r in result.responses
+            for response in result.responses
         ]
+
         agreement_data = None
         if result.agreement:
             agreement_data = {
@@ -377,6 +262,7 @@ def _run_ai_review(
                 "success_rate": result.agreement.success_rate,
                 "has_consensus": result.agreement.has_consensus,
             }
+
         return asdict(
             success_response(
                 spec_id=spec_id,
@@ -390,256 +276,32 @@ def _run_ai_review(
                 agreement=agreement_data,
                 primary_content=result.primary_content,
                 warnings=result.warnings,
-                stats={
-                    "total_tasks": context.stats.totals.get("tasks", 0)
-                    if context.stats
-                    else 0,
-                    "completed_tasks": context.stats.status_counts.get("completed", 0)
-                    if context.stats
-                    else 0,
-                    "progress_percentage": context.progress.get("percentage", 0)
-                    if context.progress
-                    else 0,
-                },
-                duration_ms=round(duration_ms, 2),
-            )
-        )
-    else:
-        # Single-model result (ConsultationResult)
-        return asdict(
-            success_response(
-                spec_id=spec_id,
-                title=context.title,
-                review_type=review_type,
-                template_id=template_id,
-                llm_status=llm_status,
-                mode="single_model",
-                ai_provider=result.provider_id if result else ai_provider,
-                consultation_cache=consultation_cache,
-                response=result.content if result else None,
-                model=result.model_used if result else None,
-                cached=result.cache_hit if result else False,
-                stats={
-                    "total_tasks": context.stats.totals.get("tasks", 0)
-                    if context.stats
-                    else 0,
-                    "completed_tasks": context.stats.status_counts.get("completed", 0)
-                    if context.stats
-                    else 0,
-                    "progress_percentage": context.progress.get("percentage", 0)
-                    if context.progress
-                    else 0,
-                },
                 duration_ms=round(duration_ms, 2),
             )
         )
 
-
-def register_review_tools(mcp: FastMCP, config: ServerConfig) -> None:
-    """Register review tools with the FastMCP server."""
-
-    # Local import to avoid circular imports with unified routers.
-    from foundry_mcp.tools.unified.review import legacy_review_action
-
-    @canonical_tool(
-        mcp,
-        canonical_name="spec-review",
-    )
-    @mcp_tool(tool_name="spec-review", emit_metrics=True, audit=True)
-    def spec_review(
-        spec_id: str,
-        review_type: str = "quick",
-        tools: Optional[str] = None,
-        model: Optional[str] = None,
-        ai_provider: Optional[str] = None,
-        ai_timeout: float = DEFAULT_AI_TIMEOUT,
-        consultation_cache: bool = True,
-        path: Optional[str] = None,
-        dry_run: bool = False,
-    ) -> dict:
-        """
-        Run a structural or AI-powered review session on a specification.
-
-        Performs spec analysis using ConsultationOrchestrator for AI-powered
-        reviews, or quick structural review for non-LLM analysis.
-
-        WHEN TO USE:
-        - Before starting implementation to catch issues early
-        - After completing a phase for quality checks
-        - To get security or feasibility analysis
-        - For automated spec improvement suggestions
-
-        Args:
-            spec_id: Specification ID to review
-            review_type: Type of review - "quick", "full", "security", or "feasibility"
-            tools: Comma-separated list of review tools (cursor-agent, gemini, codex)
-            model: LLM model to use for review (default: from config)
-            ai_provider: Explicit AI provider selection (e.g., gemini, cursor-agent)
-            ai_timeout: AI consultation timeout in seconds (default: 120)
-            consultation_cache: Whether to use AI consultation cache (default: True)
-            path: Project root path (default: current directory)
-            dry_run: If True, show what would be reviewed without executing
-
-        Returns:
-            JSON object with review results:
-            - spec_id: The reviewed specification ID
-            - review_type: Type of review performed
-            - llm_status: LLM configuration status
-            - response: AI review content (for LLM reviews)
-            - findings: List of review findings (for quick review)
-            - summary: Human-readable summary
-
-        LIMITATIONS:
-        - Requires LLM configuration for AI-powered analysis
-        - Falls back to error if AI unavailable for LLM review types
-        - External tools (cursor-agent, gemini, codex) must be installed
-        """
-        return legacy_review_action(
-            "spec",
-            config=config,
+    return asdict(
+        success_response(
             spec_id=spec_id,
+            title=context.title,
             review_type=review_type,
-            tools=tools,
-            model=model,
-            ai_provider=ai_provider,
-            ai_timeout=ai_timeout,
+            template_id=template_id,
+            llm_status=llm_status,
+            mode="single_model",
+            ai_provider=getattr(result, "provider_id", None) if result else ai_provider,
             consultation_cache=consultation_cache,
-            path=path,
-            dry_run=dry_run,
+            response=getattr(result, "content", None) if result else None,
+            model=getattr(result, "model_used", None) if result else None,
+            cached=getattr(result, "cache_hit", False) if result else False,
+            duration_ms=round(duration_ms, 2),
         )
-
-    @canonical_tool(
-        mcp,
-        canonical_name="review-list-tools",
     )
-    @mcp_tool(tool_name="review-list-tools", emit_metrics=True, audit=False)
-    def review_list_tools() -> dict:
-        """
-        List available review tools and pipelines.
 
-        Returns the set of external AI tools that can be used for spec
-        reviews, along with their availability status.
 
-        WHEN TO USE:
-        - Before running a review to check which tools are available
-        - To discover what review capabilities are installed
-        - For debugging review tool configuration
-
-        Returns:
-            JSON object with:
-            - tools: List of tool objects with name and availability
-            - llm_status: Current LLM configuration status
-        """
-        return legacy_review_action("list-tools", config=config)
-
-    @canonical_tool(
-        mcp,
-        canonical_name="review-list-plan-tools",
-    )
-    @mcp_tool(tool_name="review-list-plan-tools", emit_metrics=True, audit=False)
-    def review_list_plan_tools() -> dict:
-        """
-        Enumerate review toolchains available for plan analysis.
-
-        Returns the set of tools specifically designed for reviewing
-        SDD plans, including their capabilities and recommended usage.
-
-        WHEN TO USE:
-        - When deciding how to review a new plan
-        - To understand available review pipelines
-        - For configuring automated review workflows
-
-        Returns:
-            JSON object with:
-            - plan_tools: List of plan review toolchains
-            - capabilities: What each toolchain can analyze
-            - recommendations: Suggested tool combinations
-        """
-        return legacy_review_action("list-plan-tools", config=config)
-
-        start_time = time.perf_counter()
-
-        try:
-            llm_status = _get_llm_status()
-
-            # Define plan review toolchains
-            plan_tools = [
-                {
-                    "name": "quick-review",
-                    "description": "Fast structural review for basic validation",
-                    "capabilities": ["structure", "syntax", "basic_quality"],
-                    "llm_required": False,
-                    "estimated_time": "< 10 seconds",
-                },
-                {
-                    "name": "full-review",
-                    "description": "Comprehensive review with LLM analysis",
-                    "capabilities": [
-                        "structure",
-                        "quality",
-                        "feasibility",
-                        "suggestions",
-                    ],
-                    "llm_required": True,
-                    "estimated_time": "30-60 seconds",
-                },
-                {
-                    "name": "security-review",
-                    "description": "Security-focused analysis of plan",
-                    "capabilities": ["security", "trust_boundaries", "data_flow"],
-                    "llm_required": True,
-                    "estimated_time": "30-60 seconds",
-                },
-                {
-                    "name": "feasibility-review",
-                    "description": "Implementation feasibility assessment",
-                    "capabilities": ["complexity", "dependencies", "risk"],
-                    "llm_required": True,
-                    "estimated_time": "30-60 seconds",
-                },
-            ]
-
-            # Filter by LLM availability
-            available_tools = []
-            for tool in plan_tools:
-                tool_info = tool.copy()
-                if tool["llm_required"] and not llm_status.get("configured"):
-                    tool_info["status"] = "unavailable"
-                    tool_info["reason"] = "LLM not configured"
-                else:
-                    tool_info["status"] = "available"
-                available_tools.append(tool_info)
-
-            # Build recommendations based on LLM status
-            if llm_status.get("configured"):
-                recommendations = [
-                    "Use 'full-review' for comprehensive plan analysis",
-                    "Run 'security-review' before implementation of sensitive features",
-                    "Use 'feasibility-review' for complex or risky plans",
-                ]
-            else:
-                recommendations = [
-                    "Use 'quick-review' for basic validation (no LLM required)",
-                    "Configure LLM to unlock full review capabilities",
-                    "Set FOUNDRY_MCP_LLM_API_KEY or provider-specific env var",
-                ]
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            _metrics.timer("review.review_list_plan_tools.duration_ms", duration_ms)
-
-            return asdict(
-                success_response(
-                    plan_tools=available_tools,
-                    llm_status=llm_status,
-                    recommendations=recommendations,
-                    duration_ms=round(duration_ms, 2),
-                )
-            )
-
-        except Exception as e:
-            logger.exception("Error listing plan tools")
-            return asdict(
-                error_response(
-                    sanitize_error_message(e, context="plan tools"),
-                )
-            )
+__all__ = [
+    "DEFAULT_AI_TIMEOUT",
+    "REVIEW_TYPES",
+    "_get_llm_status",
+    "_run_ai_review",
+    "_run_quick_review",
+]

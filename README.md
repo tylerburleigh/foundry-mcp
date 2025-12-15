@@ -136,6 +136,8 @@ All MCP tools emit the standardized envelope defined in `docs/codebase_standards
 
 | Legacy tool | Unified call |
 |---|---|
+| Legacy Tool (Removed) | Unified Equivalent |
+|----------------------|--------------------|
 | `task-next` | `task(action="next")` |
 | `spec-validate` | `spec(action="validate")` |
 | `test-run` | `test(action="run", preset="full")` |

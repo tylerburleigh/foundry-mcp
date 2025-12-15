@@ -2,7 +2,7 @@
 Unit tests for environment tools.
 
 Tests the environment verification, workspace initialization, and topology
-detection tools defined in src/foundry_mcp/tools/environment.py.
+detection helpers used by the unified environment router.
 """
 
 import os
@@ -359,7 +359,7 @@ class TestSddSetup:
     def test_fresh_project_setup(self):
         """Test setup on a project with no existing config."""
         import json
-        from foundry_mcp.tools.environment import (
+        from foundry_mcp.tools.unified.environment import (
             _init_specs_directory,
             _update_permissions,
             _write_default_toml,
@@ -400,7 +400,7 @@ class TestSddSetup:
     def test_merge_existing_permissions(self):
         """Test that existing permissions are preserved during merge."""
         import json
-        from foundry_mcp.tools.environment import _update_permissions
+        from foundry_mcp.tools.unified.environment import _update_permissions
 
         with tempfile.TemporaryDirectory() as tmpdir:
             base_path = Path(tmpdir)
@@ -433,7 +433,7 @@ class TestSddSetup:
 
     def test_dry_run_no_changes(self):
         """Test dry_run mode doesn't create files."""
-        from foundry_mcp.tools.environment import (
+        from foundry_mcp.tools.unified.environment import (
             _init_specs_directory,
             _update_permissions,
         )
@@ -451,30 +451,6 @@ class TestSddSetup:
             settings_file = base_path / ".claude" / "settings.local.json"
             perm_result = _update_permissions(settings_file, "minimal", dry_run=True)
             assert not (base_path / ".claude").exists()
-
-    def test_permission_presets(self):
-        """Test that permission presets have expected tools."""
-        from foundry_mcp.tools.environment import (
-            _MINIMAL_PERMISSIONS,
-            _STANDARD_PERMISSIONS,
-            _FULL_PERMISSIONS,
-        )
-
-        # Minimal should have read-only tools
-        assert "mcp__foundry-mcp__server" in _MINIMAL_PERMISSIONS
-        assert "mcp__foundry-mcp__spec" in _MINIMAL_PERMISSIONS
-        assert "mcp__foundry-mcp__task" in _MINIMAL_PERMISSIONS
-
-        # Minimal should NOT have write-intent tools
-        assert "mcp__foundry-mcp__authoring" not in _MINIMAL_PERMISSIONS
-
-        # Standard should include minimal + write-intent tools
-        assert "mcp__foundry-mcp__spec" in _STANDARD_PERMISSIONS
-        assert "mcp__foundry-mcp__authoring" in _STANDARD_PERMISSIONS
-        assert "mcp__foundry-mcp__journal" in _STANDARD_PERMISSIONS
-
-        # Full should use wildcard
-        assert "mcp__foundry-mcp__*" in _FULL_PERMISSIONS
 
     def test_invalid_preset_validation(self):
         """Test validation of invalid permissions preset."""
@@ -537,7 +513,7 @@ class TestSddSetup:
 
     def test_toml_content(self):
         """Test that generated TOML has expected content."""
-        from foundry_mcp.tools.environment import _DEFAULT_TOML_CONTENT
+        from foundry_mcp.tools.unified.environment import _DEFAULT_TOML_CONTENT
 
         assert "[workspace]" in _DEFAULT_TOML_CONTENT
         assert "specs_dir" in _DEFAULT_TOML_CONTENT
@@ -548,7 +524,7 @@ class TestSddSetup:
     def test_idempotent_setup(self):
         """Test that running setup twice is safe (idempotent)."""
         import json
-        from foundry_mcp.tools.environment import (
+        from foundry_mcp.tools.unified.environment import (
             _init_specs_directory,
             _update_permissions,
         )

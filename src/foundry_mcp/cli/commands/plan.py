@@ -112,6 +112,7 @@ def _get_llm_status() -> dict:
     """Get current LLM provider status."""
     try:
         from foundry_mcp.core.providers import available_providers
+
         providers = available_providers()
         return {
             "available": len(providers) > 0,
@@ -160,7 +161,7 @@ def plan_group() -> None:
     help="Show what would be reviewed without executing.",
 )
 @click.pass_context
-@cli_command("plan-review")
+@cli_command("review")
 @handle_keyboard_interrupt()
 @with_sync_timeout(SLOW_TIMEOUT, "Plan review timed out")
 def plan_review_cmd(
@@ -310,7 +311,9 @@ def plan_review_cmd(
                 return
 
             review_content = result.primary_content
-            provider_used = result.responses[0].provider_id if result.responses else "unknown"
+            provider_used = (
+                result.responses[0].provider_id if result.responses else "unknown"
+            )
 
     except ImportError:
         emit_error(
@@ -372,61 +375,6 @@ def plan_review_cmd(
             "provider_used": provider_used,
         },
         telemetry={"duration_ms": round(duration_ms, 2)},
-    )
-
-
-# Alias for direct access
-@click.command("plan-review")
-@click.argument("plan_path")
-@click.option(
-    "--type",
-    "review_type",
-    type=click.Choice(REVIEW_TYPES),
-    default="full",
-    help="Type of review to perform.",
-)
-@click.option(
-    "--ai-provider",
-    help="Explicit AI provider selection (e.g., gemini, cursor-agent).",
-)
-@click.option(
-    "--ai-timeout",
-    type=float,
-    default=DEFAULT_AI_TIMEOUT,
-    help=f"AI consultation timeout in seconds (default: {DEFAULT_AI_TIMEOUT}).",
-)
-@click.option(
-    "--no-consultation-cache",
-    is_flag=True,
-    help="Bypass AI consultation cache.",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be reviewed without executing.",
-)
-@click.pass_context
-@cli_command("plan-review-alias")
-@handle_keyboard_interrupt()
-@with_sync_timeout(SLOW_TIMEOUT, "Plan review timed out")
-def plan_review_alias_cmd(
-    ctx: click.Context,
-    plan_path: str,
-    review_type: str,
-    ai_provider: Optional[str],
-    ai_timeout: float,
-    no_consultation_cache: bool,
-    dry_run: bool,
-) -> None:
-    """Review a markdown implementation plan (alias for 'plan review')."""
-    ctx.invoke(
-        plan_review_cmd,
-        plan_path=plan_path,
-        review_type=review_type,
-        ai_provider=ai_provider,
-        ai_timeout=ai_timeout,
-        no_consultation_cache=no_consultation_cache,
-        dry_run=dry_run,
     )
 
 
@@ -522,7 +470,7 @@ def _slugify(name: str) -> str:
     help="Plan template to use.",
 )
 @click.pass_context
-@cli_command("plan-create")
+@cli_command("create")
 @handle_keyboard_interrupt()
 @with_sync_timeout(MEDIUM_TIMEOUT, "Plan creation timed out")
 def plan_create_cmd(
@@ -611,7 +559,7 @@ def plan_create_cmd(
 
 @plan_group.command("list")
 @click.pass_context
-@cli_command("plan-list")
+@cli_command("list")
 @handle_keyboard_interrupt()
 @with_sync_timeout(MEDIUM_TIMEOUT, "Plan listing timed out")
 def plan_list_cmd(ctx: click.Context) -> None:
@@ -646,7 +594,9 @@ def plan_list_cmd(ctx: click.Context) -> None:
                 "count": 0,
                 "plans_dir": str(plans_dir),
             },
-            telemetry={"duration_ms": round((time.perf_counter() - start_time) * 1000, 2)},
+            telemetry={
+                "duration_ms": round((time.perf_counter() - start_time) * 1000, 2)
+            },
         )
         return
 
@@ -654,18 +604,22 @@ def plan_list_cmd(ctx: click.Context) -> None:
     plans = []
     for plan_file in sorted(plans_dir.glob("*.md")):
         stat = plan_file.stat()
-        plans.append({
-            "name": plan_file.stem,
-            "path": str(plan_file),
-            "size_bytes": stat.st_size,
-            "modified": stat.st_mtime,
-        })
+        plans.append(
+            {
+                "name": plan_file.stem,
+                "path": str(plan_file),
+                "size_bytes": stat.st_size,
+                "modified": stat.st_mtime,
+            }
+        )
 
     # Check for reviews
     reviews_dir = specs_dir / ".plan-reviews"
     for plan in plans:
         plan_name = plan["name"]
-        review_files = list(reviews_dir.glob(f"{plan_name}-*.md")) if reviews_dir.exists() else []
+        review_files = (
+            list(reviews_dir.glob(f"{plan_name}-*.md")) if reviews_dir.exists() else []
+        )
         plan["reviews"] = [rf.stem for rf in review_files]
         plan["has_review"] = len(review_files) > 0
 
