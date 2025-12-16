@@ -104,10 +104,9 @@ def _validation_error(
 
 
 def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
-    """Return compact tool entries for the 17-tool unified manifest."""
+    """Return compact tool entries for the 16-tool unified manifest."""
 
     from foundry_mcp.tools.unified.authoring import _AUTHORING_ROUTER
-    from foundry_mcp.tools.unified.code import _CODE_ROUTER
     from foundry_mcp.tools.unified.environment import _ENVIRONMENT_ROUTER
     from foundry_mcp.tools.unified.error import _ERROR_ROUTER
     from foundry_mcp.tools.unified.health import _HEALTH_ROUTER
@@ -138,7 +137,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "task": _TASK_ROUTER,
         "spec": _SPEC_ROUTER,
         "review": _REVIEW_ROUTER,
-        "code": _CODE_ROUTER,
         "server": _SERVER_ROUTER,
         "test": _TEST_ROUTER,
     }
@@ -158,7 +156,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "task": "tasks",
         "spec": "specs",
         "review": "review",
-        "code": "code",
         "server": "server",
         "test": "testing",
     }
@@ -178,7 +175,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "task": "Task preparation, mutation, and listing.",
         "spec": "Spec discovery, validation, and analysis.",
         "review": "LLM-assisted review workflows.",
-        "code": "Repo-local code navigation helpers.",
         "server": "Tool discovery, schemas, context, and capabilities.",
         "test": "Pytest discovery and execution.",
     }
