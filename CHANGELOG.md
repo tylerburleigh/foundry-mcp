@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-12-17
+
+### Changed
+- **Dashboard**: Refactored pages module to views with cleaner organization
+- **Dashboard**: Improved data stores with better caching and filtering
+- **Observability**: Added action label to tool metrics for router-level granularity
+- **Providers**: Codex CLI now ignores unsupported parameters (warning instead of error)
+
+### Added
+- Dashboard PID file tracking for cross-CLI process management
+- Tool usage dashboard view with action-level breakdown
+- OpenCode Node.js wrapper for subprocess execution
+- Integration tests for provider smoke testing, fidelity review flow, and plan review flow
+
+### Fixed
+- Codex provider environment handling (unsets OPENAI_API_KEY/OPENAI_BASE_URL that interfere with CLI)
+- Minor fixes to Claude and Gemini providers
+
 ## [0.3.2] - 2025-12-16
 
 ### Added
