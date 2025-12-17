@@ -220,6 +220,7 @@ class GeminiProvider(ProviderContext):
         return candidate
 
     def _validate_request(self, request: ProviderRequest) -> None:
+        """Validate and normalize request, ignoring unsupported parameters."""
         unsupported: List[str] = []
         if request.temperature is not None:
             unsupported.append("temperature")
@@ -228,9 +229,9 @@ class GeminiProvider(ProviderContext):
         if request.attachments:
             unsupported.append("attachments")
         if unsupported:
-            raise ProviderExecutionError(
-                f"Gemini CLI does not support: {', '.join(unsupported)}",
-                provider=self.metadata.provider_id,
+            # Log warning but continue - ignore unsupported parameters
+            logger.warning(
+                f"Gemini CLI ignoring unsupported parameters: {', '.join(unsupported)}"
             )
 
     def _build_prompt(self, request: ProviderRequest) -> str:

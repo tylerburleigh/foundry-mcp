@@ -590,6 +590,21 @@ class FileMetricsStore(MetricsStore):
         with self._lock:
             return self._record_count
 
+    def get_total_count(self, metric_name: Optional[str] = None) -> int:
+        """Get total count for a specific metric or all metrics (single source of truth).
+
+        Args:
+            metric_name: If provided, returns count for that metric only.
+                        If None, returns total count across all metrics.
+
+        Returns:
+            Total count of metric records
+        """
+        with self._lock:
+            if metric_name is not None:
+                return self._index.get(metric_name, {}).get("count", 0)
+            return sum(m.get("count", 0) for m in self._index.values())
+
 
 # Global store instance
 _metrics_store: Optional[MetricsStore] = None

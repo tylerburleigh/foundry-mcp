@@ -62,19 +62,19 @@ class TestProviderSpecParseCLI:
 
     def test_parse_cli_with_model(self):
         """Test parsing CLI spec with model."""
-        spec = ProviderSpec.parse("[cli]gemini:gemini-2.5-flash")
+        spec = ProviderSpec.parse("[cli]gemini:pro")
         assert spec.type == "cli"
         assert spec.provider == "gemini"
-        assert spec.model == "gemini-2.5-flash"
+        assert spec.model == "pro"
         assert spec.backend is None
 
     def test_parse_cli_with_backend_and_model(self):
         """Test parsing CLI spec with backend routing."""
-        spec = ProviderSpec.parse("[cli]opencode:openai/gpt-5.1-codex")
+        spec = ProviderSpec.parse("[cli]opencode:openai/gpt-5.2")
         assert spec.type == "cli"
         assert spec.provider == "opencode"
         assert spec.backend == "openai"
-        assert spec.model == "gpt-5.1-codex"
+        assert spec.model == "gpt-5.2"
 
     def test_parse_cli_opencode_gemini_backend(self):
         """Test opencode with Gemini backend routing."""
@@ -144,7 +144,7 @@ class TestProviderSpecValidation:
 
     def test_validate_known_cli_provider(self):
         """Test validation passes for known CLI provider."""
-        spec = ProviderSpec.parse("[cli]gemini:gemini-2.5-flash")
+        spec = ProviderSpec.parse("[cli]gemini:pro")
         errors = spec.validate()
         assert errors == []
 
@@ -178,13 +178,13 @@ class TestProviderSpecStr:
 
     def test_str_cli_with_model(self):
         """Test string representation for CLI spec with model."""
-        spec = ProviderSpec.parse("[cli]gemini:gemini-2.5-flash")
-        assert str(spec) == "[cli]gemini:gemini-2.5-flash"
+        spec = ProviderSpec.parse("[cli]gemini:pro")
+        assert str(spec) == "[cli]gemini:pro"
 
     def test_str_cli_with_backend(self):
         """Test string representation for CLI spec with backend."""
-        spec = ProviderSpec.parse("[cli]opencode:openai/gpt-5.1")
-        assert str(spec) == "[cli]opencode:openai/gpt-5.1"
+        spec = ProviderSpec.parse("[cli]opencode:openai/gpt-5.2")
+        assert str(spec) == "[cli]opencode:openai/gpt-5.2"
 
 
 # =============================================================================
@@ -204,20 +204,21 @@ class TestConsultationConfigPriority:
         """Test loading priority from dict."""
         data = {
             "priority": [
-                "[cli]opencode:openai/gpt-5.1",
-                "[cli]gemini:gemini-2.5-flash",
+                "[cli]gemini:pro",
+                "[cli]claude:opus",
+                "[cli]opencode:openai/gpt-5.2",
                 "[api]openai/gpt-4.1",
             ]
         }
         config = ConsultationConfig.from_dict(data)
-        assert len(config.priority) == 3
-        assert config.priority[0] == "[cli]opencode:openai/gpt-5.1"
+        assert len(config.priority) == 4
+        assert config.priority[0] == "[cli]gemini:pro"
 
     def test_get_provider_specs(self):
         """Test parsing priority list into ProviderSpec objects."""
         config = ConsultationConfig(
             priority=[
-                "[cli]opencode:openai/gpt-5.1",
+                "[cli]opencode:openai/gpt-5.2",
                 "[api]openai/gpt-4.1",
             ]
         )
@@ -241,13 +242,13 @@ class TestConsultationConfigOverrides:
         """Test loading overrides from dict."""
         data = {
             "overrides": {
-                "[cli]opencode:openai/gpt-5.1": {"timeout": 600},
+                "[cli]opencode:openai/gpt-5.2": {"timeout": 600},
                 "[api]openai/gpt-4.1": {"temperature": 0.3},
             }
         }
         config = ConsultationConfig.from_dict(data)
         assert len(config.overrides) == 2
-        assert config.overrides["[cli]opencode:openai/gpt-5.1"]["timeout"] == 600
+        assert config.overrides["[cli]opencode:openai/gpt-5.2"]["timeout"] == 600
 
     def test_get_override_existing(self):
         """Test getting existing override."""
@@ -271,7 +272,7 @@ class TestConsultationConfigValidation:
         """Test validation passes for valid priority list."""
         config = ConsultationConfig(
             priority=[
-                "[cli]gemini:gemini-2.5-flash",
+                "[cli]gemini:pro",
                 "[api]openai/gpt-4.1",
             ]
         )

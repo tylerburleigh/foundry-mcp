@@ -281,6 +281,10 @@ CODEX_METADATA = ProviderMetadata(
 class CodexProvider(ProviderContext):
     """ProviderContext implementation backed by the Codex CLI with OS-level read-only sandboxing."""
 
+    # Environment variables that must be unset for Codex CLI to work properly
+    # These interfere with Codex's own API configuration
+    _UNSET_ENV_VARS = ("OPENAI_API_KEY", "OPENAI_BASE_URL")
+
     def __init__(
         self,
         metadata: ProviderMetadata,
@@ -295,9 +299,29 @@ class CodexProvider(ProviderContext):
         super().__init__(metadata, hooks)
         self._runner = runner or _default_runner
         self._binary = binary or os.environ.get(CUSTOM_BINARY_ENV, DEFAULT_BINARY)
-        self._env = env
+        self._env = self._prepare_subprocess_env(env)
         self._timeout = timeout or DEFAULT_TIMEOUT_SECONDS
         self._model = self._ensure_model(model or metadata.default_model or self._first_model_id())
+
+    def _prepare_subprocess_env(self, custom_env: Optional[Dict[str, str]]) -> Dict[str, str]:
+        """
+        Prepare environment variables for subprocess execution.
+
+        Codex CLI uses its own authentication and must not have OPENAI_API_KEY
+        or OPENAI_BASE_URL set, as these interfere with its internal API routing.
+        """
+        # Start with current environment
+        subprocess_env = os.environ.copy()
+
+        # Remove variables that interfere with Codex CLI
+        for var in self._UNSET_ENV_VARS:
+            subprocess_env.pop(var, None)
+
+        # Merge custom environment if provided
+        if custom_env:
+            subprocess_env.update(custom_env)
+
+        return subprocess_env
 
     def _first_model_id(self) -> str:
         if not self.metadata.models:
@@ -317,15 +341,16 @@ class CodexProvider(ProviderContext):
         return candidate
 
     def _validate_request(self, request: ProviderRequest) -> None:
+        """Validate and normalize request, ignoring unsupported parameters."""
         unsupported: List[str] = []
         if request.temperature is not None:
             unsupported.append("temperature")
         if request.max_tokens is not None:
             unsupported.append("max_tokens")
         if unsupported:
-            raise ProviderExecutionError(
-                f"Codex CLI does not support: {', '.join(unsupported)}",
-                provider=self.metadata.provider_id,
+            # Log warning but continue - ignore unsupported parameters
+            logger.warning(
+                f"Codex CLI ignoring unsupported parameters: {', '.join(unsupported)}"
             )
 
     def _build_prompt(self, request: ProviderRequest) -> str:

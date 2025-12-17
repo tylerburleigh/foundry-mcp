@@ -790,10 +790,16 @@ def audit_log(event_type: str, **details: Any) -> None:
 
 
 def _record_to_metrics_persistence(
-    tool_name: str, success: bool, duration_ms: float
+    tool_name: str, success: bool, duration_ms: float, action: Optional[str] = None
 ) -> None:
     """
     Record tool invocation to metrics persistence for dashboard visibility.
+
+    Args:
+        tool_name: Name of the tool (router)
+        success: Whether the invocation succeeded
+        duration_ms: Duration in milliseconds
+        action: Optional action name for router tools (e.g., "list", "validate")
 
     Fails silently if metrics persistence is not configured.
     """
@@ -803,17 +809,23 @@ def _record_to_metrics_persistence(
         collector = get_metrics_collector()
         if collector is not None and collector._config.enabled:
             status = "success" if success else "error"
+            labels = {"tool": tool_name, "status": status}
+            if action:
+                labels["action"] = action
             collector.record(
                 "tool_invocations_total",
                 1.0,
                 metric_type="counter",
-                labels={"tool": tool_name, "status": status},
+                labels=labels,
             )
+            duration_labels = {"tool": tool_name}
+            if action:
+                duration_labels["action"] = action
             collector.record(
                 "tool_duration_ms",
                 duration_ms,
                 metric_type="gauge",
-                labels={"tool": tool_name},
+                labels=duration_labels,
             )
     except Exception:
         # Never let metrics persistence failures affect tool execution
@@ -932,7 +944,9 @@ def mcp_tool(
                     )
 
                 # Record to metrics persistence (for dashboard visibility)
-                _record_to_metrics_persistence(name, success, duration_ms)
+                # Extract action from kwargs for router tools
+                action = kwargs.get("action") if isinstance(kwargs.get("action"), str) else None
+                _record_to_metrics_persistence(name, success, duration_ms, action=action)
 
         @functools.wraps(func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> T:
@@ -1029,7 +1043,9 @@ def mcp_tool(
                     )
 
                 # Record to metrics persistence (for dashboard visibility)
-                _record_to_metrics_persistence(_tool_name, success, duration_ms)
+                # Extract action from kwargs for router tools
+                action = _kwargs.get("action") if isinstance(_kwargs.get("action"), str) else None
+                _record_to_metrics_persistence(_tool_name, success, duration_ms, action=action)
 
         # Return appropriate wrapper based on whether func is async
         import asyncio

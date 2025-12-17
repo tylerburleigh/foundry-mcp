@@ -259,18 +259,19 @@ class ClaudeProvider(ProviderContext):
         return candidate
 
     def _validate_request(self, request: ProviderRequest) -> None:
+        """Validate and normalize request, ignoring unsupported parameters."""
         unsupported: List[str] = []
         # Note: Claude CLI may not support these parameters via flags
         if request.temperature is not None:
-            unsupported.append("temperature (use model defaults)")
+            unsupported.append("temperature")
         if request.max_tokens is not None:
-            unsupported.append("max_tokens (use model defaults)")
+            unsupported.append("max_tokens")
         if request.attachments:
             unsupported.append("attachments")
         if unsupported:
-            raise ProviderExecutionError(
-                f"Claude CLI does not support: {', '.join(unsupported)}",
-                provider=self.metadata.provider_id,
+            # Log warning but continue - ignore unsupported parameters
+            logger.warning(
+                f"Claude CLI ignoring unsupported parameters: {', '.join(unsupported)}"
             )
 
     def _build_command(

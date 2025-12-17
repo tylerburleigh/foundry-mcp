@@ -59,8 +59,8 @@ def render():
             "Error Code", key="error_code", placeholder="e.g., VALIDATION_ERROR"
         )
     with cols[3]:
-        # Show stats
-        st.metric("Total Errors", stats.get("total", 0))
+        # Show stats - use total_errors from stats (single source of truth)
+        st.metric("Total Errors", stats.get("total_errors", 0))
 
     st.divider()
 

@@ -54,8 +54,9 @@ class ProviderSpec:
     Supports bracket-prefix notation for unified API/CLI provider configuration:
         - [api]openai/gpt-4.1           -> API provider with model
         - [api]anthropic/claude-sonnet-4 -> API provider with model
-        - [cli]gemini:gemini-2.5-flash  -> CLI provider with model
-        - [cli]opencode:openai/gpt-5    -> CLI provider routing to backend
+        - [cli]gemini:pro               -> CLI provider with model
+        - [cli]claude:opus              -> CLI provider with model
+        - [cli]opencode:openai/gpt-5.2  -> CLI provider routing to backend
         - [cli]codex                    -> CLI provider with default model
 
     Grammar:
@@ -67,7 +68,7 @@ class ProviderSpec:
         type: Provider type - "api" for direct API calls, "cli" for CLI tools
         provider: Provider/transport identifier (openai, gemini, opencode, etc.)
         backend: Optional backend for CLI routing (openai, anthropic, gemini)
-        model: Optional model identifier (gpt-4.1, gemini-2.5-flash, etc.)
+        model: Optional model identifier (gpt-4.1, pro, opus, etc.)
         raw: Original specification string for error messages
     """
 
@@ -105,11 +106,11 @@ class ProviderSpec:
             >>> ProviderSpec.parse("[api]openai/gpt-4.1")
             ProviderSpec(type='api', provider='openai', model='gpt-4.1')
 
-            >>> ProviderSpec.parse("[cli]gemini:gemini-2.5-flash")
-            ProviderSpec(type='cli', provider='gemini', model='gemini-2.5-flash')
+            >>> ProviderSpec.parse("[cli]gemini:pro")
+            ProviderSpec(type='cli', provider='gemini', model='pro')
 
-            >>> ProviderSpec.parse("[cli]opencode:openai/gpt-5.1-codex")
-            ProviderSpec(type='cli', provider='opencode', backend='openai', model='gpt-5.1-codex')
+            >>> ProviderSpec.parse("[cli]opencode:openai/gpt-5.2")
+            ProviderSpec(type='cli', provider='opencode', backend='openai', model='gpt-5.2')
         """
         spec = spec.strip()
 
@@ -928,14 +929,15 @@ class ConsultationConfig:
         # Provider priority list - first available wins
         # Format: "[api]provider/model" or "[cli]transport[:backend/model|:model]"
         priority = [
-            "[cli]opencode:openai/gpt-5.1-codex",
-            "[cli]gemini:gemini-2.5-flash",
+            "[cli]gemini:pro",
+            "[cli]claude:opus",
+            "[cli]opencode:openai/gpt-5.2",
             "[api]openai/gpt-4.1",
         ]
 
         # Per-provider overrides (optional)
         [consultation.overrides]
-        "[cli]opencode:openai/gpt-5.1-codex" = { timeout = 600 }
+        "[cli]opencode:openai/gpt-5.2" = { timeout = 600 }
         "[api]openai/gpt-4.1" = { temperature = 0.3 }
 
         # Operational settings

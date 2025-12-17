@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # Import pages after config
-from foundry_mcp.dashboard.pages import overview, errors, metrics, providers, sdd_workflow
+from foundry_mcp.dashboard.views import overview, errors, metrics, tool_usage
 
 # Custom dark theme CSS
 st.markdown(
@@ -63,7 +63,7 @@ def render_sidebar():
         # Navigation
         page = st.radio(
             "Navigate",
-            options=["Overview", "Errors", "Metrics", "Providers", "SDD Workflow"],
+            options=["Overview", "Tool Usage", "Errors", "Metrics"],
             label_visibility="collapsed",
         )
 
@@ -98,10 +98,9 @@ def main():
     # Route to page
     page_map = {
         "Overview": overview.render,
+        "Tool Usage": tool_usage.render,
         "Errors": errors.render,
         "Metrics": metrics.render,
-        "Providers": providers.render,
-        "SDD Workflow": sdd_workflow.render,
     }
 
     # Render selected page

@@ -124,8 +124,8 @@ def _default_runner(
 
 OPENCODE_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
-        id="default",
-        display_name="OpenCode AI (configurable via OpenCode settings)",
+        id="openai/gpt-5.1-codex-mini",
+        display_name="OpenAI GPT-5.1 Codex Mini (via OpenCode)",
         capabilities={
             ProviderCapability.TEXT,
             ProviderCapability.STREAMING,
@@ -142,7 +142,7 @@ OPENCODE_METADATA = ProviderMetadata(
     provider_id="opencode",
     display_name="OpenCode AI SDK",
     models=OPENCODE_MODELS,
-    default_model="default",
+    default_model="openai/gpt-5.1-codex-mini",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING},
     security_flags={"writes_allowed": False, "read_only": True},
     extra={

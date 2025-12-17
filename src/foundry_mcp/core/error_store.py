@@ -403,8 +403,8 @@ class FileErrorStore(ErrorStore):
                     updated_at = cached.get("updated_at", "")
                     if updated_at:
                         updated_dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-                        # Use cached stats if less than 5 minutes old
-                        if datetime.now(timezone.utc) - updated_dt < timedelta(minutes=5):
+                        # Use cached stats if less than 30 seconds old
+                        if datetime.now(timezone.utc) - updated_dt < timedelta(seconds=30):
                             return cached
             except (OSError, json.JSONDecodeError):
                 pass
@@ -550,6 +550,11 @@ class FileErrorStore(ErrorStore):
         """Get total count of error records."""
         with self._lock:
             return len(self._id_index)
+
+    def get_total_count(self) -> int:
+        """Get total error count from all patterns (single source of truth)."""
+        with self._lock:
+            return sum(fp.get("count", 0) for fp in self._index.values())
 
 
 # Global store instance

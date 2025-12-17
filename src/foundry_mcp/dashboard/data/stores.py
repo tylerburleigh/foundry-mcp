@@ -1,7 +1,7 @@
 """Data access layer for dashboard.
 
 Wraps MetricsStore, ErrorStore, and other data sources with:
-- Streamlit caching (@st.cache_data)
+- Singleton store instances (stores handle internal caching)
 - pandas DataFrame conversion for easy use with st.dataframe
 - Graceful handling when stores are disabled
 """
@@ -38,32 +38,32 @@ def _get_config():
 
 
 def _get_error_store():
-    """Get error store instance if enabled."""
+    """Get error store singleton instance if enabled."""
     config = _get_config()
     if config is None or not config.error_collection.enabled:
         return None
 
     try:
-        from foundry_mcp.core.error_store import FileErrorStore
+        from foundry_mcp.core.error_store import get_error_store
 
         storage_path = config.error_collection.get_storage_path()
-        return FileErrorStore(storage_path)
+        return get_error_store(storage_path)  # Returns singleton
     except Exception as e:
         logger.warning("Could not initialize error store: %s", e)
         return None
 
 
 def _get_metrics_store():
-    """Get metrics store instance if enabled."""
+    """Get metrics store singleton instance if enabled."""
     config = _get_config()
     if config is None or not config.metrics_persistence.enabled:
         return None
 
     try:
-        from foundry_mcp.core.metrics_store import FileMetricsStore
+        from foundry_mcp.core.metrics_store import get_metrics_store
 
         storage_path = config.metrics_persistence.get_storage_path()
-        return FileMetricsStore(storage_path)
+        return get_metrics_store(storage_path)  # Returns singleton
     except Exception as e:
         logger.warning("Could not initialize metrics store: %s", e)
         return None
@@ -74,7 +74,6 @@ def _get_metrics_store():
 # =============================================================================
 
 
-@st.cache_data(ttl=10)
 def get_errors(
     tool_name: Optional[str] = None,
     error_code: Optional[str] = None,
@@ -137,7 +136,6 @@ def get_errors(
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=10)
 def get_error_stats() -> dict[str, Any]:
     """Get error statistics."""
     store = _get_error_store()
@@ -153,7 +151,6 @@ def get_error_stats() -> dict[str, Any]:
         return {"enabled": True, "error": str(e)}
 
 
-@st.cache_data(ttl=30)
 def get_error_patterns(min_count: int = 3) -> list[dict]:
     """Get recurring error patterns."""
     store = _get_error_store()
@@ -199,7 +196,6 @@ def get_error_by_id(error_id: str) -> Optional[dict]:
 # =============================================================================
 
 
-@st.cache_data(ttl=5)
 def get_metrics_list() -> list[dict]:
     """Get list of available metrics."""
     store = _get_metrics_store()
@@ -213,7 +209,6 @@ def get_metrics_list() -> list[dict]:
         return []
 
 
-@st.cache_data(ttl=5)
 def get_metrics_timeseries(
     metric_name: str,
     since_hours: int = 24,
@@ -267,7 +262,6 @@ def get_metrics_timeseries(
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=5)
 def get_metrics_summary(metric_name: str, since_hours: int = 24) -> dict[str, Any]:
     """Get summary statistics for a metric."""
     store = _get_metrics_store()
@@ -283,6 +277,89 @@ def get_metrics_summary(metric_name: str, since_hours: int = 24) -> dict[str, An
     except Exception as e:
         logger.exception("Error getting summary: %s", e)
         return {"enabled": True, "error": str(e)}
+
+
+# =============================================================================
+# Tool Usage Breakdown Functions
+# =============================================================================
+
+
+def get_tool_action_breakdown(
+    since_hours: int = 24,
+    limit: int = 1000,
+) -> "pd.DataFrame":
+    """Get tool invocations broken down by tool and action.
+
+    Args:
+        since_hours: Hours to look back
+        limit: Maximum data points to query
+
+    Returns:
+        DataFrame with tool, action, status, and count columns
+    """
+    if not PANDAS_AVAILABLE:
+        return None
+
+    store = _get_metrics_store()
+    if store is None:
+        return pd.DataFrame()
+
+    since = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
+
+    try:
+        data_points = store.query(
+            metric_name="tool_invocations_total",
+            since=since,
+            limit=limit,
+        )
+
+        if not data_points:
+            return pd.DataFrame()
+
+        # Group by tool, action, status
+        breakdown: dict[tuple[str, str, str], float] = {}
+        for dp in data_points:
+            tool = dp.labels.get("tool", "unknown")
+            action = dp.labels.get("action", "")  # Empty string for legacy data
+            status = dp.labels.get("status", "unknown")
+            key = (tool, action, status)
+            breakdown[key] = breakdown.get(key, 0) + dp.value
+
+        data = [
+            {"tool": k[0], "action": k[1] or "(no action)", "status": k[2], "count": int(v)}
+            for k, v in breakdown.items()
+        ]
+
+        return pd.DataFrame(data)
+
+    except Exception as e:
+        logger.exception("Error getting tool action breakdown: %s", e)
+        return pd.DataFrame()
+
+
+def get_top_tool_actions(since_hours: int = 24, top_n: int = 10) -> list[dict]:
+    """Get top N most called tool+action combinations.
+
+    Args:
+        since_hours: Hours to look back
+        top_n: Number of top items to return
+
+    Returns:
+        List of dicts with tool, action, count
+    """
+    df = get_tool_action_breakdown(since_hours=since_hours)
+    if df is None or df.empty:
+        return []
+
+    try:
+        # Group by tool+action, sum counts across statuses
+        grouped = df.groupby(["tool", "action"])["count"].sum().reset_index()
+        grouped = grouped.sort_values("count", ascending=False).head(top_n)
+
+        return grouped.to_dict("records")
+    except Exception as e:
+        logger.exception("Error getting top tool actions: %s", e)
+        return []
 
 
 # =============================================================================
@@ -335,18 +412,11 @@ def get_providers() -> list[dict]:
 # =============================================================================
 
 
-@st.cache_data(ttl=5)
 def get_overview_summary() -> dict[str, Any]:
     """Get aggregated overview metrics for dashboard."""
     summary = {
         "total_invocations": 0,
-        "invocations_last_hour": 0,
-        "active_tools": 0,
         "error_count": 0,
-        "error_rate": 0.0,
-        "avg_latency_ms": 0.0,
-        "health_status": "unknown",
-        "provider_count": 0,
     }
 
     # Get metrics summary
@@ -355,17 +425,9 @@ def get_overview_summary() -> dict[str, Any]:
         if m.get("metric_name") == "tool_invocations_total":
             summary["total_invocations"] = m.get("count", 0)
 
-    # Get error stats
-    error_stats = get_error_stats()
-    if error_stats.get("enabled"):
-        summary["error_count"] = error_stats.get("total", 0)
-
-    # Get health
-    health = get_health_status()
-    summary["health_status"] = "healthy" if health.get("healthy") else "unhealthy"
-
-    # Get providers
-    providers = get_providers()
-    summary["provider_count"] = len([p for p in providers if p.get("available")])
+    # Get error count from store (single source of truth)
+    error_store = _get_error_store()
+    if error_store is not None:
+        summary["error_count"] = error_store.get_total_count()
 
     return summary
