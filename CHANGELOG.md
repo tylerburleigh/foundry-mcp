@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-12-18
+
+### Added
+- **Testing**: Multi-runner test framework supporting pytest, go, npm, jest, and make with abstract `BaseTestRunner` interface
+- **Testing**: `detect-test-runner` action for automatic runner detection based on project markers (pyproject.toml, go.mod, package.json, etc.)
+- **Config**: `RunnerConfig` and `TestConfig` dataclasses for test framework configuration via foundry-mcp.toml
+- **Config**: Consultation workflow configs (`timeout_override`, `min_models`, `default_review_type`) for plan_review and fidelity_review workflows
+- **Consultation**: Parallel provider execution with sequential fallback for improved reliability
+- **Review**: Multi-model synthesis for fidelity reviews with provider failure tracking and detailed response visibility
+- **Tests**: Comprehensive synthesis workflow integration tests with mock provider fixtures
+
+### Changed
+- **Config**: Standardized storage paths to `~/.foundry-mcp/` for errors and metrics (previously `~/.cache/foundry-mcp/`)
+- **Dashboard**: Removed unused chart components for cleaner codebase
+- **Samples**: Expanded `foundry-mcp.toml` samples with consultation workflow settings
+
 ## [0.3.3] - 2025-12-17
 
 ### Changed
