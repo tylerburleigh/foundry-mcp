@@ -183,6 +183,17 @@ def _default_runner(
 
 CLAUDE_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
+        id="opus",
+        display_name="Opus 4.5",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+            ProviderCapability.VISION,
+            ProviderCapability.THINKING,
+        },
+        routing_hints={"tier": "default", "description": "Smartest model for daily use"},
+    ),
+    ModelDescriptor(
         id="sonnet",
         display_name="Sonnet 4.5",
         capabilities={
@@ -191,7 +202,7 @@ CLAUDE_MODELS: List[ModelDescriptor] = [
             ProviderCapability.VISION,
             ProviderCapability.THINKING,
         },
-        routing_hints={"tier": "default", "description": "Smartest model for daily use"},
+        routing_hints={"tier": "default", "description": "Most capable for complex work"},
     ),
     ModelDescriptor(
         id="haiku",
@@ -208,7 +219,7 @@ CLAUDE_METADATA = ProviderMetadata(
     provider_id="claude",
     display_name="Anthropic Claude CLI",
     models=CLAUDE_MODELS,
-    default_model="sonnet",
+    default_model="opus",
     capabilities={
         ProviderCapability.TEXT,
         ProviderCapability.STREAMING,

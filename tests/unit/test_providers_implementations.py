@@ -91,7 +91,7 @@ class TestGeminiProvider:
         from foundry_mcp.core.providers.gemini import GEMINI_METADATA, GeminiProvider
 
         provider = GeminiProvider(metadata=GEMINI_METADATA, hooks=hooks)
-        assert provider._model == "gemini-2.5-flash"
+        assert provider._model == "pro"
 
     def test_instantiation_custom_model(self, hooks):
         """GeminiProvider should accept valid custom model."""
@@ -116,15 +116,19 @@ class TestGeminiProvider:
         )
         assert provider._binary == "/custom/gemini"
 
-    def test_validate_request_rejects_unsupported_params(self, hooks):
-        """GeminiProvider should reject unsupported request parameters."""
+    def test_validate_request_warns_on_unsupported_params(self, hooks, caplog):
+        """GeminiProvider should warn on unsupported request parameters."""
+        import logging
+
         from foundry_mcp.core.providers.gemini import GEMINI_METADATA, GeminiProvider
 
         provider = GeminiProvider(metadata=GEMINI_METADATA, hooks=hooks)
         request = ProviderRequest(prompt="test", temperature=0.5)
 
-        with pytest.raises(ProviderExecutionError, match="does not support"):
+        with caplog.at_level(logging.WARNING):
             provider._validate_request(request)
+
+        assert "ignoring unsupported parameters" in caplog.text.lower()
 
     def test_build_command_includes_allowed_tools(self, hooks):
         """GeminiProvider command should include allowed tools."""
@@ -277,7 +281,7 @@ class TestCodexProvider:
         from foundry_mcp.core.providers.codex import CODEX_METADATA, CodexProvider
 
         provider = CodexProvider(metadata=CODEX_METADATA, hooks=hooks)
-        assert provider._model == "gpt-5.1-codex"
+        assert provider._model == "gpt-5.2"
 
     def test_instantiation_invalid_model_raises(self, hooks):
         """CodexProvider should reject unknown models."""
@@ -530,7 +534,7 @@ class TestClaudeProvider:
         from foundry_mcp.core.providers.claude import CLAUDE_METADATA, ClaudeProvider
 
         provider = ClaudeProvider(metadata=CLAUDE_METADATA, hooks=hooks)
-        assert provider._model == "sonnet"
+        assert provider._model == "opus"
 
     def test_instantiation_invalid_model_raises(self, hooks):
         """ClaudeProvider should reject unknown models."""
@@ -576,15 +580,19 @@ class TestClaudeProvider:
         assert result.tokens.input_tokens == 12
         assert result.tokens.output_tokens == 6
 
-    def test_validate_request_rejects_unsupported_params(self, hooks):
-        """ClaudeProvider should reject unsupported request parameters."""
+    def test_validate_request_warns_on_unsupported_params(self, hooks, caplog):
+        """ClaudeProvider should warn on unsupported request parameters."""
+        import logging
+
         from foundry_mcp.core.providers.claude import CLAUDE_METADATA, ClaudeProvider
 
         provider = ClaudeProvider(metadata=CLAUDE_METADATA, hooks=hooks)
         request = ProviderRequest(prompt="test", temperature=0.5)
 
-        with pytest.raises(ProviderExecutionError, match="does not support"):
+        with caplog.at_level(logging.WARNING):
             provider._validate_request(request)
+
+        assert "ignoring unsupported parameters" in caplog.text.lower()
 
     def test_nonzero_exit_raises_execution_error(self, hooks):
         """ClaudeProvider should raise on non-zero exit code."""
@@ -633,7 +641,7 @@ class TestOpenCodeProvider:
         )
 
         provider = OpenCodeProvider(metadata=OPENCODE_METADATA, hooks=hooks)
-        assert provider._model == "default"
+        assert provider._model == "openai/gpt-5.1-codex-mini"
 
     def test_instantiation_empty_model_raises(self, hooks):
         """OpenCodeProvider should reject empty model identifiers."""
@@ -852,7 +860,7 @@ class TestCreateProviderFactories:
         from foundry_mcp.core.providers.codex import create_provider
 
         provider = create_provider(hooks=hooks)
-        assert provider._model == "gpt-5.1-codex"
+        assert provider._model == "gpt-5.2"
 
     def test_cursor_agent_create_provider(self, hooks):
         """Cursor Agent create_provider should return configured provider."""
@@ -873,7 +881,7 @@ class TestCreateProviderFactories:
         from foundry_mcp.core.providers.opencode import create_provider
 
         provider = create_provider(hooks=hooks)
-        assert provider._model == "default"
+        assert provider._model == "openai/gpt-5.1-codex-mini"
 
     def test_factory_accepts_dependencies_and_overrides(self, hooks):
         """Factory should inject dependencies and apply overrides."""

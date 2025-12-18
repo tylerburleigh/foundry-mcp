@@ -48,12 +48,41 @@ except ValueError:
 _DEFAULT_TOML_CONTENT = """[workspace]
 specs_dir = "./specs"
 
+[logging]
+level = "INFO"
+structured = true
+
+[server]
+name = "foundry-mcp"
+version = "0.3.3"
+
 [workflow]
 mode = "single"
 auto_validate = true
+journal_enabled = true
 
-[logging]
-level = "INFO"
+[consultation]
+# priority = []  # Appended by setup based on detected providers
+default_timeout = 300
+max_retries = 2
+retry_delay = 5.0
+fallback_enabled = true
+cache_ttl = 3600
+
+[consultation.workflows.fidelity_review]
+min_models = 2
+timeout_override = 600.0
+default_review_type = "full"
+
+[consultation.workflows.plan_review]
+min_models = 2
+timeout_override = 180.0
+default_review_type = "full"
+
+[consultation.workflows.markdown_plan_review]
+min_models = 2
+timeout_override = 180.0
+default_review_type = "full"
 """
 
 
@@ -184,6 +213,7 @@ _ACTION_SUMMARY = {
     "verify-env": "Validate runtimes, packages, and workspace environment",
     "init": "Initialize the standard specs/ workspace structure",
     "detect": "Detect repository topology (project type, specs/docs)",
+    "detect-test-runner": "Detect appropriate test runner for the project",
     "setup": "Complete SDD setup with permissions + config",
 }
 
@@ -545,6 +575,190 @@ def _handle_detect_topology(
         )
 
 
+def _handle_detect_test_runner(
+    *,
+    config: ServerConfig,  # noqa: ARG001 - reserved for future hooks
+    path: Optional[str] = None,
+    **_: Any,
+) -> dict:
+    """Detect appropriate test runner based on project type and configuration files.
+
+    Returns a structured response with detected runners, confidence levels, and
+    a recommended default runner.
+
+    Detection rules:
+    - Python: pyproject.toml, setup.py, requirements.txt, Pipfile → pytest
+    - Go: go.mod → go
+    - Jest: jest.config.* or package.json with "jest" key → jest (precedence over npm)
+    - Node: package.json with "test" script → npm
+    - Rust: Cargo.toml + Makefile present → make
+    """
+    request_id = _request_id()
+    blocked = _feature_flag_blocked(request_id)
+    if blocked:
+        return blocked
+
+    if path is not None and not isinstance(path, str):
+        return _validation_error(
+            action="detect-test-runner",
+            field="path",
+            message="Directory path must be a string",
+            request_id=request_id,
+        )
+
+    metric_key = _metric_name("detect-test-runner")
+    try:
+        base_path = Path(path) if path else Path.cwd()
+
+        detected_runners: List[Dict[str, Any]] = []
+
+        # Python detection (highest precedence for Python projects)
+        python_primary = ["pyproject.toml", "setup.py"]
+        python_secondary = ["requirements.txt", "Pipfile"]
+
+        for marker in python_primary:
+            if (base_path / marker).exists():
+                detected_runners.append({
+                    "runner_name": "pytest",
+                    "project_type": "python",
+                    "confidence": "high",
+                    "reason": f"{marker} found",
+                })
+                break
+        else:
+            # Check secondary markers only if no primary found
+            for marker in python_secondary:
+                if (base_path / marker).exists():
+                    detected_runners.append({
+                        "runner_name": "pytest",
+                        "project_type": "python",
+                        "confidence": "medium",
+                        "reason": f"{marker} found",
+                    })
+                    break
+
+        # Go detection
+        if (base_path / "go.mod").exists():
+            detected_runners.append({
+                "runner_name": "go",
+                "project_type": "go",
+                "confidence": "high",
+                "reason": "go.mod found",
+            })
+
+        # Node detection - Jest takes precedence over npm
+        jest_configs = [
+            "jest.config.js",
+            "jest.config.ts",
+            "jest.config.mjs",
+            "jest.config.cjs",
+            "jest.config.json",
+        ]
+
+        jest_detected = False
+        for jest_config in jest_configs:
+            if (base_path / jest_config).exists():
+                detected_runners.append({
+                    "runner_name": "jest",
+                    "project_type": "node",
+                    "confidence": "high",
+                    "reason": f"{jest_config} found",
+                })
+                jest_detected = True
+                break
+
+        # Check package.json for jest config or test script
+        package_json_path = base_path / "package.json"
+        if package_json_path.exists():
+            try:
+                with open(package_json_path, "r") as f:
+                    pkg = json.load(f)
+
+                # Jest config in package.json takes precedence
+                if not jest_detected and "jest" in pkg:
+                    detected_runners.append({
+                        "runner_name": "jest",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": "jest key in package.json",
+                    })
+                    jest_detected = True
+
+                # npm test script (only if jest not already detected)
+                if not jest_detected:
+                    scripts = pkg.get("scripts", {})
+                    if "test" in scripts:
+                        detected_runners.append({
+                            "runner_name": "npm",
+                            "project_type": "node",
+                            "confidence": "high",
+                            "reason": "test script in package.json",
+                        })
+            except (json.JSONDecodeError, OSError):
+                # If package.json is invalid, skip Node detection
+                pass
+
+        # Rust detection - only if BOTH Cargo.toml and Makefile exist
+        cargo_exists = (base_path / "Cargo.toml").exists()
+        makefile_exists = (base_path / "Makefile").exists() or (
+            base_path / "makefile"
+        ).exists()
+
+        if cargo_exists and makefile_exists:
+            detected_runners.append({
+                "runner_name": "make",
+                "project_type": "rust",
+                "confidence": "medium",
+                "reason": "Cargo.toml + Makefile found",
+            })
+
+        # Determine recommended default based on precedence order from plan
+        # Priority: python (1) > go (2) > jest (3) > npm (4) > make (5)
+        precedence_order = ["pytest", "go", "jest", "npm", "make"]
+        recommended_default: Optional[str] = None
+
+        for runner_name in precedence_order:
+            for runner in detected_runners:
+                if runner["runner_name"] == runner_name:
+                    recommended_default = runner_name
+                    break
+            if recommended_default:
+                break
+
+        data: Dict[str, Any] = {
+            "detected_runners": detected_runners,
+            "recommended_default": recommended_default,
+        }
+
+        warnings: List[str] = []
+        if not detected_runners:
+            warnings.append(
+                "No test runners detected. Configure [test] section manually in "
+                "foundry-mcp.toml if tests are needed."
+            )
+
+        _metrics.counter(metric_key, labels={"status": "success"})
+        return asdict(
+            success_response(
+                data=data,
+                warnings=warnings or None,
+                request_id=request_id,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Error detecting test runner")
+        _metrics.counter(metric_key, labels={"status": "error"})
+        return asdict(
+            error_response(
+                f"Failed to detect test runner: {exc}",
+                error_code=ErrorCode.INTERNAL_ERROR,
+                error_type=ErrorType.INTERNAL,
+                remediation="Verify the directory exists and retry",
+                request_id=request_id,
+            )
+        )
+
+
 def _handle_verify_environment(
     *,
     config: ServerConfig,  # noqa: ARG001 - reserved for future hooks
@@ -867,6 +1081,16 @@ _ENVIRONMENT_ROUTER = ActionRouter(
             handler=_handle_detect_topology,
             summary=_ACTION_SUMMARY["detect"],
             aliases=("sdd-detect-topology", "sdd_detect_topology"),
+        ),
+        ActionDefinition(
+            name="detect-test-runner",
+            handler=_handle_detect_test_runner,
+            summary=_ACTION_SUMMARY["detect-test-runner"],
+            aliases=(
+                "detect_test_runner",
+                "sdd-detect-test-runner",
+                "sdd_detect_test_runner",
+            ),
         ),
         ActionDefinition(
             name="setup",

@@ -180,7 +180,7 @@ class FileMetricsStore(MetricsStore):
     for efficient querying. Thread-safe with file locking for concurrent access.
 
     Directory structure:
-        .cache/foundry-mcp/metrics/
+        ~/.foundry-mcp/metrics/
             metrics.jsonl    - Append-only metrics log
             index.json       - Metric name -> metadata mapping
     """
@@ -628,7 +628,7 @@ def get_metrics_store(storage_path: Optional[str | Path] = None) -> MetricsStore
         if _metrics_store is None:
             if storage_path is None:
                 # Default path
-                storage_path = Path.home() / ".cache" / "foundry-mcp" / "metrics"
+                storage_path = Path.home() / ".foundry-mcp" / "metrics"
             _metrics_store = FileMetricsStore(storage_path)
 
         return _metrics_store

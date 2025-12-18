@@ -78,6 +78,7 @@ What the spec does well.
 - Be specific and actionable in all feedback
 - For clarity issues, use Questions section rather than creating a separate category
 - Attribution: In multi-model reviews, prefix items with "Flagged by [model-name]:" when applicable
+- Do NOT generate feedback about ownership, responsibility, or team assignments (e.g., "who verifies", "who owns", "who is responsible")
 """
 
 
@@ -94,7 +95,10 @@ Guidelines:
 - Ask clarifying questions for ambiguities
 - Propose alternatives when better approaches exist
 - Focus on impact and prioritize feedback by potential consequences
-- Be collaborative, not adversarial"""
+- Be collaborative, not adversarial
+- Do NOT focus on ownership, responsibility, or team assignment concerns
+- Avoid feedback like "who owns", "who verifies", "who is responsible for"
+- Focus on technical requirements and verification steps themselves, not who performs them"""
 
 
 # =============================================================================

@@ -71,6 +71,7 @@ What the plan does well.
 - Include all sections even if empty (write "None identified" for empty sections)
 - Be specific and actionable in all feedback
 - For clarity issues, use Questions section rather than creating a separate category
+- Do NOT generate feedback about ownership, responsibility, or team assignments (e.g., "who verifies", "who owns", "who is responsible")
 """
 
 
@@ -89,7 +90,10 @@ Guidelines:
 - Propose alternatives when better approaches exist
 - Focus on impact and prioritize feedback by potential consequences
 - Be collaborative, not adversarial
-- Remember: this is an early-stage plan, not a final spec"""
+- Remember: this is an early-stage plan, not a final spec
+- Do NOT focus on ownership, responsibility, or team assignment concerns
+- Avoid feedback like "who owns", "who verifies", "who is responsible for"
+- Focus on technical requirements and verification steps themselves, not who performs them"""
 
 
 # =============================================================================

@@ -23,7 +23,12 @@ from foundry_mcp.core.responses import (
     error_response,
     success_response,
 )
-from foundry_mcp.core.testing import TestRunner, get_presets
+from foundry_mcp.core.testing import (
+    TestRunner,
+    get_presets,
+    get_runner,
+    get_available_runners,
+)
 from foundry_mcp.tools.unified.router import (
     ActionDefinition,
     ActionRouter,
@@ -42,13 +47,31 @@ def _metric(action: str) -> str:
     return f"unified_tools.test.{action.replace('-', '_')}"
 
 
-def _get_runner(config: ServerConfig, workspace: Optional[str]) -> TestRunner:
+def _get_test_runner(
+    config: ServerConfig,
+    workspace: Optional[str],
+    runner_name: Optional[str] = None,
+) -> TestRunner:
+    """Get a TestRunner with the appropriate backend.
+
+    Args:
+        config: Server configuration
+        workspace: Workspace path override
+        runner_name: Name of the test runner backend to use
+
+    Returns:
+        TestRunner configured with the appropriate backend
+    """
     ws: Optional[Path] = None
     if workspace:
         ws = Path(workspace)
     elif config.specs_dir is not None:
         ws = config.specs_dir.parent
-    return TestRunner(workspace=ws)
+
+    # Get the runner backend from config or defaults
+    runner_backend = get_runner(runner_name, config.test)
+
+    return TestRunner(workspace=ws, runner=runner_backend)
 
 
 def _validation_error(
@@ -67,6 +90,24 @@ def _validation_error(
 
 def _handle_run(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     request_id = _request_id()
+
+    # Validate runner parameter
+    runner_name = payload.get("runner")
+    if runner_name is not None and not isinstance(runner_name, str):
+        return _validation_error(
+            message="runner must be a string",
+            request_id=request_id,
+            remediation="Use runner=pytest|go|npm|jest|make or a custom runner name",
+        )
+
+    if isinstance(runner_name, str):
+        available_runners = get_available_runners(config.test)
+        if runner_name not in available_runners:
+            return _validation_error(
+                message=f"Unknown runner: {runner_name}",
+                request_id=request_id,
+                remediation=f"Use one of: {', '.join(sorted(available_runners))}",
+            )
 
     preset = payload.get("preset")
     if preset is not None and not isinstance(preset, str):
@@ -90,7 +131,7 @@ def _handle_run(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         return _validation_error(
             message="target must be a string",
             request_id=request_id,
-            remediation="Provide a pytest target like tests/unit or tests/test_file.py",
+            remediation="Provide a test target like tests/unit or tests/test_file.py",
         )
 
     timeout = payload.get("timeout", 300)
@@ -155,7 +196,7 @@ def _handle_run(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         include_passed_value if isinstance(include_passed_value, bool) else False
     )
 
-    runner = _get_runner(config, workspace)
+    runner = _get_test_runner(config, workspace, runner_name)
 
     start = time.perf_counter()
     result = runner.run_tests(
@@ -223,6 +264,24 @@ def _handle_run(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
 def _handle_discover(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     request_id = _request_id()
 
+    # Validate runner parameter
+    runner_name = payload.get("runner")
+    if runner_name is not None and not isinstance(runner_name, str):
+        return _validation_error(
+            message="runner must be a string",
+            request_id=request_id,
+            remediation="Use runner=pytest|go|npm|jest|make or a custom runner name",
+        )
+
+    if isinstance(runner_name, str):
+        available_runners = get_available_runners(config.test)
+        if runner_name not in available_runners:
+            return _validation_error(
+                message=f"Unknown runner: {runner_name}",
+                request_id=request_id,
+                remediation=f"Use one of: {', '.join(sorted(available_runners))}",
+            )
+
     target = payload.get("target")
     if target is not None and not isinstance(target, str):
         return _validation_error(
@@ -247,7 +306,7 @@ def _handle_discover(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
             remediation="Provide an absolute path to the workspace",
         )
 
-    runner = _get_runner(config, workspace)
+    runner = _get_test_runner(config, workspace, runner_name)
 
     start = time.perf_counter()
     result = runner.discover_tests(target=target, pattern=pattern)
@@ -291,8 +350,8 @@ def _handle_discover(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
 
 
 _ACTION_SUMMARY = {
-    "run": "Execute pytest using a preset or target.",
-    "discover": "Discover pytest tests without executing.",
+    "run": "Execute tests using the specified runner (pytest, go, npm, jest, make).",
+    "discover": "Discover tests without executing using the specified runner.",
 }
 
 
@@ -341,6 +400,7 @@ def register_unified_test_tool(mcp: FastMCP, config: ServerConfig) -> None:
         action: str,
         target: Optional[str] = None,
         preset: Optional[str] = None,
+        runner: Optional[str] = None,
         timeout: int = 300,
         verbose: bool = True,
         fail_fast: bool = False,
@@ -352,6 +412,7 @@ def register_unified_test_tool(mcp: FastMCP, config: ServerConfig) -> None:
         payload: Dict[str, Any] = {
             "target": target,
             "preset": preset,
+            "runner": runner,
             "timeout": timeout,
             "verbose": verbose,
             "fail_fast": fail_fast,

@@ -126,6 +126,17 @@ def launch_dashboard(
         "FOUNDRY_MCP_DASHBOARD_MODE": "1",
     }
 
+    # Pass config file path to dashboard subprocess so it can find error/metrics storage
+    # If FOUNDRY_MCP_CONFIG_FILE is already set, it will be inherited from os.environ
+    # Otherwise, find and pass the config file path explicitly
+    if "FOUNDRY_MCP_CONFIG_FILE" not in env:
+        for config_name in ["foundry-mcp.toml", ".foundry-mcp.toml"]:
+            config_path = Path(config_name).resolve()
+            if config_path.exists():
+                env["FOUNDRY_MCP_CONFIG_FILE"] = str(config_path)
+                logger.debug("Passing config file to dashboard: %s", config_path)
+                break
+
     try:
         # Start subprocess
         _dashboard_process = subprocess.Popen(

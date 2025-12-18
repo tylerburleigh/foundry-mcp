@@ -1305,6 +1305,143 @@ class ConsultationOrchestrator:
             warnings=warnings,
         )
 
+    async def _execute_parallel_providers_with_fallback_async(
+        self,
+        request: ConsultationRequest,
+        prompt: str,
+        all_providers: List[ResolvedProvider],
+        min_models: int = 1,
+    ) -> ConsensusResult:
+        """
+        Execute providers in parallel with sequential fallback on failures.
+
+        Uses a two-phase approach:
+        1. Execute first min_models providers in parallel
+        2. If any fail and fallback_enabled, try remaining providers sequentially
+           until min_models succeed or providers exhausted
+
+        Args:
+            request: The consultation request
+            prompt: The rendered prompt
+            all_providers: Complete priority list of providers to try
+            min_models: Minimum successful models required
+
+        Returns:
+            ConsensusResult with all attempted provider responses
+        """
+        start_time = time.time()
+        warnings: List[str] = []
+        all_responses: List[ProviderResponse] = []
+
+        if not all_providers:
+            return ConsensusResult(
+                workflow=request.workflow,
+                responses=[],
+                duration_ms=0.0,
+                warnings=["No providers available for parallel execution"],
+            )
+
+        # Phase 1: Initial parallel execution of first min_models providers
+        initial_providers = all_providers[:min_models]
+        logger.debug(
+            f"Phase 1: Executing {len(initial_providers)} providers in parallel"
+        )
+
+        tasks = [
+            self._execute_single_provider_async(request, prompt, resolved)
+            for resolved in initial_providers
+        ]
+        initial_responses: List[ProviderResponse] = await asyncio.gather(*tasks)
+        all_responses.extend(initial_responses)
+
+        # Count successes and log failures
+        # A response is only truly successful if it has non-empty content
+        successful_count = sum(
+            1 for r in initial_responses if r.success and r.content.strip()
+        )
+        for response in initial_responses:
+            if not response.success:
+                warnings.append(
+                    f"Provider {response.provider_id} failed: {response.error}"
+                )
+            elif not response.content.strip():
+                warnings.append(
+                    f"Provider {response.provider_id} returned empty content"
+                )
+
+        # Phase 2: Sequential fallback if needed and enabled
+        if successful_count < min_models and self._config.fallback_enabled:
+            needed = min_models - successful_count
+            remaining_providers = all_providers[min_models:]
+
+            if remaining_providers:
+                warnings.append(
+                    f"Initial parallel execution yielded {successful_count}/{min_models} "
+                    f"successes, attempting fallback for {needed} more"
+                )
+
+                for fallback_provider in remaining_providers:
+                    # Skip if already tried (shouldn't happen, but safety check)
+                    if any(
+                        r.provider_id == fallback_provider.provider_id
+                        for r in all_responses
+                    ):
+                        continue
+
+                    # Check if provider is available
+                    if not check_provider_available(fallback_provider.provider_id):
+                        warnings.append(
+                            f"Fallback provider {fallback_provider.provider_id} "
+                            "is not available, skipping"
+                        )
+                        continue
+
+                    logger.debug(
+                        f"Fallback attempt: trying provider {fallback_provider.provider_id}"
+                    )
+
+                    response = await self._execute_single_provider_async(
+                        request, prompt, fallback_provider
+                    )
+                    all_responses.append(response)
+
+                    if response.success and response.content.strip():
+                        successful_count += 1
+                        warnings.append(
+                            f"Fallback provider {fallback_provider.provider_id} succeeded"
+                        )
+                        if successful_count >= min_models:
+                            logger.debug(
+                                f"Reached {min_models} successful providers via fallback"
+                            )
+                            break
+                    elif response.success and not response.content.strip():
+                        warnings.append(
+                            f"Fallback provider {fallback_provider.provider_id} "
+                            "returned empty content"
+                        )
+                    else:
+                        warnings.append(
+                            f"Fallback provider {fallback_provider.provider_id} "
+                            f"failed: {response.error}"
+                        )
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Final warning if still insufficient
+        if successful_count < min_models:
+            warnings.append(
+                f"Only {successful_count} of {min_models} required models succeeded "
+                f"after trying {len(all_responses)} provider(s)"
+            )
+
+        return ConsensusResult(
+            workflow=request.workflow,
+            responses=all_responses,
+            duration_ms=duration_ms,
+            warnings=warnings,
+        )
+
     def _execute_with_fallback(
         self,
         request: ConsultationRequest,
@@ -1533,14 +1670,10 @@ class ConsultationOrchestrator:
         providers = self._get_providers_to_try(request)
 
         if min_models > 1:
-            # Multi-model mode: execute providers in parallel
-            # Limit to min_models providers (or all available if fewer)
-            providers_to_use = (
-                providers[:min_models] if len(providers) >= min_models else providers
-            )
-
-            result = await self._execute_parallel_providers_async(
-                request, prompt, providers_to_use, min_models
+            # Multi-model mode: execute providers in parallel with fallback support
+            # Pass full provider list - fallback will try additional providers if needed
+            result = await self._execute_parallel_providers_with_fallback_async(
+                request, prompt, providers, min_models
             )
             return result
         else:

@@ -36,63 +36,6 @@ def _check_deps():
     return True
 
 
-def line_chart(
-    df: "pd.DataFrame",
-    x: str,
-    y: str,
-    title: Optional[str] = None,
-    color: Optional[str] = None,
-    height: int = 400,
-) -> None:
-    """Render an interactive line chart.
-
-    Args:
-        df: DataFrame with data
-        x: Column name for x-axis
-        y: Column name for y-axis
-        title: Optional chart title
-        color: Optional column for color grouping
-        height: Chart height in pixels
-    """
-    if not _check_deps():
-        return
-
-    if df is None or df.empty:
-        st.info("No data to display")
-        return
-
-    fig = px.line(
-        df,
-        x=x,
-        y=y,
-        title=title,
-        color=color,
-    )
-
-    # Configure layout for dark theme
-    fig.update_layout(
-        template="plotly_dark",
-        height=height,
-        margin=dict(l=20, r=20, t=40, b=20),
-        xaxis=dict(
-            rangeselector=dict(
-                buttons=list(
-                    [
-                        dict(count=1, label="1h", step="hour", stepmode="backward"),
-                        dict(count=6, label="6h", step="hour", stepmode="backward"),
-                        dict(count=24, label="24h", step="hour", stepmode="backward"),
-                        dict(step="all", label="All"),
-                    ]
-                )
-            ),
-            rangeslider=dict(visible=True),
-            type="date",
-        ),
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-
 def bar_chart(
     df: "pd.DataFrame",
     x: str,

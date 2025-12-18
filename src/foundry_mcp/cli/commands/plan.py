@@ -20,6 +20,7 @@ from foundry_mcp.cli.resilience import (
     handle_keyboard_interrupt,
 )
 from foundry_mcp.core.spec import find_specs_directory
+from foundry_mcp.core.llm_config import get_consultation_config
 
 logger = get_cli_logger()
 
@@ -135,8 +136,8 @@ def plan_group() -> None:
     "--type",
     "review_type",
     type=click.Choice(REVIEW_TYPES),
-    default="full",
-    help="Type of review to perform.",
+    default=None,
+    help="Type of review to perform (defaults to config value, typically 'full').",
 )
 @click.option(
     "--ai-provider",
@@ -165,7 +166,7 @@ def plan_group() -> None:
 def plan_review_cmd(
     ctx: click.Context,
     plan_path: str,
-    review_type: str,
+    review_type: Optional[str],
     ai_provider: Optional[str],
     ai_timeout: float,
     no_consultation_cache: bool,
@@ -184,6 +185,12 @@ def plan_review_cmd(
 
         sdd plan review ./PLAN.md --ai-provider gemini
     """
+    # Get default review_type from config if not provided
+    if review_type is None:
+        consultation_config = get_consultation_config()
+        workflow_config = consultation_config.get_workflow_config("markdown_plan_review")
+        review_type = workflow_config.default_review_type
+
     start_time = time.perf_counter()
 
     llm_status = _get_llm_status()

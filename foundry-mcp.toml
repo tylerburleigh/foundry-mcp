@@ -22,11 +22,11 @@ journal_enabled = true
 # Provider priority list - first available provider wins
 # Format: "[api]provider/model" or "[cli]transport[:backend/model|:model]"
 priority = [
-    "[cli]gemini:auto",
-    "[cli]codex",
+    "[cli]opencode:openai/gpt-5.1-codex",
+    "[cli]gemini:pro",
+    "[cli]codex:gpt-5.1-codex",
     "[cli]cursor-agent:composer-1",
     "[cli]claude:opus",
-    "[cli]opencode:openai/gpt-5.2",
 ]
 
 # Operational settings
@@ -65,14 +65,14 @@ commit_cadence = "task"
 # Error collection - stores error logs for dashboard visibility
 [error_collection]
 enabled = true
-storage_path = "~/.foundry-mcp/errors"
+# storage_path defaults to ~/.foundry-mcp/errors
 retention_days = 30
 max_records = 10000
 
 # Metrics persistence - stores metrics for dashboard charts
 [metrics_persistence]
 enabled = true
-storage_path = "~/.foundry-mcp/metrics"
+# storage_path defaults to ~/.foundry-mcp/metrics
 retention_days = 7
 max_records = 50000
 

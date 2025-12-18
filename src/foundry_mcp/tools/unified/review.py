@@ -19,9 +19,14 @@ from foundry_mcp.config import ServerConfig
 from foundry_mcp.core.ai_consultation import (
     ConsultationOrchestrator,
     ConsultationRequest,
+    ConsultationResult,
     ConsultationWorkflow,
     ConsensusResult,
 )
+from foundry_mcp.core.prompts.fidelity_review import (
+    FIDELITY_SYNTHESIZED_RESPONSE_SCHEMA,
+)
+from foundry_mcp.core.llm_config import get_consultation_config
 from foundry_mcp.core.naming import canonical_tool
 from foundry_mcp.core.observability import get_metrics, mcp_tool
 from foundry_mcp.core.providers import get_provider_statuses
@@ -82,7 +87,11 @@ def _parse_json_content(content: str) -> Optional[dict]:
 
 def _handle_spec_review(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     spec_id = payload.get("spec_id")
-    review_type = payload.get("review_type", "quick")
+    # Get default review_type from consultation config (used when not provided or None)
+    consultation_config = get_consultation_config()
+    workflow_config = consultation_config.get_workflow_config("plan_review")
+    default_review_type = workflow_config.default_review_type
+    review_type = payload.get("review_type") or default_review_type
 
     if not isinstance(spec_id, str) or not spec_id.strip():
         return asdict(
@@ -555,27 +564,136 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
 
     result = orchestrator.consult(request, use_cache=True)
     is_consensus = isinstance(result, ConsensusResult)
-    content = result.primary_content if is_consensus else result.content
+    synthesis_performed = False
+    synthesis_error = None
+    successful_providers: List[str] = []
+    failed_providers: List[Dict[str, Any]] = []
+
+    if is_consensus:
+        # Extract provider details for visibility
+        failed_providers = [
+            {"provider_id": r.provider_id, "error": r.error}
+            for r in result.responses
+            if not r.success
+        ]
+        # Filter for truly successful responses (success=True AND non-empty content)
+        successful_responses = [
+            r for r in result.responses if r.success and r.content.strip()
+        ]
+        successful_providers = [r.provider_id for r in successful_responses]
+
+        if len(successful_responses) >= 2:
+            # Multi-model mode: run synthesis to consolidate reviews
+            model_reviews_json = ""
+            for response in successful_responses:
+                model_reviews_json += (
+                    f"\n---\n## Review by {response.provider_id}\n\n"
+                    f"```json\n{response.content}\n```\n"
+                )
+
+            logger.info(
+                "Running fidelity synthesis for %d provider reviews: %s",
+                len(successful_responses),
+                successful_providers,
+            )
+
+            synthesis_request = ConsultationRequest(
+                workflow=ConsultationWorkflow.FIDELITY_REVIEW,
+                prompt_id="FIDELITY_SYNTHESIS_PROMPT_V1",
+                context={
+                    "spec_id": spec_id,
+                    "spec_title": spec_data.get("title", spec_id),
+                    "review_scope": scope,
+                    "num_models": len(successful_responses),
+                    "model_reviews": model_reviews_json,
+                    "response_schema": FIDELITY_SYNTHESIZED_RESPONSE_SCHEMA,
+                },
+                provider_id=successful_providers[0],
+                model=model,
+            )
+
+            try:
+                synthesis_result = orchestrator.consult(synthesis_request, use_cache=True)
+            except Exception as e:
+                logger.error("Fidelity synthesis call crashed: %s", e, exc_info=True)
+                synthesis_result = None
+
+            # Handle both ConsultationResult and ConsensusResult from synthesis
+            synthesis_success = False
+            synthesis_content = None
+            if synthesis_result:
+                if isinstance(synthesis_result, ConsultationResult) and synthesis_result.success:
+                    synthesis_content = synthesis_result.content
+                    synthesis_success = bool(synthesis_content and synthesis_content.strip())
+                elif isinstance(synthesis_result, ConsensusResult) and synthesis_result.success:
+                    synthesis_content = synthesis_result.primary_content
+                    synthesis_success = bool(synthesis_content and synthesis_content.strip())
+
+            if synthesis_success and synthesis_content:
+                content = synthesis_content
+                synthesis_performed = True
+            else:
+                # Synthesis failed - fall back to first provider's content
+                error_detail = "unknown"
+                if synthesis_result is None:
+                    error_detail = "synthesis crashed (see logs)"
+                elif isinstance(synthesis_result, ConsultationResult):
+                    error_detail = synthesis_result.error or "empty response"
+                elif isinstance(synthesis_result, ConsensusResult):
+                    error_detail = "empty synthesis content"
+                logger.warning(
+                    "Fidelity synthesis call failed (%s), falling back to first provider's content",
+                    error_detail,
+                )
+                content = result.primary_content
+                synthesis_error = error_detail
+        else:
+            # Single successful provider - use its content directly (no synthesis needed)
+            content = result.primary_content
+    else:
+        content = result.content
 
     parsed = _parse_json_content(content)
     verdict = parsed.get("verdict") if parsed else "unknown"
 
     duration_ms = (time.perf_counter() - start_time) * 1000
 
+    # Build consensus info with synthesis details
+    consensus_info: Dict[str, Any] = {
+        "mode": "multi_model" if is_consensus else "single_model",
+        "threshold": consensus_threshold,
+        "provider_id": getattr(result, "provider_id", None),
+        "model_used": getattr(result, "model_used", None),
+        "synthesis_performed": synthesis_performed,
+    }
+
+    if is_consensus:
+        consensus_info["successful_providers"] = successful_providers
+        consensus_info["failed_providers"] = failed_providers
+        if synthesis_error:
+            consensus_info["synthesis_error"] = synthesis_error
+
+    # Include additional synthesized fields if available
+    response_data: Dict[str, Any] = {
+        "spec_id": spec_id,
+        "title": spec_data.get("title", spec_id),
+        "scope": scope,
+        "verdict": verdict,
+        "deviations": parsed.get("deviations") if parsed else [],
+        "recommendations": parsed.get("recommendations") if parsed else [],
+        "consensus": consensus_info,
+    }
+
+    # Add synthesis-specific fields if synthesis was performed
+    if synthesis_performed and parsed:
+        if "verdict_consensus" in parsed:
+            response_data["verdict_consensus"] = parsed["verdict_consensus"]
+        if "synthesis_metadata" in parsed:
+            response_data["synthesis_metadata"] = parsed["synthesis_metadata"]
+
     return asdict(
         success_response(
-            spec_id=spec_id,
-            title=spec_data.get("title", spec_id),
-            scope=scope,
-            verdict=verdict,
-            deviations=(parsed.get("deviations") if parsed else []),
-            recommendations=(parsed.get("recommendations") if parsed else []),
-            consensus={
-                "mode": "multi_model" if is_consensus else "single_model",
-                "threshold": consensus_threshold,
-                "provider_id": getattr(result, "provider_id", None),
-                "model_used": getattr(result, "model_used", None),
-            },
+            **response_data,
             telemetry={"duration_ms": round(duration_ms, 2)},
         )
     )
@@ -633,7 +751,7 @@ def register_unified_review_tool(mcp: FastMCP, config: ServerConfig) -> None:
     def review(
         action: str,
         spec_id: Optional[str] = None,
-        review_type: str = "quick",
+        review_type: Optional[str] = None,
         tools: Optional[str] = None,
         model: Optional[str] = None,
         ai_provider: Optional[str] = None,

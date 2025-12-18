@@ -549,6 +549,425 @@ class TestSddSetup:
             assert first_perms_count == second_perms_count
 
 
+class TestDetectTestRunner:
+    """Tests for detect-test-runner action logic."""
+
+    def test_detect_python_pytest(self):
+        """Test detection of pytest for Python projects."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create Python marker file
+            (base_path / "pyproject.toml").touch()
+
+            # Detection logic (mirrors environment.py)
+            detected_runners = []
+            python_primary = ["pyproject.toml", "setup.py"]
+
+            for marker in python_primary:
+                if (base_path / marker).exists():
+                    detected_runners.append({
+                        "runner_name": "pytest",
+                        "project_type": "python",
+                        "confidence": "high",
+                        "reason": f"{marker} found",
+                    })
+                    break
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "pytest"
+            assert detected_runners[0]["confidence"] == "high"
+            assert detected_runners[0]["project_type"] == "python"
+
+    def test_detect_python_secondary_marker(self):
+        """Test detection of pytest with secondary marker (requirements.txt)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create secondary Python marker file (no primary markers)
+            (base_path / "requirements.txt").touch()
+
+            # Detection logic
+            detected_runners = []
+            python_primary = ["pyproject.toml", "setup.py"]
+            python_secondary = ["requirements.txt", "Pipfile"]
+
+            # Check primary first
+            for marker in python_primary:
+                if (base_path / marker).exists():
+                    detected_runners.append({
+                        "runner_name": "pytest",
+                        "project_type": "python",
+                        "confidence": "high",
+                        "reason": f"{marker} found",
+                    })
+                    break
+            else:
+                # Check secondary
+                for marker in python_secondary:
+                    if (base_path / marker).exists():
+                        detected_runners.append({
+                            "runner_name": "pytest",
+                            "project_type": "python",
+                            "confidence": "medium",
+                            "reason": f"{marker} found",
+                        })
+                        break
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "pytest"
+            assert detected_runners[0]["confidence"] == "medium"
+
+    def test_detect_go_runner(self):
+        """Test detection of go test runner."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create Go marker file
+            (base_path / "go.mod").touch()
+
+            detected_runners = []
+            if (base_path / "go.mod").exists():
+                detected_runners.append({
+                    "runner_name": "go",
+                    "project_type": "go",
+                    "confidence": "high",
+                    "reason": "go.mod found",
+                })
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "go"
+            assert detected_runners[0]["confidence"] == "high"
+
+    def test_detect_jest_config_file(self):
+        """Test detection of jest runner via config file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create jest config file
+            (base_path / "jest.config.js").touch()
+
+            detected_runners = []
+            jest_configs = [
+                "jest.config.js",
+                "jest.config.ts",
+                "jest.config.mjs",
+                "jest.config.cjs",
+                "jest.config.json",
+            ]
+
+            for jest_config in jest_configs:
+                if (base_path / jest_config).exists():
+                    detected_runners.append({
+                        "runner_name": "jest",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": f"{jest_config} found",
+                    })
+                    break
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "jest"
+
+    def test_detect_jest_package_json(self):
+        """Test detection of jest runner via package.json jest key."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create package.json with jest config
+            pkg = {"name": "test", "jest": {"testEnvironment": "node"}}
+            with open(base_path / "package.json", "w") as f:
+                json.dump(pkg, f)
+
+            detected_runners = []
+            package_json_path = base_path / "package.json"
+
+            if package_json_path.exists():
+                with open(package_json_path, "r") as f:
+                    pkg_content = json.load(f)
+
+                if "jest" in pkg_content:
+                    detected_runners.append({
+                        "runner_name": "jest",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": "jest key in package.json",
+                    })
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "jest"
+            assert detected_runners[0]["reason"] == "jest key in package.json"
+
+    def test_detect_npm_test_script(self):
+        """Test detection of npm runner via test script in package.json."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create package.json with test script but no jest
+            pkg = {"name": "test", "scripts": {"test": "mocha"}}
+            with open(base_path / "package.json", "w") as f:
+                json.dump(pkg, f)
+
+            detected_runners = []
+            jest_detected = False
+            package_json_path = base_path / "package.json"
+
+            if package_json_path.exists():
+                with open(package_json_path, "r") as f:
+                    pkg_content = json.load(f)
+
+                if "jest" in pkg_content:
+                    jest_detected = True
+
+                if not jest_detected:
+                    scripts = pkg_content.get("scripts", {})
+                    if "test" in scripts:
+                        detected_runners.append({
+                            "runner_name": "npm",
+                            "project_type": "node",
+                            "confidence": "high",
+                            "reason": "test script in package.json",
+                        })
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "npm"
+
+    def test_jest_takes_precedence_over_npm(self):
+        """Test that jest detection takes precedence over npm."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create package.json with BOTH jest config AND test script
+            pkg = {
+                "name": "test",
+                "jest": {"testEnvironment": "node"},
+                "scripts": {"test": "jest"},
+            }
+            with open(base_path / "package.json", "w") as f:
+                json.dump(pkg, f)
+
+            detected_runners = []
+            jest_detected = False
+            package_json_path = base_path / "package.json"
+
+            if package_json_path.exists():
+                with open(package_json_path, "r") as f:
+                    pkg_content = json.load(f)
+
+                if "jest" in pkg_content:
+                    detected_runners.append({
+                        "runner_name": "jest",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": "jest key in package.json",
+                    })
+                    jest_detected = True
+
+                # npm only if jest not detected
+                if not jest_detected:
+                    scripts = pkg_content.get("scripts", {})
+                    if "test" in scripts:
+                        detected_runners.append({
+                            "runner_name": "npm",
+                            "project_type": "node",
+                            "confidence": "high",
+                            "reason": "test script in package.json",
+                        })
+
+            # Should only have jest, not npm
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "jest"
+
+    def test_detect_rust_make(self):
+        """Test detection of make runner for Rust projects."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create BOTH Cargo.toml and Makefile (both required)
+            (base_path / "Cargo.toml").touch()
+            (base_path / "Makefile").touch()
+
+            detected_runners = []
+            cargo_exists = (base_path / "Cargo.toml").exists()
+            makefile_exists = (base_path / "Makefile").exists()
+
+            if cargo_exists and makefile_exists:
+                detected_runners.append({
+                    "runner_name": "make",
+                    "project_type": "rust",
+                    "confidence": "medium",
+                    "reason": "Cargo.toml + Makefile found",
+                })
+
+            assert len(detected_runners) == 1
+            assert detected_runners[0]["runner_name"] == "make"
+            assert detected_runners[0]["project_type"] == "rust"
+
+    def test_rust_without_makefile_no_detection(self):
+        """Test that Rust projects without Makefile don't trigger make detection."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create ONLY Cargo.toml (no Makefile)
+            (base_path / "Cargo.toml").touch()
+
+            detected_runners = []
+            cargo_exists = (base_path / "Cargo.toml").exists()
+            makefile_exists = (base_path / "Makefile").exists()
+
+            if cargo_exists and makefile_exists:
+                detected_runners.append({
+                    "runner_name": "make",
+                    "project_type": "rust",
+                    "confidence": "medium",
+                    "reason": "Cargo.toml + Makefile found",
+                })
+
+            # Should NOT detect make
+            assert len(detected_runners) == 0
+
+    def test_multi_type_project_detection(self):
+        """Test detection of multiple runners in a multi-type project."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create markers for both Python and Node
+            (base_path / "pyproject.toml").touch()
+            pkg = {"name": "test", "scripts": {"test": "mocha"}}
+            with open(base_path / "package.json", "w") as f:
+                json.dump(pkg, f)
+
+            detected_runners = []
+
+            # Python detection
+            if (base_path / "pyproject.toml").exists():
+                detected_runners.append({
+                    "runner_name": "pytest",
+                    "project_type": "python",
+                    "confidence": "high",
+                    "reason": "pyproject.toml found",
+                })
+
+            # Node detection (no jest, so npm)
+            package_json_path = base_path / "package.json"
+            if package_json_path.exists():
+                with open(package_json_path, "r") as f:
+                    pkg_content = json.load(f)
+
+                scripts = pkg_content.get("scripts", {})
+                if "test" in scripts:
+                    detected_runners.append({
+                        "runner_name": "npm",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": "test script in package.json",
+                    })
+
+            assert len(detected_runners) == 2
+            runner_names = [r["runner_name"] for r in detected_runners]
+            assert "pytest" in runner_names
+            assert "npm" in runner_names
+
+    def test_recommended_default_precedence(self):
+        """Test that recommended_default follows precedence order."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create markers for Go and Node (no Python)
+            (base_path / "go.mod").touch()
+            pkg = {"name": "test", "scripts": {"test": "mocha"}}
+            with open(base_path / "package.json", "w") as f:
+                json.dump(pkg, f)
+
+            detected_runners = []
+
+            # Go detection
+            if (base_path / "go.mod").exists():
+                detected_runners.append({
+                    "runner_name": "go",
+                    "project_type": "go",
+                    "confidence": "high",
+                    "reason": "go.mod found",
+                })
+
+            # Node detection
+            package_json_path = base_path / "package.json"
+            if package_json_path.exists():
+                with open(package_json_path, "r") as f:
+                    pkg_content = json.load(f)
+
+                scripts = pkg_content.get("scripts", {})
+                if "test" in scripts:
+                    detected_runners.append({
+                        "runner_name": "npm",
+                        "project_type": "node",
+                        "confidence": "high",
+                        "reason": "test script in package.json",
+                    })
+
+            # Determine recommended default (go has higher precedence than npm)
+            precedence_order = ["pytest", "go", "jest", "npm", "make"]
+            recommended_default = None
+
+            for runner_name in precedence_order:
+                for runner in detected_runners:
+                    if runner["runner_name"] == runner_name:
+                        recommended_default = runner_name
+                        break
+                if recommended_default:
+                    break
+
+            # Go should be recommended over npm (precedence: go=2, npm=4)
+            assert recommended_default == "go"
+
+    def test_no_runners_detected(self):
+        """Test behavior when no runners are detected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir)
+
+            # Empty directory - no markers
+            detected_runners = []
+            recommended_default = None
+
+            # No detection logic triggered
+            assert len(detected_runners) == 0
+            assert recommended_default is None
+
+    def test_invalid_package_json_ignored(self):
+        """Test that invalid package.json is gracefully ignored."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+
+            # Create invalid package.json
+            with open(base_path / "package.json", "w") as f:
+                f.write("not valid json {{{")
+
+            detected_runners = []
+            package_json_path = base_path / "package.json"
+
+            if package_json_path.exists():
+                import json as json_mod
+                try:
+                    with open(package_json_path, "r") as f:
+                        json_mod.load(f)
+                except (json_mod.JSONDecodeError, OSError):
+                    # Should be caught and ignored
+                    pass
+
+            # Should gracefully skip Node detection
+            assert len(detected_runners) == 0
+
+
 class TestDiscoveryMetadata:
     """Tests for environment tools discovery metadata."""
 

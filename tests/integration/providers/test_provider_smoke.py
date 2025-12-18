@@ -93,8 +93,8 @@ class TestGeminiSmoke:
     ):
         """Test gemini with explicit model selection."""
         provider = resolve_provider("gemini", hooks=ProviderHooks())
-        # Use 'auto' model which should pick best available
-        request = provider_request_factory(simple_prompt, model="flash", timeout=30.0)
+        # Use gemini-2.5-flash model explicitly
+        request = provider_request_factory(simple_prompt, model="gemini-2.5-flash", timeout=30.0)
 
         result = provider.generate(request)
 

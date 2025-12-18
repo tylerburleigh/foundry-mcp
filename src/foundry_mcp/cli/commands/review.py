@@ -42,6 +42,7 @@ from foundry_mcp.tools.unified.review_helpers import (
     _run_ai_review,
     _run_quick_review,
 )
+from foundry_mcp.core.llm_config import get_consultation_config
 
 logger = get_cli_logger()
 
@@ -121,8 +122,8 @@ def review_group() -> None:
     "--type",
     "review_type",
     type=click.Choice(REVIEW_TYPES),
-    default="quick",
-    help="Type of review to perform.",
+    default=None,
+    help="Type of review to perform (defaults to config value, typically 'full').",
 )
 @click.option(
     "--tools",
@@ -159,7 +160,7 @@ def review_group() -> None:
 def review_spec_cmd(
     ctx: click.Context,
     spec_id: str,
-    review_type: str,
+    review_type: Optional[str],
     tools: Optional[str],
     model: Optional[str],
     ai_provider: Optional[str],
@@ -171,6 +172,12 @@ def review_spec_cmd(
     start_time = time.perf_counter()
     cli_ctx = get_context(ctx)
     specs_dir = cli_ctx.specs_dir
+
+    # Get default review_type from config if not provided
+    if review_type is None:
+        consultation_config = get_consultation_config()
+        workflow_config = consultation_config.get_workflow_config("plan_review")
+        review_type = workflow_config.default_review_type
 
     if specs_dir is None:
         emit_error(

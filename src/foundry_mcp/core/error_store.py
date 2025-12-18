@@ -137,7 +137,7 @@ class FileErrorStore(ErrorStore):
     for efficient querying. Thread-safe with file locking for concurrent access.
 
     Directory structure:
-        .cache/foundry-mcp/errors/
+        ~/.foundry-mcp/errors/
             errors.jsonl     - Append-only error log
             index.json       - Fingerprint -> metadata mapping
             stats.json       - Pre-computed statistics (updated periodically)
@@ -579,7 +579,7 @@ def get_error_store(storage_path: Optional[str | Path] = None) -> ErrorStore:
         if _error_store is None:
             if storage_path is None:
                 # Default path
-                storage_path = Path.home() / ".cache" / "foundry-mcp" / "errors"
+                storage_path = Path.home() / ".foundry-mcp" / "errors"
             _error_store = FileErrorStore(storage_path)
 
         return _error_store

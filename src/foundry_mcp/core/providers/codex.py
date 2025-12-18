@@ -230,6 +230,16 @@ def _default_runner(
 
 CODEX_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
+        id="gpt-5.2",
+        display_name="GPT-5.2",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+            ProviderCapability.FUNCTION_CALLING,
+        },
+        routing_hints={"tier": "primary"},
+    ),
+    ModelDescriptor(
         id="gpt-5.1-codex",
         display_name="GPT-5.1 Codex",
         capabilities={
@@ -265,7 +275,7 @@ CODEX_METADATA = ProviderMetadata(
     provider_id="codex",
     display_name="OpenAI Codex CLI",
     models=CODEX_MODELS,
-    default_model="gpt-5.1-codex",
+    default_model="gpt-5.2",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING, ProviderCapability.FUNCTION_CALLING},
     security_flags={"writes_allowed": False, "read_only": True, "sandbox": "read-only"},
     extra={

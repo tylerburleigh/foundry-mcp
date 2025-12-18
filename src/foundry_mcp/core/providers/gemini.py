@@ -139,6 +139,16 @@ def _default_runner(
 
 GEMINI_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
+        id="auto",
+        display_name="Gemini 3.0 (Auto select Pro/Flash)",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+            ProviderCapability.VISION,
+        },
+        routing_hints={"tier": "auto", "context_window": "1M"},
+    ),
+    ModelDescriptor(
         id="pro",
         display_name="Gemini 3.0 Pro",
         capabilities={
@@ -174,7 +184,7 @@ GEMINI_METADATA = ProviderMetadata(
     provider_id="gemini",
     display_name="Google Gemini CLI",
     models=GEMINI_MODELS,
-    default_model="gemini-2.5-flash",
+    default_model="pro",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING, ProviderCapability.VISION},
     security_flags={"writes_allowed": False},
     extra={"cli": "gemini", "output_format": "json"},

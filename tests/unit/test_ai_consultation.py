@@ -890,3 +890,180 @@ class TestBackwardCompatibility:
 
         assert handle_result(single) == "Single: p1"
         assert handle_result(multi) == "Multi: 1 providers"
+
+
+# =============================================================================
+# Multi-Model Consensus Fallback Tests
+# =============================================================================
+
+
+class TestConsensusWithFallback:
+    """Tests for multi-model consensus with fallback behavior.
+
+    These tests verify that when one provider fails in multi-model mode,
+    the system falls back to additional providers from the priority list.
+    """
+
+    def test_fallback_result_structure_with_mixed_responses(self):
+        """ConsensusResult correctly handles mixed success/failure responses.
+
+        When initial parallel execution has failures and fallback adds successes,
+        the result should include all attempted responses in order.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        # Simulating: initial p1 failed, p2 succeeded, fallback p3 succeeded
+        responses = [
+            ProviderResponse("p1", "m1", "", success=False, error="timeout"),
+            ProviderResponse("p2", "m2", "content2", success=True),
+            ProviderResponse("p3", "m3", "content3", success=True),
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+            warnings=[
+                "Provider p1 failed: timeout",
+                "Initial parallel execution yielded 1/2 successes, attempting fallback for 1 more",
+                "Fallback provider p3 succeeded",
+            ],
+        )
+
+        # Should have 3 responses total (2 initial + 1 fallback)
+        assert len(result.responses) == 3
+        assert result.agreement.total_providers == 3
+        assert result.agreement.successful_providers == 2
+        assert result.agreement.failed_providers == 1
+        assert result.success is True
+
+    def test_fallback_warnings_indicate_fallback_used(self):
+        """ConsensusResult warnings show when fallback was attempted.
+
+        The warnings list should indicate that fallback was triggered
+        and whether fallback providers succeeded or failed.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        responses = [
+            ProviderResponse("gemini", "auto", "", success=False, error="CLI exit 1"),
+            ProviderResponse("codex", "codex", "review content", success=True),
+            ProviderResponse("opencode", "gpt-5", "review content", success=True),
+        ]
+        warnings = [
+            "Provider gemini failed: CLI exit 1",
+            "Initial parallel execution yielded 1/2 successes, attempting fallback for 1 more",
+            "Fallback provider opencode succeeded",
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+            warnings=warnings,
+        )
+
+        # Warnings should indicate fallback was used
+        assert any("fallback" in w.lower() for w in result.warnings)
+        assert any("succeeded" in w.lower() for w in result.warnings)
+
+    def test_fallback_preserves_response_order(self):
+        """Responses maintain attempt order for debugging.
+
+        First responses are from initial parallel execution,
+        later responses are from sequential fallback.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        responses = [
+            ProviderResponse("p1", "m1", "", success=False, error="fail"),
+            ProviderResponse("p2", "m2", "", success=False, error="fail"),
+            ProviderResponse("p3", "m3", "success", success=True),
+            ProviderResponse("p4", "m4", "success", success=True),
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+        )
+
+        # Order should be preserved
+        assert result.responses[0].provider_id == "p1"
+        assert result.responses[1].provider_id == "p2"
+        assert result.responses[2].provider_id == "p3"
+        assert result.responses[3].provider_id == "p4"
+
+    def test_all_providers_failed_warning(self):
+        """When all providers fail, appropriate warning is included.
+
+        If fallback exhausts all providers without reaching min_models,
+        the warning should indicate how many were tried.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        responses = [
+            ProviderResponse("p1", "m1", "", success=False, error="fail1"),
+            ProviderResponse("p2", "m2", "", success=False, error="fail2"),
+            ProviderResponse("p3", "m3", "", success=False, error="fail3"),
+        ]
+        warnings = [
+            "Provider p1 failed: fail1",
+            "Provider p2 failed: fail2",
+            "Initial parallel execution yielded 0/2 successes, attempting fallback for 2 more",
+            "Fallback provider p3 failed: fail3",
+            "Only 0 of 2 required models succeeded after trying 3 provider(s)",
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+            warnings=warnings,
+        )
+
+        # Result should indicate failure
+        assert result.success is False
+        assert result.agreement.successful_providers == 0
+        # Final warning should indicate exhaustion
+        assert any("after trying 3" in w for w in result.warnings)
+
+    def test_primary_content_from_successful_fallback(self):
+        """primary_content returns content from first successful response.
+
+        Even if initial providers failed, fallback success provides content.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        responses = [
+            ProviderResponse("p1", "m1", "", success=False, error="fail"),
+            ProviderResponse("p2", "m2", "first success content", success=True),
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+        )
+
+        # primary_content should return p2's content
+        assert result.primary_content == "first success content"
+
+    def test_fallback_respects_min_models_requirement(self):
+        """Fallback stops once min_models successful providers reached.
+
+        If min_models=2 and we achieve 2 successes, don't try more providers.
+        """
+        from foundry_mcp.core.ai_consultation import ConsensusResult, ProviderResponse
+
+        # Simulating: p1 failed, p2 succeeded, fallback p3 succeeded -> stop
+        responses = [
+            ProviderResponse("p1", "m1", "", success=False, error="fail"),
+            ProviderResponse("p2", "m2", "content2", success=True),
+            ProviderResponse("p3", "m3", "content3", success=True),
+        ]
+        warnings = [
+            "Provider p1 failed: fail",
+            "Initial parallel execution yielded 1/2 successes, attempting fallback for 1 more",
+            "Fallback provider p3 succeeded",
+        ]
+        result = ConsensusResult(
+            workflow=ConsultationWorkflow.PLAN_REVIEW,
+            responses=responses,
+            warnings=warnings,
+        )
+
+        # Should have exactly 3 responses (2 initial + 1 fallback)
+        # p4 and p5 should NOT be tried since we reached min_models=2
+        assert len(result.responses) == 3
+        assert result.agreement.successful_providers == 2

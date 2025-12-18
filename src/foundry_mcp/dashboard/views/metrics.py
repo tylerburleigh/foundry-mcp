@@ -1,9 +1,8 @@
-"""Metrics page - time-series viewer with summaries."""
+"""Metrics page - viewer with summaries."""
 
 import streamlit as st
 
 from foundry_mcp.dashboard.components.filters import time_range_filter
-from foundry_mcp.dashboard.components.charts import line_chart, empty_chart
 from foundry_mcp.dashboard.components.cards import kpi_row
 from foundry_mcp.dashboard.data.stores import (
     get_metrics_list,
@@ -77,8 +76,8 @@ def render():
 
         st.divider()
 
-        # Time-series chart
-        st.subheader(f"Time Series: {selected_metric}")
+        # Data table
+        st.subheader(f"Data: {selected_metric}")
         timeseries_df = get_metrics_timeseries(selected_metric, since_hours=hours)
 
         # Check if we have data, if not try longer time ranges
@@ -97,42 +96,33 @@ def render():
         if display_df is not None and not display_df.empty:
             if time_range_note:
                 st.caption(time_range_note)
-            line_chart(
+
+            st.dataframe(
                 display_df,
-                x="timestamp",
-                y="value",
-                title=None,
-                height=400,
+                use_container_width=True,
+                hide_index=True,
             )
 
-            # Data table
-            with st.expander("View Raw Data"):
-                st.dataframe(
-                    display_df,
-                    use_container_width=True,
-                    hide_index=True,
+            # Export
+            col1, col2 = st.columns(2)
+            with col1:
+                csv = display_df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name=f"{selected_metric}_export.csv",
+                    mime="text/csv",
                 )
-
-                # Export
-                col1, col2 = st.columns(2)
-                with col1:
-                    csv = display_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv,
-                        file_name=f"{selected_metric}_export.csv",
-                        mime="text/csv",
-                    )
-                with col2:
-                    json_data = display_df.to_json(orient="records")
-                    st.download_button(
-                        label="Download JSON",
-                        data=json_data,
-                        file_name=f"{selected_metric}_export.json",
-                        mime="application/json",
-                    )
+            with col2:
+                json_data = display_df.to_json(orient="records")
+                st.download_button(
+                    label="Download JSON",
+                    data=json_data,
+                    file_name=f"{selected_metric}_export.json",
+                    mime="application/json",
+                )
         else:
-            empty_chart(f"No data available for {selected_metric} (all time)")
+            st.info(f"No data available for {selected_metric}")
 
     # Tool Action Breakdown
     st.divider()

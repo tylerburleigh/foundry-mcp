@@ -149,7 +149,7 @@ class ErrorCollectionConfig:
 
     Attributes:
         enabled: Whether error collection is enabled
-        storage_path: Directory path for error storage (default: .cache/foundry-mcp/errors)
+        storage_path: Directory path for error storage (default: ~/.foundry-mcp/errors)
         retention_days: Delete records older than this many days
         max_errors: Maximum number of error records to keep
         include_stack_traces: Whether to include stack traces in error records
@@ -190,7 +190,7 @@ class ErrorCollectionConfig:
         """
         if self.storage_path:
             return Path(self.storage_path).expanduser()
-        return Path.home() / ".cache" / "foundry-mcp" / "errors"
+        return Path.home() / ".foundry-mcp" / "errors"
 
 
 @dataclass
@@ -203,7 +203,7 @@ class MetricsPersistenceConfig:
 
     Attributes:
         enabled: Whether metrics persistence is enabled
-        storage_path: Directory path for metrics storage (default: .cache/foundry-mcp/metrics)
+        storage_path: Directory path for metrics storage (default: ~/.foundry-mcp/metrics)
         retention_days: Delete records older than this many days
         max_records: Maximum number of metric data points to keep
         bucket_interval_seconds: Aggregation bucket interval (default: 60s = 1 minute)
@@ -262,7 +262,7 @@ class MetricsPersistenceConfig:
         """
         if self.storage_path:
             return Path(self.storage_path).expanduser()
-        return Path.home() / ".cache" / "foundry-mcp" / "metrics"
+        return Path.home() / ".foundry-mcp" / "metrics"
 
     def should_persist_metric(self, metric_name: str) -> bool:
         """Check if a metric should be persisted.
@@ -317,6 +317,105 @@ class DashboardConfig:
             auto_open_browser=_parse_bool(data.get("auto_open_browser", False)),
             refresh_interval_ms=int(data.get("refresh_interval_ms", 5000)),
         )
+
+
+@dataclass
+class RunnerConfig:
+    """Configuration for a test runner (pytest, go, npm, etc.).
+
+    Attributes:
+        command: Command to execute (e.g., ["go", "test"] or ["python", "-m", "pytest"])
+        run_args: Additional arguments for running tests
+        discover_args: Arguments for test discovery
+        pattern: File pattern for test discovery (e.g., "*_test.go", "test_*.py")
+        timeout: Default timeout in seconds
+    """
+
+    command: List[str] = field(default_factory=list)
+    run_args: List[str] = field(default_factory=list)
+    discover_args: List[str] = field(default_factory=list)
+    pattern: str = "*"
+    timeout: int = 300
+
+    @classmethod
+    def from_toml_dict(cls, data: Dict[str, Any]) -> "RunnerConfig":
+        """Create config from TOML dict.
+
+        Args:
+            data: Dict from TOML parsing
+
+        Returns:
+            RunnerConfig instance
+        """
+        command = data.get("command", [])
+        # Handle string command (convert to list)
+        if isinstance(command, str):
+            command = command.split()
+
+        run_args = data.get("run_args", [])
+        if isinstance(run_args, str):
+            run_args = run_args.split()
+
+        discover_args = data.get("discover_args", [])
+        if isinstance(discover_args, str):
+            discover_args = discover_args.split()
+
+        return cls(
+            command=command,
+            run_args=run_args,
+            discover_args=discover_args,
+            pattern=str(data.get("pattern", "*")),
+            timeout=int(data.get("timeout", 300)),
+        )
+
+
+@dataclass
+class TestConfig:
+    """Configuration for test runners.
+
+    Supports multiple test runners (pytest, go, npm, etc.) with configurable
+    commands and arguments. Runners can be defined in TOML config and selected
+    at runtime via the 'runner' parameter.
+
+    Attributes:
+        default_runner: Default runner to use when none specified
+        runners: Dict of runner name to RunnerConfig
+    """
+
+    default_runner: str = "pytest"
+    runners: Dict[str, RunnerConfig] = field(default_factory=dict)
+
+    @classmethod
+    def from_toml_dict(cls, data: Dict[str, Any]) -> "TestConfig":
+        """Create config from TOML dict (typically [test] section).
+
+        Args:
+            data: Dict from TOML parsing
+
+        Returns:
+            TestConfig instance
+        """
+        runners = {}
+        runners_data = data.get("runners", {})
+        for name, runner_data in runners_data.items():
+            runners[name] = RunnerConfig.from_toml_dict(runner_data)
+
+        return cls(
+            default_runner=str(data.get("default_runner", "pytest")),
+            runners=runners,
+        )
+
+    def get_runner(self, name: Optional[str] = None) -> Optional[RunnerConfig]:
+        """Get runner config by name.
+
+        Args:
+            name: Runner name, or None to use default
+
+        Returns:
+            RunnerConfig if found, None otherwise
+        """
+        runner_name = name or self.default_runner
+        return self.runners.get(runner_name)
 
 
 _VALID_COMMIT_CADENCE = {"manual", "task", "phase"}
@@ -378,6 +477,9 @@ class ServerConfig:
 
     # Dashboard configuration
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
+
+    # Test runner configuration
+    test: TestConfig = field(default_factory=TestConfig)
 
     @classmethod
     def from_env(cls, config_file: Optional[str] = None) -> "ServerConfig":
@@ -498,6 +600,10 @@ class ServerConfig:
             # Dashboard settings
             if "dashboard" in data:
                 self.dashboard = DashboardConfig.from_toml_dict(data["dashboard"])
+
+            # Test runner settings
+            if "test" in data:
+                self.test = TestConfig.from_toml_dict(data["test"])
 
         except Exception as e:
             logger.error(f"Error loading config file {path}: {e}")

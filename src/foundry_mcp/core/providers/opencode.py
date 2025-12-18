@@ -124,7 +124,7 @@ def _default_runner(
 
 OPENCODE_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
-        id="openai/gpt-5.1-codex-mini",
+        id="openai/gpt-5.1-codex",
         display_name="OpenAI GPT-5.1 Codex Mini (via OpenCode)",
         capabilities={
             ProviderCapability.TEXT,

@@ -9,6 +9,7 @@ Prompt IDs (PromptTemplate-based):
     - FIDELITY_REVIEW_V1: Main 6-section fidelity review prompt
     - FIDELITY_DEVIATION_ANALYSIS_V1: Analyze identified deviations
     - FIDELITY_COMPLIANCE_SUMMARY_V1: Generate compliance summary
+    - FIDELITY_SYNTHESIS_PROMPT_V1: Multi-model response synthesis
 
 Legacy Prompt IDs (string templates for backward compatibility):
     - review_task: Compare task implementation against spec requirements
@@ -63,6 +64,65 @@ FIDELITY_RESPONSE_SCHEMA = """{
   },
   "issues": ["Concise list of primary issues for consensus logic."],
   "recommendations": ["Actionable next steps to resolve findings."]
+}"""
+
+
+# JSON response schema for synthesized multi-model fidelity reviews
+FIDELITY_SYNTHESIZED_RESPONSE_SCHEMA = """{
+  "verdict": "pass|fail|partial|unknown",
+  "verdict_consensus": {
+    "votes": {
+      "pass": ["model names that voted pass"],
+      "fail": ["model names that voted fail"],
+      "partial": ["model names that voted partial"],
+      "unknown": ["model names that voted unknown"]
+    },
+    "agreement_level": "strong|moderate|weak|conflicted",
+    "notes": "Explanation of verdict determination"
+  },
+  "summary": "Synthesized overall findings.",
+  "requirement_alignment": {
+    "answer": "yes|no|partial",
+    "details": "Synthesized alignment assessment.",
+    "model_agreement": "unanimous|majority|split"
+  },
+  "success_criteria": {
+    "met": "yes|no|partial",
+    "details": "Synthesized verification status.",
+    "model_agreement": "unanimous|majority|split"
+  },
+  "deviations": [
+    {
+      "description": "Merged deviation description",
+      "justification": "Combined rationale",
+      "severity": "critical|high|medium|low",
+      "identified_by": ["model names that identified this"],
+      "agreement": "unanimous|majority|single"
+    }
+  ],
+  "test_coverage": {
+    "status": "sufficient|insufficient|not_applicable",
+    "details": "Synthesized test assessment",
+    "model_agreement": "unanimous|majority|split"
+  },
+  "code_quality": {
+    "issues": ["Merged quality concerns with model attribution"],
+    "details": "Synthesized commentary"
+  },
+  "documentation": {
+    "status": "adequate|inadequate|not_applicable",
+    "details": "Synthesized doc assessment",
+    "model_agreement": "unanimous|majority|split"
+  },
+  "issues": ["Deduplicated issues with model attribution"],
+  "recommendations": ["Prioritized actionable steps"],
+  "synthesis_metadata": {
+    "models_consulted": ["all model names"],
+    "models_succeeded": ["successful model names"],
+    "models_failed": ["failed model names"],
+    "synthesis_provider": "model that performed synthesis",
+    "agreement_level": "strong|moderate|weak|conflicted"
+  }
 }"""
 
 
@@ -166,6 +226,9 @@ CRITICAL CONSTRAINTS:
 - This is a READ-ONLY review - you MUST NOT write, create, or modify ANY files
 - Execute code or commands - ANALYSIS ONLY
 - Provide findings as structured JSON in your response
+- Do NOT focus on ownership, responsibility, or team assignment concerns
+- Avoid feedback like "who owns", "who verifies", "who is responsible for"
+- Focus on technical requirements and verification steps themselves, not who performs them
 
 Focus on:
 1. Requirement alignment - Does implementation match spec?
@@ -430,6 +493,82 @@ Respond with valid JSON:
 )
 
 
+# Multi-model synthesis prompt - consolidates multiple fidelity reviews
+FIDELITY_SYNTHESIS_PROMPT_V1 = PromptTemplate(
+    id="FIDELITY_SYNTHESIS_PROMPT_V1",
+    version="1.0",
+    system_prompt="""You are an expert at synthesizing multiple fidelity review results.
+Your task is to consolidate diverse perspectives into actionable consensus while preserving JSON format.
+
+Guidelines:
+- Attribute findings to specific models using the identified_by field
+- Merge similar deviations, noting which models identified each
+- Resolve verdict disagreements using majority vote or escalate to "partial" on conflict
+- Preserve unique insights from each model
+- Output valid JSON matching the required schema exactly
+- Do NOT focus on ownership, responsibility, or team assignment concerns
+- Focus on technical requirements and verification steps themselves, not who performs them""",
+    user_template="""You are synthesizing {num_models} independent AI fidelity reviews.
+
+**Specification:** {spec_title} (`{spec_id}`)
+**Review Scope:** {review_scope}
+
+**Your Task:** Read all JSON reviews below and create a unified synthesis.
+
+## Individual Model Reviews
+
+{model_reviews}
+
+## Synthesis Requirements
+
+1. **Verdict Consensus:**
+   - Count votes for each verdict (pass/fail/partial/unknown)
+   - Use majority vote for final verdict
+   - If tied or conflicted, use "partial" and note disagreement
+   - Record agreement_level: "strong" (all agree), "moderate" (majority agrees), "weak" (slight majority), "conflicted" (tied/split)
+
+2. **Deviation Merging:**
+   - Group similar deviations across models by description
+   - Use highest severity when models disagree on severity
+   - Track which models identified each deviation in identified_by array
+   - Mark agreement: "unanimous" (all models), "majority" (>50%), "single" (one model)
+
+3. **Issue Consolidation:**
+   - Deduplicate issues across models
+   - Preserve unique insights
+   - Note model agreement level for each finding
+
+4. **Attribution Rules:**
+   - "unanimous" = all successful models agree
+   - "majority" = >50% of successful models agree
+   - "single" = only one model identified this
+
+### Required Response Format
+
+Respond **only** with valid JSON matching the schema below. Do not include Markdown, prose, or additional commentary outside the JSON object.
+
+```json
+{response_schema}
+```
+
+Rules:
+- Use lowercase values for enumerated fields (verdict, status, severity, etc.)
+- Keep arrays as arrays (use [] when empty)
+- Populate identified_by with actual model names from the reviews
+- Never omit required fields from the schema
+- Use the actual provider names from the reviews (e.g., "gemini", "codex", "claude")""",
+    required_context=["spec_id", "spec_title", "review_scope", "num_models", "model_reviews"],
+    optional_context=["response_schema"],
+    metadata={
+        "workflow": "fidelity_review",
+        "author": "system",
+        "category": "synthesis",
+        "output_format": "json",
+        "description": "Multi-model fidelity review synthesis",
+    },
+)
+
+
 # =============================================================================
 # Template Registry (PromptTemplate-based)
 # =============================================================================
@@ -439,6 +578,7 @@ FIDELITY_REVIEW_TEMPLATES: Dict[str, PromptTemplate] = {
     "FIDELITY_REVIEW_V1": FIDELITY_REVIEW_V1,
     "FIDELITY_DEVIATION_ANALYSIS_V1": FIDELITY_DEVIATION_ANALYSIS_V1,
     "FIDELITY_COMPLIANCE_SUMMARY_V1": FIDELITY_COMPLIANCE_SUMMARY_V1,
+    "FIDELITY_SYNTHESIS_PROMPT_V1": FIDELITY_SYNTHESIS_PROMPT_V1,
 }
 
 
@@ -475,7 +615,7 @@ class FidelityReviewPromptBuilder(PromptBuilder):
         Args:
             prompt_id: Template identifier. Supports:
                 - PromptTemplate IDs: FIDELITY_REVIEW_V1, FIDELITY_DEVIATION_ANALYSIS_V1,
-                  FIDELITY_COMPLIANCE_SUMMARY_V1
+                  FIDELITY_COMPLIANCE_SUMMARY_V1, FIDELITY_SYNTHESIS_PROMPT_V1
             context: Template context variables
 
         Returns:
@@ -491,9 +631,12 @@ class FidelityReviewPromptBuilder(PromptBuilder):
             # Provide defaults for optional context
             render_context = dict(context)
 
-            # Add response schema default
+            # Add response schema default - use synthesized schema for synthesis prompt
             if "response_schema" not in render_context:
-                render_context["response_schema"] = FIDELITY_RESPONSE_SCHEMA
+                if prompt_id == "FIDELITY_SYNTHESIS_PROMPT_V1":
+                    render_context["response_schema"] = FIDELITY_SYNTHESIZED_RESPONSE_SCHEMA
+                else:
+                    render_context["response_schema"] = FIDELITY_RESPONSE_SCHEMA
 
             # Add empty defaults for optional fields
             if "spec_description" not in render_context:
@@ -531,10 +674,12 @@ __all__ = [
     "FIDELITY_REVIEW_V1",
     "FIDELITY_DEVIATION_ANALYSIS_V1",
     "FIDELITY_COMPLIANCE_SUMMARY_V1",
+    "FIDELITY_SYNTHESIS_PROMPT_V1",
     # Template registries
     "FIDELITY_REVIEW_TEMPLATES",
-    # Response schema
+    # Response schemas
     "FIDELITY_RESPONSE_SCHEMA",
+    "FIDELITY_SYNTHESIZED_RESPONSE_SCHEMA",
     # Severity keywords
     "SEVERITY_KEYWORDS",
     "CRITICAL_KEYWORDS",

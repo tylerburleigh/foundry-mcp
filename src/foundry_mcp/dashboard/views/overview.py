@@ -1,12 +1,10 @@
-"""Overview page - dashboard home with KPIs and summary charts."""
+"""Overview page - dashboard home with KPIs and summary."""
 
 import streamlit as st
 
 from foundry_mcp.dashboard.components.cards import kpi_row
-from foundry_mcp.dashboard.components.charts import line_chart, empty_chart
 from foundry_mcp.dashboard.data.stores import (
     get_overview_summary,
-    get_metrics_timeseries,
     get_errors,
     get_error_patterns,
     get_top_tool_actions,
@@ -37,68 +35,6 @@ def render():
         ],
         columns=2,
     )
-
-    st.divider()
-
-    # Charts Row
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Tool Invocations (Last 24h)")
-        invocations_df = get_metrics_timeseries("tool_invocations_total", since_hours=24)
-        if invocations_df is not None and not invocations_df.empty:
-            line_chart(
-                invocations_df,
-                x="timestamp",
-                y="value",
-                title=None,
-                height=300,
-            )
-        else:
-            # Try with longer time range if 24h is empty
-            invocations_df_7d = get_metrics_timeseries("tool_invocations_total", since_hours=168)
-            if invocations_df_7d is not None and not invocations_df_7d.empty:
-                st.caption("No data in last 24h - showing last 7 days")
-                line_chart(
-                    invocations_df_7d,
-                    x="timestamp",
-                    y="value",
-                    title=None,
-                    height=300,
-                )
-            else:
-                empty_chart("No invocation data available (metrics may be older than 7 days)")
-
-    with col2:
-        st.subheader("Error Rate (Last 24h)")
-        errors_df = get_errors(since_hours=24, limit=500)
-
-        # Try fallback to 7 days if 24h is empty
-        time_note = None
-        if errors_df is None or errors_df.empty:
-            errors_df = get_errors(since_hours=168, limit=500)
-            if errors_df is not None and not errors_df.empty:
-                time_note = "No data in last 24h - showing last 7 days"
-
-        if errors_df is not None and not errors_df.empty:
-            if time_note:
-                st.caption(time_note)
-            # Group by hour for error rate
-            try:
-                errors_df["hour"] = errors_df["timestamp"].dt.floor("H")
-                hourly_errors = errors_df.groupby("hour").size().reset_index(name="count")
-                hourly_errors.columns = ["timestamp", "value"]
-                line_chart(
-                    hourly_errors,
-                    x="timestamp",
-                    y="value",
-                    title=None,
-                    height=300,
-                )
-            except Exception:
-                empty_chart("Could not process error data")
-        else:
-            empty_chart("No error data available")
 
     st.divider()
 

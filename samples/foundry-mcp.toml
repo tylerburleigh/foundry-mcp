@@ -178,28 +178,40 @@ cache_ttl = 3600
 # =============================================================================
 #
 # Override consultation settings for specific workflows.
-# Each workflow can specify minimum model requirements for consensus
-# and optional timeout overrides.
+# Each workflow can specify minimum model requirements for consensus,
+# timeout overrides, and default review type.
 #
 # Available settings:
-#   min_models      - Minimum models required for consensus (default: 1)
-#   timeout_override - Override default_timeout for this workflow (optional)
+#   min_models          - Minimum models required for consensus (default: 1)
+#   timeout_override    - Override default_timeout for this workflow (optional)
+#   default_review_type - Default review type: "quick", "full", "security", "feasibility"
+#                         (default: "full")
 
 # --- Fidelity Review Workflow ---
 # Requires 2 models for consensus to catch implementation deviations
 [consultation.workflows.fidelity_review]
 min_models = 2
 timeout_override = 600.0  # Longer timeout for comprehensive code analysis
+default_review_type = "full"
 
 # --- Plan Review Workflow ---
 # Requires 3 models for consensus on architectural decisions
 [consultation.workflows.plan_review]
 min_models = 3
+default_review_type = "full"
 # Uses default_timeout (no override)
+
+# --- Markdown Plan Review Workflow ---
+# Reviews markdown plans before conversion to JSON specs
+[consultation.workflows.markdown_plan_review]
+min_models = 2
+timeout_override = 180.0
+default_review_type = "full"
 
 # --- Quick Check Workflow (example of minimal config) ---
 # [consultation.workflows.quick_check]
 # min_models = 1  # Single model is sufficient for quick validation
+# default_review_type = "quick"
 
 # =============================================================================
 # Observability Configuration
@@ -357,6 +369,63 @@ refresh_interval_ms = 5000
 # refresh_interval_ms = 2000
 
 # =============================================================================
+# Error Collection Configuration
+# =============================================================================
+#
+# Stores error logs for dashboard visibility and debugging.
+# Errors are stored in append-only JSONL format with automatic cleanup.
+
+[error_collection]
+# Enable error collection (recommended)
+enabled = true
+
+# Storage path (default: ~/.foundry-mcp/errors)
+# Uncomment to customize:
+# storage_path = "~/.foundry-mcp/errors"
+
+# Delete records older than this many days
+retention_days = 30
+
+# Maximum number of error records to keep
+max_records = 10000
+
+# Include stack traces in error records (useful for debugging)
+include_stack_traces = true
+
+# Redact sensitive data from input parameters
+redact_inputs = true
+
+# =============================================================================
+# Metrics Persistence Configuration
+# =============================================================================
+#
+# Stores metrics for dashboard charts and historical analysis.
+# Metrics are aggregated into time buckets before storage.
+
+[metrics_persistence]
+# Enable metrics persistence (recommended for dashboard)
+enabled = true
+
+# Storage path (default: ~/.foundry-mcp/metrics)
+# Uncomment to customize:
+# storage_path = "~/.foundry-mcp/metrics"
+
+# Delete records older than this many days
+retention_days = 7
+
+# Maximum number of metric data points to keep
+max_records = 100000
+
+# Aggregation bucket interval in seconds (default: 1 minute)
+bucket_interval_seconds = 60
+
+# How often to flush buffer to disk in seconds
+flush_interval_seconds = 30
+
+# Metrics to persist (empty = persist all tracked metrics)
+# persist_metrics = ["tool_invocations_total", "tool_duration_seconds", "tool_errors_total", "health_status"]
+
+# =============================================================================
 # Legacy [llm] Examples (deprecated - use [consultation].priority instead)
 # =============================================================================
 
@@ -387,3 +456,64 @@ refresh_interval_ms = 5000
 # max_tokens = 2048
 # temperature = 0.8
 # # No API key required for local providers
+
+# =============================================================================
+# Test Runner Configuration
+# =============================================================================
+#
+# Configure which test runner to use and customize runner settings.
+# The foundry-setup command can auto-detect and configure this section.
+#
+# Supported runners (built-in defaults): pytest, go, npm, jest, make
+# Custom runners can be defined in [test.runners.*] sections.
+
+[test]
+# Default runner to use when running tests
+# Valid values: pytest, go, npm, jest, make, or any custom runner name
+default_runner = "pytest"
+
+# =============================================================================
+# Runner Configuration Examples
+# =============================================================================
+#
+# Each runner has default settings. Override only what you need to change.
+# If you don't define [test.runners.*], built-in defaults are used.
+#
+# Built-in defaults:
+#   pytest: python -m pytest -v --tb=short (pattern: test_*.py, timeout: 300s)
+#   go:     go test -v (pattern: *_test.go, timeout: 300s)
+#   npm:    npm test -- (pattern: *.test.js, timeout: 300s)
+#   jest:   npx jest --verbose (pattern: *.test.{js,ts,jsx,tsx}, timeout: 300s)
+#   make:   make test (pattern: *, timeout: 300s)
+
+# --- Customize pytest runner ---
+# [test.runners.pytest]
+# command = ["python", "-m", "pytest"]    # Command to execute
+# run_args = ["-v", "--tb=short"]         # Arguments for test runs
+# discover_args = ["--collect-only", "-q"] # Arguments for test discovery
+# pattern = "test_*.py"                    # File pattern for test files
+# timeout = 300                            # Timeout in seconds
+
+# --- Customize npm runner ---
+# [test.runners.npm]
+# command = ["npm", "test"]
+# run_args = ["--"]
+# discover_args = []
+# pattern = "*.test.js"
+# timeout = 300
+
+# --- Customize go runner ---
+# [test.runners.go]
+# command = ["go", "test"]
+# run_args = ["-v"]
+# discover_args = ["-list", ".*"]
+# pattern = "*_test.go"
+# timeout = 300
+
+# --- Define a custom runner ---
+# [test.runners.custom_runner]
+# command = ["./scripts/run-tests.sh"]
+# run_args = ["--verbose"]
+# discover_args = ["--list"]
+# pattern = "test_*.py"
+# timeout = 600

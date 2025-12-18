@@ -925,11 +925,11 @@ LLM_TOOL_METADATA: Dict[str, ToolMetadata] = {
             ParameterMetadata(
                 name="review_type",
                 type=ParameterType.STRING,
-                description="Type of review to perform",
+                description="Type of review to perform (defaults to config value, typically 'full')",
                 required=False,
-                default="quick",
+                default="full",
                 constraints={"enum": ["quick", "full", "security", "feasibility"]},
-                examples=["quick", "full", "security"],
+                examples=["full", "quick", "security"],
             ),
             ParameterMetadata(
                 name="tools",
@@ -965,13 +965,13 @@ LLM_TOOL_METADATA: Dict[str, ToolMetadata] = {
         related_tools=["review-list-tools", "review-list-plan-tools", "spec-review-fidelity"],
         examples=[
             {
-                "description": "Quick review of a specification",
-                "input": {"spec_id": "feature-auth-001", "review_type": "quick"},
+                "description": "Full review of a specification",
+                "input": {"spec_id": "feature-auth-001", "review_type": "full"},
                 "output": {
                     "success": True,
                     "data": {
                         "spec_id": "feature-auth-001",
-                        "review_type": "quick",
+                        "review_type": "full",
                         "findings": [],
                         "suggestions": ["Consider adding error handling"],
                     },

@@ -895,7 +895,9 @@ def _validate_metadata(hierarchy: Dict[str, Any], result: ValidationResult) -> N
                     )
                 )
 
-            # file_path required for implementation and refactoring
+            # file_path required for implementation and refactoring.
+            # Do not auto-generate placeholder paths; the authoring agent/user must
+            # provide a real path in the target codebase.
             if task_category in ["implementation", "refactoring"]:
                 if "file_path" not in metadata:
                     result.diagnostics.append(
@@ -905,8 +907,10 @@ def _validate_metadata(hierarchy: Dict[str, Any], result: ValidationResult) -> N
                             severity="error",
                             category="metadata",
                             location=node_id,
-                            suggested_fix="Add metadata.file_path for implementation tasks",
-                            auto_fixable=True,
+                            suggested_fix=(
+                                "Set metadata.file_path to the real repo-relative path of the primary file impacted"
+                            ),
+                            auto_fixable=False,
                         )
                     )
 
@@ -987,8 +991,6 @@ def _build_fix_action(
     if code == "MISSING_VERIFICATION_TYPE":
         return _build_verification_type_fix(diag, hierarchy)
 
-    if code == "MISSING_FILE_PATH":
-        return _build_file_path_fix(diag, hierarchy)
 
     if code == "INVALID_TASK_CATEGORY":
         return _build_task_category_fix(diag, hierarchy)
@@ -1338,32 +1340,8 @@ def _build_verification_type_fix(
     )
 
 
-def _build_file_path_fix(
-    diag: Diagnostic, hierarchy: Dict[str, Any]
-) -> Optional[FixAction]:
-    """Build fix for missing file path."""
-    node_id = diag.location
-    if not node_id:
-        return None
-
-    def apply(data: Dict[str, Any]) -> None:
-        hier = data.get("hierarchy", {})
-        node = hier.get(node_id)
-        if not node:
-            return
-        metadata = node.setdefault("metadata", {})
-        if "file_path" not in metadata:
-            metadata["file_path"] = f"{node_id}.py"  # Default placeholder
-
-    return FixAction(
-        id=f"metadata.add_file_path:{node_id}",
-        description=f"Add placeholder file_path for {node_id}",
-        category="metadata",
-        severity=diag.severity,
-        auto_apply=True,
-        preview=f"Add placeholder file_path for {node_id}",
-        apply=apply,
-    )
+# NOTE: We intentionally do not auto-fix missing `metadata.file_path`.
+# It must be a real repo-relative path in the target workspace.
 
 
 def _build_task_category_fix(

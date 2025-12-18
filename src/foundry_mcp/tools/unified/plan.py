@@ -339,6 +339,7 @@ def perform_plan_review(
 
         consensus_info: Optional[dict] = None
         provider_used: Optional[str] = None
+        provider_reviews: list[dict[str, str]] = []
 
         if isinstance(result, ConsultationResult):
             if not result.success:
@@ -362,16 +363,125 @@ def perform_plan_review(
                         remediation="Check AI provider configuration or try again later",
                     )
                 )
-            review_content = result.primary_content
+
             providers_consulted = [r.provider_id for r in result.responses]
             provider_used = providers_consulted[0] if providers_consulted else "unknown"
+
+            # Extract failed provider details for visibility
+            failed_providers = [
+                {"provider_id": r.provider_id, "error": r.error}
+                for r in result.responses
+                if not r.success
+            ]
+            # Filter for truly successful responses (success=True AND non-empty content)
+            successful_responses = [
+                r for r in result.responses if r.success and r.content.strip()
+            ]
+            successful_providers = [r.provider_id for r in successful_responses]
+
             consensus_info = {
                 "providers_consulted": providers_consulted,
                 "successful": result.agreement.successful_providers
                 if result.agreement
                 else 0,
                 "failed": result.agreement.failed_providers if result.agreement else 0,
+                "successful_providers": successful_providers,
+                "failed_providers": failed_providers,
             }
+
+            # Save individual provider review files and optionally run synthesis
+            if len(successful_responses) >= 2:
+                # Multi-model mode: save per-provider files, then synthesize
+                specs_dir = find_specs_directory()
+                if specs_dir is None:
+                    return asdict(
+                        error_response(
+                            "No specs directory found for storing plan review",
+                            error_code=ErrorCode.NOT_FOUND,
+                            error_type=ErrorType.NOT_FOUND,
+                            remediation="Create a specs/ directory with pending/active/completed/archived subdirectories",
+                        )
+                    )
+
+                plan_reviews_dir = specs_dir / ".plan-reviews"
+                plan_reviews_dir.mkdir(parents=True, exist_ok=True)
+
+                # Save each provider's review to a separate file
+                model_reviews_text = ""
+                for response in successful_responses:
+                    provider_file = (
+                        plan_reviews_dir
+                        / f"{plan_name}-{review_type}-{response.provider_id}.md"
+                    )
+                    provider_file.write_text(response.content, encoding="utf-8")
+                    provider_reviews.append(
+                        {"provider_id": response.provider_id, "path": str(provider_file)}
+                    )
+                    model_reviews_text += (
+                        f"\n---\n## Review by {response.provider_id}\n\n"
+                        f"{response.content}\n"
+                    )
+
+                # Run synthesis call using first provider
+                logger.info(
+                    "Running synthesis for %d provider reviews: %s",
+                    len(successful_responses),
+                    successful_providers,
+                )
+                synthesis_request = ConsultationRequest(
+                    workflow=ConsultationWorkflow.PLAN_REVIEW,
+                    prompt_id="SYNTHESIS_PROMPT_V1",
+                    context={
+                        "spec_id": plan_name,
+                        "title": plan_name,
+                        "num_models": len(successful_responses),
+                        "model_reviews": model_reviews_text,
+                    },
+                    provider_id=successful_providers[0],
+                    timeout=ai_timeout,
+                )
+                try:
+                    synthesis_result = orchestrator.consult(
+                        synthesis_request, use_cache=consultation_cache
+                    )
+                except Exception as e:
+                    logger.error("Synthesis call crashed: %s", e, exc_info=True)
+                    synthesis_result = None
+
+                # Handle both ConsultationResult and ConsensusResult
+                synthesis_success = False
+                synthesis_content = None
+                if synthesis_result:
+                    if isinstance(synthesis_result, ConsultationResult) and synthesis_result.success:
+                        synthesis_content = synthesis_result.content
+                        consensus_info["synthesis_provider"] = synthesis_result.provider_id
+                        synthesis_success = bool(synthesis_content and synthesis_content.strip())
+                    elif isinstance(synthesis_result, ConsensusResult) and synthesis_result.success:
+                        synthesis_content = synthesis_result.primary_content
+                        consensus_info["synthesis_provider"] = synthesis_result.responses[0].provider_id if synthesis_result.responses else "unknown"
+                        synthesis_success = bool(synthesis_content and synthesis_content.strip())
+
+                if synthesis_success and synthesis_content:
+                    review_content = synthesis_content
+                else:
+                    # Synthesis failed - fall back to first provider's content
+                    error_detail = "unknown"
+                    if synthesis_result is None:
+                        error_detail = "synthesis crashed (see logs)"
+                    elif isinstance(synthesis_result, ConsultationResult):
+                        error_detail = synthesis_result.error or "empty response"
+                    elif isinstance(synthesis_result, ConsensusResult):
+                        error_detail = "empty synthesis content"
+                    logger.warning(
+                        "Synthesis call failed (%s), falling back to first provider's content",
+                        error_detail,
+                    )
+                    review_content = result.primary_content
+                    consensus_info["synthesis_failed"] = True
+                    consensus_info["synthesis_error"] = error_detail
+            else:
+                # Single successful provider - use its content directly (no synthesis needed)
+                review_content = result.primary_content
         else:  # pragma: no cover - defensive branch
             logger.error("Unknown consultation result type: %s", type(result))
             return asdict(
@@ -444,6 +554,8 @@ def perform_plan_review(
         "llm_status": llm_status,
         "provider_used": provider_used,
     }
+    if provider_reviews:
+        response_data["provider_reviews"] = provider_reviews
     if consensus_info:
         response_data["consensus"] = consensus_info
 

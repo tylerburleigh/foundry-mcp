@@ -220,6 +220,18 @@ class TestValidateSpec:
 class TestGetFixActions:
     """Tests for get_fix_actions function."""
 
+    def test_missing_file_path_is_not_auto_fixable(self, valid_spec):
+        """Missing file_path should not be auto-fixed with placeholders."""
+        del valid_spec["hierarchy"]["task-1"]["metadata"]["file_path"]
+
+        result = validate_spec(valid_spec)
+        diags = [d for d in result.diagnostics if d.code == "MISSING_FILE_PATH"]
+        assert diags, "Expected MISSING_FILE_PATH diagnostic"
+        assert all(not d.auto_fixable for d in diags)
+
+        actions = get_fix_actions(result, valid_spec)
+        assert not any(a.id.startswith("metadata.add_file_path:") for a in actions)
+
     def test_generates_count_fix_action(self, spec_with_issues):
         """Test that count mismatches generate fix actions."""
         result = validate_spec(spec_with_issues)
@@ -453,6 +465,7 @@ class TestAddVerification:
             result="INVALID",
         )
         assert success is False
+        assert error is not None
         assert "Invalid result" in error
 
     def test_add_verification_node_not_found(self, spec_with_verify_node):
@@ -463,6 +476,7 @@ class TestAddVerification:
             result="PASSED",
         )
         assert success is False
+        assert error is not None
         assert "not found" in error
 
     def test_add_verification_wrong_node_type(self, spec_with_verify_node):
@@ -474,6 +488,7 @@ class TestAddVerification:
             result="PASSED",
         )
         assert success is False
+        assert error is not None
         assert "expected 'verify'" in error
 
     def test_add_verification_history_limit(self, spec_with_verify_node):
