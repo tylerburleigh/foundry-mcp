@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from datetime import datetime
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -369,6 +370,159 @@ def _handle_parse_feedback(*, config: ServerConfig, payload: Dict[str, Any]) -> 
     )
 
 
+def _format_fidelity_markdown(
+    parsed: Dict[str, Any],
+    spec_id: str,
+    spec_title: str,
+    scope: str,
+    task_id: Optional[str] = None,
+    phase_id: Optional[str] = None,
+    provider_id: Optional[str] = None,
+) -> str:
+    """Format fidelity review JSON as human-readable markdown."""
+    # Build scope detail
+    scope_detail = scope
+    if task_id:
+        scope_detail += f" (task: {task_id})"
+    elif phase_id:
+        scope_detail += f" (phase: {phase_id})"
+
+    lines = [
+        f"# Fidelity Review: {spec_title}",
+        "",
+        f"**Spec ID:** {spec_id}",
+        f"**Scope:** {scope_detail}",
+        f"**Verdict:** {parsed.get('verdict', 'unknown')}",
+        f"**Date:** {datetime.now().isoformat()}",
+    ]
+    if provider_id:
+        lines.append(f"**Provider:** {provider_id}")
+    lines.append("")
+
+    # Summary section
+    if parsed.get("summary"):
+        lines.extend(["## Summary", "", parsed["summary"], ""])
+
+    # Requirement Alignment
+    req_align = parsed.get("requirement_alignment", {})
+    if req_align:
+        lines.extend([
+            "## Requirement Alignment",
+            f"**Status:** {req_align.get('answer', 'unknown')}",
+            "",
+            req_align.get("details", ""),
+            "",
+        ])
+
+    # Success Criteria
+    success = parsed.get("success_criteria", {})
+    if success:
+        lines.extend([
+            "## Success Criteria",
+            f"**Status:** {success.get('met', 'unknown')}",
+            "",
+            success.get("details", ""),
+            "",
+        ])
+
+    # Deviations
+    deviations = parsed.get("deviations", [])
+    if deviations:
+        lines.extend(["## Deviations", ""])
+        for dev in deviations:
+            severity = dev.get("severity", "unknown")
+            description = dev.get("description", "")
+            justification = dev.get("justification", "")
+            lines.append(f"- **[{severity.upper()}]** {description}")
+            if justification:
+                lines.append(f"  - Justification: {justification}")
+        lines.append("")
+
+    # Test Coverage
+    test_cov = parsed.get("test_coverage", {})
+    if test_cov:
+        lines.extend([
+            "## Test Coverage",
+            f"**Status:** {test_cov.get('status', 'unknown')}",
+            "",
+            test_cov.get("details", ""),
+            "",
+        ])
+
+    # Code Quality
+    code_quality = parsed.get("code_quality", {})
+    if code_quality:
+        lines.extend(["## Code Quality", ""])
+        if code_quality.get("details"):
+            lines.append(code_quality["details"])
+            lines.append("")
+        for issue in code_quality.get("issues", []):
+            lines.append(f"- {issue}")
+        lines.append("")
+
+    # Documentation
+    doc = parsed.get("documentation", {})
+    if doc:
+        lines.extend([
+            "## Documentation",
+            f"**Status:** {doc.get('status', 'unknown')}",
+            "",
+            doc.get("details", ""),
+            "",
+        ])
+
+    # Issues
+    issues = parsed.get("issues", [])
+    if issues:
+        lines.extend(["## Issues", ""])
+        for issue in issues:
+            lines.append(f"- {issue}")
+        lines.append("")
+
+    # Recommendations
+    recommendations = parsed.get("recommendations", [])
+    if recommendations:
+        lines.extend(["## Recommendations", ""])
+        for rec in recommendations:
+            lines.append(f"- {rec}")
+        lines.append("")
+
+    # Verdict consensus (if synthesized)
+    verdict_consensus = parsed.get("verdict_consensus", {})
+    if verdict_consensus:
+        lines.extend(["## Verdict Consensus", ""])
+        votes = verdict_consensus.get("votes", {})
+        for verdict_type, models in votes.items():
+            if models:
+                lines.append(f"- **{verdict_type}:** {', '.join(models)}")
+        agreement = verdict_consensus.get("agreement_level", "")
+        if agreement:
+            lines.append(f"\n**Agreement Level:** {agreement}")
+        notes = verdict_consensus.get("notes", "")
+        if notes:
+            lines.extend(["", notes])
+        lines.append("")
+
+    # Synthesis metadata
+    synth_meta = parsed.get("synthesis_metadata", {})
+    if synth_meta:
+        lines.extend(["## Synthesis Metadata", ""])
+        if synth_meta.get("models_consulted"):
+            lines.append(f"- Models consulted: {', '.join(synth_meta['models_consulted'])}")
+        if synth_meta.get("models_succeeded"):
+            lines.append(f"- Models succeeded: {', '.join(synth_meta['models_succeeded'])}")
+        if synth_meta.get("synthesis_provider"):
+            lines.append(f"- Synthesis provider: {synth_meta['synthesis_provider']}")
+        lines.append("")
+
+    lines.extend([
+        "---",
+        "*Generated by Foundry MCP Fidelity Review*",
+    ])
+
+    return "\n".join(lines)
+
+
 def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     """Best-effort fidelity review.
 
@@ -521,6 +675,16 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
 
     scope = "task" if task_id else ("phase" if phase_id else "spec")
 
+    # Setup fidelity reviews directory and file naming
+    fidelity_reviews_dir = Path(specs_dir) / ".fidelity-reviews"
+    base_name = f"{spec_id}-{scope}"
+    if task_id:
+        base_name += f"-{task_id}"
+    elif phase_id:
+        base_name += f"-{phase_id}"
+    provider_review_paths: List[Dict[str, str]] = []
+    review_path: Optional[str] = None
+
     spec_requirements = _build_spec_requirements(spec_data, task_id, phase_id)
     implementation_artifacts = _build_implementation_artifacts(
         spec_data, task_id, phase_id, files, incremental, base_branch
@@ -591,6 +755,30 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
                     f"```json\n{response.content}\n```\n"
                 )
 
+            # Write individual provider review files
+            try:
+                fidelity_reviews_dir.mkdir(parents=True, exist_ok=True)
+                for response in successful_responses:
+                    provider_parsed = _parse_json_content(response.content)
+                    if provider_parsed:
+                        provider_md = _format_fidelity_markdown(
+                            provider_parsed,
+                            spec_id,
+                            spec_data.get("title", spec_id),
+                            scope,
+                            task_id=task_id,
+                            phase_id=phase_id,
+                            provider_id=response.provider_id,
+                        )
+                        provider_file = fidelity_reviews_dir / f"{base_name}-{response.provider_id}.md"
+                        provider_file.write_text(provider_md, encoding="utf-8")
+                        provider_review_paths.append({
+                            "provider_id": response.provider_id,
+                            "path": str(provider_file),
+                        })
+            except Exception as e:
+                logger.warning("Failed to write provider review files: %s", e)
+
             logger.info(
                 "Running fidelity synthesis for %d provider reviews: %s",
                 len(successful_responses),
@@ -656,6 +844,24 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     parsed = _parse_json_content(content)
     verdict = parsed.get("verdict") if parsed else "unknown"
 
+    # Write main fidelity review file
+    if parsed:
+        try:
+            fidelity_reviews_dir.mkdir(parents=True, exist_ok=True)
+            main_md = _format_fidelity_markdown(
+                parsed,
+                spec_id,
+                spec_data.get("title", spec_id),
+                scope,
+                task_id=task_id,
+                phase_id=phase_id,
+            )
+            review_file = fidelity_reviews_dir / f"{base_name}.md"
+            review_file.write_text(main_md, encoding="utf-8")
+            review_path = str(review_file)
+        except Exception as e:
+            logger.warning("Failed to write main fidelity review file: %s", e)
+
     duration_ms = (time.perf_counter() - start_time) * 1000
 
     # Build consensus info with synthesis details
@@ -683,6 +889,12 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         "recommendations": parsed.get("recommendations") if parsed else [],
         "consensus": consensus_info,
     }
+
+    # Add file paths if reviews were written
+    if review_path:
+        response_data["review_path"] = review_path
+    if provider_review_paths:
+        response_data["provider_reviews"] = provider_review_paths
 
     # Add synthesis-specific fields if synthesis was performed
     if synthesis_performed and parsed:
