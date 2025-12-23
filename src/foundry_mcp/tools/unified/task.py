@@ -1423,6 +1423,7 @@ def _handle_add(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     task_type = payload.get("task_type", "task")
     estimated_hours = payload.get("estimated_hours")
     position = payload.get("position")
+    file_path = payload.get("file_path")
 
     if not isinstance(spec_id, str) or not spec_id.strip():
         return _validation_error(
@@ -1477,6 +1478,14 @@ def _handle_add(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
             request_id=request_id,
             code=ErrorCode.INVALID_FORMAT,
         )
+    if file_path is not None and not isinstance(file_path, str):
+        return _validation_error(
+            field="file_path",
+            action=action,
+            message="file_path must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
 
     dry_run = payload.get("dry_run", False)
     if dry_run is not None and not isinstance(dry_run, bool):
@@ -1525,6 +1534,7 @@ def _handle_add(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
                 "title": title.strip(),
                 "task_type": task_type,
                 "position": position,
+                "file_path": file_path.strip() if file_path else None,
                 "dry_run": True,
             },
             request_id=request_id,
@@ -1544,6 +1554,7 @@ def _handle_add(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
         task_type=task_type,
         estimated_hours=float(estimated_hours) if estimated_hours is not None else None,
         position=position,
+        file_path=file_path,
         specs_dir=specs_dir,
     )
     elapsed_ms = (time.perf_counter() - start) * 1000

@@ -687,6 +687,7 @@ def add_task(
     task_type: str = "task",
     estimated_hours: Optional[float] = None,
     position: Optional[int] = None,
+    file_path: Optional[str] = None,
     specs_dir: Optional[Path] = None,
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
@@ -703,6 +704,7 @@ def add_task(
         task_type: Type of task (task, subtask, verify). Default: task.
         estimated_hours: Optional estimated hours.
         position: Optional position in parent's children list (0-based).
+        file_path: Optional file path associated with this task.
         specs_dir: Path to specs directory (auto-detected if not provided).
 
     Returns:
@@ -762,6 +764,8 @@ def add_task(
         metadata["description"] = description.strip()
     if estimated_hours is not None:
         metadata["estimated_hours"] = estimated_hours
+    if file_path:
+        metadata["file_path"] = file_path.strip()
 
     # Create the task node
     task_node = {
@@ -804,6 +808,7 @@ def add_task(
         "title": title,
         "type": task_type,
         "position": position if position is not None else len(existing_children) - 1,
+        "file_path": file_path.strip() if file_path else None,
     }, None
 
 
@@ -1139,7 +1144,7 @@ def update_estimate(
 
 
 # Valid verification types for update_task_metadata
-VERIFICATION_TYPES = ("auto", "manual", "none")
+VERIFICATION_TYPES = ("run-tests", "fidelity", "manual")
 
 # Valid task categories
 TASK_CATEGORIES = ("implementation", "testing", "documentation", "investigation", "refactoring", "design")
@@ -1173,7 +1178,7 @@ def update_task_metadata(
         task_category: Optional task category (implementation, testing, etc.).
         actual_hours: Optional actual hours spent on task (must be >= 0).
         status_note: Optional status note or completion note.
-        verification_type: Optional verification type (auto, manual, none).
+        verification_type: Optional verification type (run-tests, fidelity, manual).
         command: Optional command executed for the task.
         custom_metadata: Optional dict of custom metadata fields to merge.
         specs_dir: Path to specs directory (auto-detected if not provided).

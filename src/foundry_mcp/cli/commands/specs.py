@@ -194,7 +194,7 @@ def get_template_structure(template: str, category: str) -> Dict[str, Any]:
             "total_tasks": 1,
             "completed_tasks": 0,
             "metadata": {
-                "verification_type": "auto",
+                "verification_type": "run-tests",
                 "command": "pytest",
                 "expected": "All tests pass",
             },

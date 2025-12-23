@@ -516,7 +516,7 @@ def _get_feature_template() -> dict:
                 "parent": "phase-3",
                 "children": [],
                 "metadata": {
-                    "verification_type": "auto",
+                    "verification_type": "run-tests",
                 },
             },
         },

@@ -244,33 +244,6 @@ Add foundry-mcp through Claude Code settings (Command Palette → **Claude Code:
 ```
 </details>
 
-<details>
-<summary>Enable mode toggling to save context tokens</summary>
-
-Use `foundry-mcp-ctl` to wrap the server and enable runtime mode switching between full (16 tools) and minimal (1 tool) modes:
-
-```json
-{
-  "mcpServers": {
-    "foundry-mcp": {
-      "command": "python",
-      "args": ["-m", "foundry_mcp_ctl", "wrap", "--name", "foundry-mcp", "--", "python", "-m", "foundry_mcp.server"]
-    },
-    "foundry-ctl": {
-      "command": "python",
-      "args": ["-m", "foundry_mcp_ctl", "helper"]
-    }
-  }
-}
-```
-
-With this configuration:
-- Use `/sdd-on` to enable full SDD tools (16 routers)
-- Use `/sdd-off` to switch to minimal mode (1 wake tool) and save context tokens
-- The server restarts automatically when switching modes (~1-2 seconds)
-
-</details>
-
 ### Quick usage examples
 
 ```bash

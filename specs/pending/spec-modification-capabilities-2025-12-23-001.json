@@ -1,0 +1,1195 @@
+{
+  "spec_id": "spec-modification-capabilities-2025-12-23-001",
+  "title": "spec-modification-capabilities",
+  "generated": "2025-12-23T14:54:29.088964Z",
+  "last_updated": "2025-12-23T14:57:18.947430Z",
+  "metadata": {
+    "description": "",
+    "objectives": [],
+    "complexity": "medium",
+    "estimated_hours": 97.0,
+    "assumptions": [],
+    "status": "pending",
+    "owner": "",
+    "progress_percentage": 0,
+    "current_phase": "phase-1",
+    "category": "implementation",
+    "template": "complex"
+  },
+  "progress_percentage": 0,
+  "status": "pending",
+  "current_phase": "phase-1",
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "spec-modification-capabilities",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5",
+        "phase-6",
+        "phase-7"
+      ],
+      "total_tasks": 47,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Planning & Discovery",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "verify-1-1",
+        "verify-1-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Initial planning and requirements gathering",
+        "estimated_hours": 2
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define requirements",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Document the requirements and acceptance criteria",
+        "category": "implementation",
+        "estimated_hours": 1
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-1-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-1",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-1-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Implementation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "verify-2-1",
+        "verify-2-2"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Core implementation work",
+        "estimated_hours": 8
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Implement core functionality",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "details": "Implement the main features",
+        "category": "implementation",
+        "estimated_hours": 4
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-2-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-2",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-2-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Critical Task Operations",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "verify-3-1",
+        "verify-3-2",
+        "task-3-1",
+        "task-3-2",
+        "task-3-3",
+        "task-3-4",
+        "task-3-5",
+        "task-3-6",
+        "task-3-7"
+      ],
+      "total_tasks": 9,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable core editing capabilities - task.update and task.move actions plus file_path bug fix",
+        "description": "Implement the most frequently requested features: editing task titles/descriptions after creation, and reordering/reparenting tasks within and between phases. These are foundational for all other phases.",
+        "estimated_hours": 16.0
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-4"
+        ],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-3-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-3",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-3-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Essential Structure Operations",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "verify-4-1",
+        "verify-4-2",
+        "task-4-1",
+        "task-4-2",
+        "task-4-3",
+        "task-4-4",
+        "task-4-5",
+        "task-4-6",
+        "task-4-7",
+        "task-4-8"
+      ],
+      "total_tasks": 10,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable dependency management, phase reordering, and structured requirements",
+        "description": "Add task.add-dependency, task.remove-dependency, phase.move, and task.add-requirement actions for spec maintenance.",
+        "estimated_hours": 20.0
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-5"
+        ],
+        "blocked_by": [
+          "phase-3"
+        ],
+        "depends": []
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-4-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-4",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-4-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Bulk Operations",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "verify-5-1",
+        "verify-5-2",
+        "task-5-1",
+        "task-5-2",
+        "task-5-3",
+        "task-5-4",
+        "task-5-5"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable efficient batch updates and text replacement across specs",
+        "description": "Add task.batch-update and spec.find-replace actions for large-scale modifications.",
+        "estimated_hours": 12.0
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-6"
+        ],
+        "blocked_by": [
+          "phase-4"
+        ],
+        "depends": []
+      }
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-5-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-5-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-5",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-5-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-6": {
+      "type": "phase",
+      "title": "History and Comparison",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "verify-6-1",
+        "verify-6-2",
+        "task-6-1",
+        "task-6-2",
+        "task-6-3",
+        "task-6-4",
+        "task-6-5",
+        "task-6-6"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Enable versioned backups with diff, history, and rollback capabilities",
+        "description": "Enhance backup system for versioned backups, add spec.diff, spec.history, and spec.rollback actions.",
+        "estimated_hours": 24.0
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-7"
+        ],
+        "blocked_by": [
+          "phase-5"
+        ],
+        "depends": []
+      }
+    },
+    "verify-6-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-6-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-6-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-6",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-6-1"
+        ],
+        "depends": []
+      }
+    },
+    "phase-7": {
+      "type": "phase",
+      "title": "Validation Enhancements",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "verify-7-1",
+        "verify-7-2",
+        "task-7-1",
+        "task-7-2",
+        "task-7-3",
+        "task-7-4",
+        "task-7-5"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "Add completeness checking and duplicate detection",
+        "description": "Add spec.completeness-check and task.duplicate-detection actions for spec quality validation.",
+        "estimated_hours": 10.0
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-6"
+        ],
+        "depends": []
+      }
+    },
+    "verify-7-1": {
+      "type": "verify",
+      "title": "Run tests",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "run-tests",
+        "mcp_tool": "mcp__foundry-mcp__test-run",
+        "expected": "All tests pass"
+      },
+      "dependencies": {
+        "blocks": [
+          "verify-7-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-7-2": {
+      "type": "verify",
+      "title": "Fidelity review",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "verification_type": "fidelity",
+        "mcp_tool": "mcp__foundry-mcp__spec-review-fidelity",
+        "scope": "phase",
+        "target": "phase-7",
+        "expected": "Implementation matches specification"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "verify-7-1"
+        ],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Add update_task() function to core/task.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement update_task() function to update task title (core field) and description (metadata). Support dry_run mode. Validate at least one field is provided. Return previous values in response.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Add _handle_update() handler to task router",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'update' action in task router. Validate spec_id, task_id parameters. Call update_task() core function. Follow existing handler patterns.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "Add move_task() function to core/task.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement move_task() to reorder within parent (position change) or reparent to different phase/task. Update task counts on affected parents. Handle dependency warnings for cross-phase moves. Prevent circular references.",
+        "estimated_hours": 4.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-4": {
+      "type": "task",
+      "title": "Add _handle_move() handler to task router",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'move' action in task router. Accept target_parent and position parameters. Call move_task() core function.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-5": {
+      "type": "task",
+      "title": "Fix file_path handling and add tests",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify file_path persistence through update-metadata action. Add explicit test cases for file_path set on add, update via metadata, persistence across load/save, and empty string handling.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-6": {
+      "type": "task",
+      "title": "Write tests for task.update action",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create test_task_update.py with tests: update title only, update description only, update both, dry_run mode, empty title error, nonexistent task error, no fields error.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_task_update.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-7": {
+      "type": "task",
+      "title": "Write tests for task.move action",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create test_task_move.py with tests: reorder within phase, reparent to different phase, reparent with position, move to self error, move to descendant error, invalid position error, dry_run, dependency warning.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_task_move.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Add manage_task_dependency() function to core",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement function to add/remove blocks, blocked_by, depends relationships. Prevent circular dependencies with graph traversal. Update both source and target tasks atomically.",
+        "estimated_hours": 4.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "Add _handle_add_dependency() and _handle_remove_dependency() handlers",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'add-dependency' and 'remove-dependency' actions in task router. Accept depends_on, blocks parameters.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-3": {
+      "type": "task",
+      "title": "Add move_phase() function to core/spec.py",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement function to reorder phases in spec-root children array. Update phase dependencies if link_previous pattern exists. Support dry_run mode.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-4": {
+      "type": "task",
+      "title": "Add _handle_phase_move() handler to authoring router",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'phase-move' action in authoring router. Accept phase_id and position parameters.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/tools/unified/authoring.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-5": {
+      "type": "task",
+      "title": "Add update_task_requirements() function to core",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement function to add/remove structured requirements to metadata.requirements array. Support requirement types: acceptance, technical, constraint.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-6": {
+      "type": "task",
+      "title": "Add _handle_add_requirement() handler to task router",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'add-requirement' action in task router. Accept requirement text and requirement_type.",
+        "estimated_hours": 1.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-7": {
+      "type": "task",
+      "title": "Write tests for dependency management",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test add blocks relationship, add depends_on, remove dependency, circular dependency prevention.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-8": {
+      "type": "task",
+      "title": "Write tests for phase.move and add-requirement",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test phase reorder, dependency chain updates, add/remove requirements, default type.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "Add batch_update_tasks() function to core",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement function to filter tasks by status, parent, title pattern (regex) and apply description/metadata updates. Support dry_run mode. Return matched and updated counts.",
+        "estimated_hours": 4.0,
+        "file_path": "src/foundry_mcp/core/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "Add _handle_batch_update() handler to task router",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'batch-update' action. Accept filter_status, filter_parent, filter_pattern, update_description, update_metadata parameters.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "Add find_replace_in_spec() function to core",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement literal and regex find/replace across spec. Support scope: all, titles, descriptions. Support dry_run mode with preview of changes.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-4": {
+      "type": "task",
+      "title": "Add _handle_find_replace() handler to spec router",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'find-replace' action. Accept find, replace, scope, use_regex parameters.",
+        "estimated_hours": 1.0,
+        "file_path": "src/foundry_mcp/tools/unified/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-5": {
+      "type": "task",
+      "title": "Write tests for batch-update and find-replace",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test batch update by status/parent/pattern, find-replace literal and regex, scope filtering, dry_run modes.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_task_batch_update.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-1": {
+      "type": "task",
+      "title": "Enhance backup_spec() for versioned backups",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create timestamped backups in .backups/{spec_id}/ directory. Maintain latest.json copy. Add configurable retention policy for max backups.",
+        "estimated_hours": 4.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-2": {
+      "type": "task",
+      "title": "Add list_spec_backups() function to core",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "List backups chronologically for a spec. Return timestamps, file sizes, and paths.",
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-3": {
+      "type": "task",
+      "title": "Add diff_specs() function to core",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Compare current spec vs backup or two specs. Categorize changes as added, removed, modified. Include task-level diff details.",
+        "estimated_hours": 5.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-4": {
+      "type": "task",
+      "title": "Add rollback_spec() function to core",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Restore spec from specific backup timestamp. Create backup of current state before rollback. Support dry_run mode.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-5": {
+      "type": "task",
+      "title": "Add _handle_diff(), _handle_history(), _handle_rollback() handlers",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'diff', 'history', 'rollback' actions in spec router with appropriate parameters.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/tools/unified/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-6": {
+      "type": "task",
+      "title": "Write tests for versioned backups and history operations",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test backup creation, listing, diff against backup/spec, rollback to previous/timestamp, backup before rollback.",
+        "estimated_hours": 3.0,
+        "file_path": "tests/unit/test_core/test_spec_history.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-1": {
+      "type": "task",
+      "title": "Add check_spec_completeness() function to core",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Flag tasks with empty descriptions. Compare against original plan file if provided. Calculate completeness score (0-100).",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-2": {
+      "type": "task",
+      "title": "Add _handle_completeness_check() handler to spec router",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'completeness-check' action. Accept plan_path, check_descriptions parameters.",
+        "estimated_hours": 1.0,
+        "file_path": "src/foundry_mcp/tools/unified/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-3": {
+      "type": "task",
+      "title": "Add detect_duplicate_tasks() function to core",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Compare task titles/descriptions using similarity threshold. Support scope: titles, descriptions, both. Return potential duplicate pairs.",
+        "estimated_hours": 3.0,
+        "file_path": "src/foundry_mcp/core/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-4": {
+      "type": "task",
+      "title": "Add _handle_duplicate_detection() handler to task router",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Register 'duplicate-detection' action. Accept similarity_threshold, scope parameters.",
+        "estimated_hours": 1.0,
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-5": {
+      "type": "task",
+      "title": "Write tests for completeness-check and duplicate-detection",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test empty description flagging, plan comparison, completeness score, duplicate detection with various thresholds.",
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_core/test_spec_validation.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": []
+}

@@ -400,9 +400,13 @@ class TestValidationConstants:
 
     def test_valid_verification_types(self):
         """Test that valid verification types are defined."""
-        # Current valid types are test and fidelity
-        assert "test" in VALID_VERIFICATION_TYPES
+        # Canonical values are run-tests, fidelity, and manual
+        assert "run-tests" in VALID_VERIFICATION_TYPES
         assert "fidelity" in VALID_VERIFICATION_TYPES
+        assert "manual" in VALID_VERIFICATION_TYPES
+        # Legacy values should NOT be present
+        assert "test" not in VALID_VERIFICATION_TYPES
+        assert "auto" not in VALID_VERIFICATION_TYPES
 
 
 class TestAddVerification:
@@ -434,7 +438,7 @@ class TestAddVerification:
                     "children": [],
                     "total_tasks": 1,
                     "completed_tasks": 0,
-                    "metadata": {"verification_type": "auto", "command": "echo test"},
+                    "metadata": {"verification_type": "run-tests", "command": "echo test"},
                 },
             },
         }
@@ -557,7 +561,7 @@ class TestExecuteVerification:
                     "total_tasks": 1,
                     "completed_tasks": 0,
                     "metadata": {
-                        "verification_type": "auto",
+                        "verification_type": "run-tests",
                         "command": "echo hello world",
                     },
                 },
@@ -590,7 +594,7 @@ class TestExecuteVerification:
                     "children": [],
                     "total_tasks": 1,
                     "completed_tasks": 0,
-                    "metadata": {"verification_type": "auto", "command": "exit 1"},
+                    "metadata": {"verification_type": "run-tests", "command": "exit 1"},
                 },
             },
         }

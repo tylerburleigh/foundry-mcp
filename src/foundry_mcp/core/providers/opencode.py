@@ -124,6 +124,32 @@ def _default_runner(
 
 OPENCODE_MODELS: List[ModelDescriptor] = [
     ModelDescriptor(
+        id="openai/gpt-5.2",
+        display_name="OpenAI GPT-5.2 (via OpenCode)",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+        },
+        routing_hints={
+            "configurable": True,
+            "source": "opencode config",
+            "note": "Accepts any model ID - validated by opencode CLI",
+        },
+    ),
+    ModelDescriptor(
+        id="openai/gpt-5.2-codex",
+        display_name="OpenAI GPT-5.2 Codex (via OpenCode)",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+        },
+        routing_hints={
+            "configurable": True,
+            "source": "opencode config",
+            "note": "Accepts any model ID - validated by opencode CLI",
+        },
+    ),
+    ModelDescriptor(
         id="openai/gpt-5.1-codex",
         display_name="OpenAI GPT-5.1 Codex Mini (via OpenCode)",
         capabilities={
@@ -142,7 +168,7 @@ OPENCODE_METADATA = ProviderMetadata(
     provider_id="opencode",
     display_name="OpenCode AI SDK",
     models=OPENCODE_MODELS,
-    default_model="openai/gpt-5.1-codex-mini",
+    default_model="openai/gpt-5.2-codex",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING},
     security_flags={"writes_allowed": False, "read_only": True},
     extra={

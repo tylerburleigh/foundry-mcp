@@ -253,7 +253,8 @@
               "type": "string",
               "enum": [
                 "run-tests",
-                "fidelity"
+                "fidelity",
+                "manual"
               ]
             },
             "agent": {

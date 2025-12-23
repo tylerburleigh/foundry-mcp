@@ -7,21 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.4] - 2025-12-21
-
-### Added
-
-- **Mode toggling**: New `foundry-mcp-ctl` package enables runtime switching between full (16 tools) and minimal (1 wake tool) modes
-  - `foundry-mcp-ctl wrap` - Wrapper that manages server lifecycle based on mode
-  - `foundry-mcp-ctl helper` - MCP server providing `set_sdd_mode` and `get_sdd_mode` tools
-- Wake tool (`sdd_wake`) for minimal mode - surfaces available actions and prompts mode switch
-- `FOUNDRY_MODE` environment variable: `full` (default) or `minimal`
-- New CLI entry point: `foundry-mcp-ctl`
+## [0.4.0] - 2025-12-23
 
 ### Changed
 
-- `register_unified_tools()` now respects `FOUNDRY_MODE` to conditionally load tool routers
-- README documents mode toggling configuration for context token savings
+- **Verification Types**: Aligned task API and spec validator to use canonical values (`run-tests`, `fidelity`, `manual`)
+  - Task API now accepts `run-tests`, `fidelity`, `manual` (previously `auto`, `manual`, `none`)
+  - Spec validator updated to match canonical schema values
+  - Legacy values automatically mapped: `test` → `run-tests`, `auto` → `run-tests`
+
+### Added
+
+- **Auto-fix for `INVALID_VERIFICATION_TYPE`**: Specs with legacy verification types are now auto-fixable via `validate-fix`
+- **Auto-fix for `INVALID_ROOT_PARENT`**: Specs where spec-root has non-null parent are now auto-fixable
+
+### Removed
+
+- Removed `foundry-mcp-ctl` package and mode-toggling feature - server now always runs with all tools registered
+
+## [0.3.4] - 2025-12-21
+
+_Note: Mode toggling features added in this version were subsequently removed._
 
 ## [0.3.3] - 2025-12-17
 

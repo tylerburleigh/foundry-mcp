@@ -240,6 +240,16 @@ CODEX_MODELS: List[ModelDescriptor] = [
         routing_hints={"tier": "primary"},
     ),
     ModelDescriptor(
+        id="gpt-5.2-codex",
+        display_name="GPT-5.2 Codex",
+        capabilities={
+            ProviderCapability.TEXT,
+            ProviderCapability.STREAMING,
+            ProviderCapability.FUNCTION_CALLING,
+        },
+        routing_hints={"tier": "primary", "optimized_for": "codex"},
+    ),
+    ModelDescriptor(
         id="gpt-5.1-codex",
         display_name="GPT-5.1 Codex",
         capabilities={

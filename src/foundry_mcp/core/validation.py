@@ -118,7 +118,13 @@ VALID_TASK_CATEGORIES = {
     "decision",
     "research",
 }
-VALID_VERIFICATION_TYPES = {"test", "fidelity"}
+VALID_VERIFICATION_TYPES = {"run-tests", "fidelity", "manual"}
+
+# Legacy to canonical verification type mapping
+VERIFICATION_TYPE_MAPPING = {
+    "test": "run-tests",
+    "auto": "run-tests",
+}
 
 
 # Validation functions
@@ -458,6 +464,8 @@ def _validate_hierarchy(hierarchy: Dict[str, Any], result: ValidationResult) -> 
                 severity="error",
                 category="hierarchy",
                 location="spec-root",
+                suggested_fix="Set spec-root parent to null",
+                auto_fixable=True,
             )
         )
 
@@ -860,7 +868,7 @@ def _validate_metadata(hierarchy: Dict[str, Any], result: ValidationResult) -> N
                         severity="error",
                         category="metadata",
                         location=node_id,
-                        suggested_fix="Set verification_type to 'test' or 'fidelity'",
+                        suggested_fix="Set verification_type to 'run-tests', 'fidelity', or 'manual'",
                         auto_fixable=True,
                     )
                 )
@@ -868,10 +876,12 @@ def _validate_metadata(hierarchy: Dict[str, Any], result: ValidationResult) -> N
                 result.diagnostics.append(
                     Diagnostic(
                         code="INVALID_VERIFICATION_TYPE",
-                        message=f"Verify node '{node_id}' verification_type must be 'test' or 'fidelity'",
+                        message=f"Verify node '{node_id}' verification_type must be 'run-tests', 'fidelity', or 'manual'",
                         severity="error",
                         category="metadata",
                         location=node_id,
+                        suggested_fix="Map legacy verification_type to canonical value",
+                        auto_fixable=True,
                     )
                 )
 
@@ -962,6 +972,9 @@ def _build_fix_action(
     if code == "ORPHANED_NODES":
         return _build_orphan_fix(diag, hierarchy)
 
+    if code == "INVALID_ROOT_PARENT":
+        return _build_root_parent_fix(diag, hierarchy)
+
     if code == "MISSING_NODE_FIELD":
         return _build_missing_fields_fix(diag, hierarchy)
 
@@ -991,6 +1004,8 @@ def _build_fix_action(
     if code == "MISSING_VERIFICATION_TYPE":
         return _build_verification_type_fix(diag, hierarchy)
 
+    if code == "INVALID_VERIFICATION_TYPE":
+        return _build_invalid_verification_type_fix(diag, hierarchy)
 
     if code == "INVALID_TASK_CATEGORY":
         return _build_task_category_fix(diag, hierarchy)
@@ -1085,6 +1100,28 @@ def _build_orphan_fix(
         severity=diag.severity,
         auto_apply=True,
         preview=f"Attach {len(orphan_ids)} orphaned node(s) to spec-root",
+        apply=apply,
+    )
+
+
+def _build_root_parent_fix(
+    diag: Diagnostic, hierarchy: Dict[str, Any]
+) -> Optional[FixAction]:
+    """Build fix for spec-root having non-null parent."""
+
+    def apply(data: Dict[str, Any]) -> None:
+        hier = data.get("hierarchy", {})
+        spec_root = hier.get("spec-root")
+        if spec_root:
+            spec_root["parent"] = None
+
+    return FixAction(
+        id="hierarchy.fix_root_parent",
+        description="Set spec-root parent to null",
+        category="hierarchy",
+        severity=diag.severity,
+        auto_apply=True,
+        preview="Set spec-root parent to null",
         apply=apply,
     )
 
@@ -1327,15 +1364,49 @@ def _build_verification_type_fix(
             return
         metadata = node.setdefault("metadata", {})
         if "verification_type" not in metadata:
-            metadata["verification_type"] = "test"
+            metadata["verification_type"] = "run-tests"
 
     return FixAction(
         id=f"metadata.fix_verification_type:{node_id}",
-        description=f"Set verification_type to 'test' for {node_id}",
+        description=f"Set verification_type to 'run-tests' for {node_id}",
         category="metadata",
         severity=diag.severity,
         auto_apply=True,
-        preview=f"Set verification_type to 'test' for {node_id}",
+        preview=f"Set verification_type to 'run-tests' for {node_id}",
+        apply=apply,
+    )
+
+
+def _build_invalid_verification_type_fix(
+    diag: Diagnostic, hierarchy: Dict[str, Any]
+) -> Optional[FixAction]:
+    """Build fix for invalid verification type by mapping to canonical value."""
+    node_id = diag.location
+    if not node_id:
+        return None
+
+    def apply(data: Dict[str, Any]) -> None:
+        hier = data.get("hierarchy", {})
+        node = hier.get(node_id)
+        if not node:
+            return
+        metadata = node.get("metadata", {})
+        current_type = metadata.get("verification_type", "")
+
+        # Map legacy values to canonical
+        mapped_type = VERIFICATION_TYPE_MAPPING.get(current_type)
+        if mapped_type:
+            metadata["verification_type"] = mapped_type
+        elif current_type not in VALID_VERIFICATION_TYPES:
+            metadata["verification_type"] = "manual"  # safe fallback for unknown values
+
+    return FixAction(
+        id=f"metadata.fix_invalid_verification_type:{node_id}",
+        description=f"Map verification_type to canonical value for {node_id}",
+        category="metadata",
+        severity=diag.severity,
+        auto_apply=True,
+        preview=f"Map legacy verification_type to canonical value for {node_id}",
         apply=apply,
     )
 
