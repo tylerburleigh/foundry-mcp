@@ -102,6 +102,52 @@ def _handle_find(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     return asdict(success_response(found=False, spec_id=spec_id))
 
 
+def _handle_get(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """Return raw spec JSON content in minified form."""
+    import json as _json
+
+    spec_id = payload.get("spec_id")
+    workspace = payload.get("workspace")
+
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return asdict(
+            error_response(
+                "spec_id is required",
+                error_code=ErrorCode.MISSING_REQUIRED,
+                error_type=ErrorType.VALIDATION,
+                remediation="Provide a spec_id parameter",
+            )
+        )
+
+    specs_dir = _resolve_specs_dir(config, workspace)
+    if not specs_dir:
+        return asdict(
+            error_response(
+                "No specs directory found",
+                error_code=ErrorCode.NOT_FOUND,
+                error_type=ErrorType.NOT_FOUND,
+                remediation="Ensure you're in a project with a specs/ directory or pass workspace.",
+                details={"workspace": workspace},
+            )
+        )
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        return asdict(
+            error_response(
+                f"Spec not found: {spec_id}",
+                error_code=ErrorCode.NOT_FOUND,
+                error_type=ErrorType.NOT_FOUND,
+                remediation=f"Verify the spec_id exists. Use spec(action='list') to see available specs.",
+                details={"spec_id": spec_id},
+            )
+        )
+
+    # Return minified JSON string to minimize token usage
+    minified_spec = _json.dumps(spec_data, separators=(",", ":"))
+    return asdict(success_response(spec=minified_spec))
+
+
 def _handle_list(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     status = payload.get("status", "all")
     include_progress = payload.get("include_progress", True)
@@ -725,6 +771,7 @@ def _handle_analyze_deps(*, config: ServerConfig, payload: Dict[str, Any]) -> di
 
 _ACTIONS = [
     ActionDefinition(name="find", handler=_handle_find, summary="Find a spec by ID"),
+    ActionDefinition(name="get", handler=_handle_get, summary="Get raw spec JSON (minified)"),
     ActionDefinition(name="list", handler=_handle_list, summary="List specs"),
     ActionDefinition(
         name="validate", handler=_handle_validate, summary="Validate a spec"

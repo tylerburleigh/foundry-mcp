@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Spec Field Requirements**: Medium/complex specs now require `metadata.mission` and task metadata for `task_category`, `description`, and `acceptance_criteria`; implementation/refactoring tasks must include `file_path`.
+- **Task Metadata Updates**: `task update-metadata` now accepts `acceptance_criteria` and aligns task category validation with the canonical spec categories.
+
 ## [0.4.1] - 2025-12-24
 
 ### Added

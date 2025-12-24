@@ -203,6 +203,27 @@ def _handle_spec_create(*, config: ServerConfig, **payload: Any) -> dict:
             remediation=f"Use one of: {', '.join(CATEGORIES)}",
         )
 
+    mission = payload.get("mission")
+    if mission is not None and not isinstance(mission, str):
+        return _validation_error(
+            field="mission",
+            action=action,
+            message="mission must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if template in ("medium", "complex"):
+        if not isinstance(mission, str) or not mission.strip():
+            return _validation_error(
+                field="mission",
+                action=action,
+                message="mission is required for medium/complex specifications",
+                request_id=request_id,
+                code=ErrorCode.MISSING_REQUIRED,
+                remediation="Provide a concise mission statement",
+            )
+
     dry_run = payload.get("dry_run", False)
     if dry_run is not None and not isinstance(dry_run, bool):
         return _validation_error(
@@ -234,6 +255,7 @@ def _handle_spec_create(*, config: ServerConfig, **payload: Any) -> dict:
                     "name": name.strip(),
                     "template": template,
                     "category": category,
+                    "mission": mission.strip() if isinstance(mission, str) else None,
                     "dry_run": True,
                     "note": "Dry run - no changes made",
                 },
@@ -255,6 +277,7 @@ def _handle_spec_create(*, config: ServerConfig, **payload: Any) -> dict:
         name=name.strip(),
         template=template,
         category=category,
+        mission=mission,
         specs_dir=specs_dir,
     )
     elapsed_ms = (time.perf_counter() - start_time) * 1000
@@ -2073,6 +2096,7 @@ def register_unified_authoring_tool(mcp: FastMCP, config: ServerConfig) -> None:
         name: Optional[str] = None,
         template: Optional[str] = None,
         category: Optional[str] = None,
+        mission: Optional[str] = None,
         template_action: Optional[str] = None,
         template_name: Optional[str] = None,
         key: Optional[str] = None,
@@ -2103,6 +2127,7 @@ def register_unified_authoring_tool(mcp: FastMCP, config: ServerConfig) -> None:
             "name": name,
             "template": template,
             "category": category,
+            "mission": mission,
             "template_action": template_action,
             "template_name": template_name,
             "key": key,
