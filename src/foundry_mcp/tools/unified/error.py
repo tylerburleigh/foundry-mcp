@@ -332,7 +332,24 @@ def perform_error_cleanup(
 
 
 def _handle_error_list(*, config: ServerConfig, **payload: Any) -> dict:
-    return perform_error_list(config=config, **payload)
+    # Filter out parameters not accepted by perform_error_list
+    filtered_payload = {
+        k: v
+        for k, v in payload.items()
+        if k
+        in (
+            "tool_name",
+            "error_code",
+            "error_type",
+            "fingerprint",
+            "provider_id",
+            "since",
+            "until",
+            "limit",
+            "cursor",
+        )
+    }
+    return perform_error_list(config=config, **filtered_payload)
 
 
 def _handle_error_get(*, config: ServerConfig, **payload: Any) -> dict:

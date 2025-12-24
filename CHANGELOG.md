@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-12-24
+
+### Added
+
+- **Batch Metadata Utilities**: New task actions for bulk operations
+  - `task action=metadata-batch`: Apply metadata updates to multiple nodes with AND-based filtering by `node_type`, `phase_id`, or `pattern` regex
+  - `task action=fix-verification-types`: Auto-fix invalid/missing verification types on verify nodes with legacy mapping support
+  - Both actions support `dry_run` mode for previewing changes
+- **Phase-First Authoring**: New `authoring action=phase-add-bulk` for creating multiple phases at once with metadata defaults
+- **Spec Mission Field**: Added `mission` field to spec metadata schema for concise goal statements
+- **Workflow Timeout Override**: AI consultation now supports workflow-specific timeout configuration
+
+### Changed
+
+- **JSON Output Optimization**: CLI and MCP server now emit minified JSON (no indentation) for smaller payloads
+- **Fidelity Review Improvements**: Better path resolution with workspace_root support, graceful handling of non-JSON provider responses
+- **Provider Configuration**: Updated OpenCode model IDs and default model; reordered provider priority
+- **Claude Provider Tests**: Updated to use Haiku model for faster test execution
+
+### Fixed
+
+- Fixed parameter filtering in error_list handler to prevent unexpected argument errors
+- Fixed duplicate file paths in fidelity review implementation artifacts
+- Synced `__init__.py` version with `pyproject.toml`
+
 ## [0.4.0] - 2025-12-23
 
 ### Changed

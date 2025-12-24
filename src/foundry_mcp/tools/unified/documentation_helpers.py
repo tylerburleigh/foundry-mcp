@@ -45,6 +45,49 @@ def _build_spec_requirements(
     return "\n".join(lines) if lines else "*No requirements available*"
 
 
+def _split_file_paths(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        parts: List[str] = []
+        for item in value:
+            parts.extend(_split_file_paths(item))
+        return parts
+    if isinstance(value, str):
+        segments = [part.strip() for part in value.split(",")]
+        return [segment for segment in segments if segment]
+    return [str(value)]
+
+
+def _normalize_for_comparison(path_value: str, workspace_root: Optional[Path]) -> str:
+    raw_path = Path(path_value)
+    if raw_path.is_absolute() and workspace_root:
+        try:
+            raw_path = raw_path.relative_to(workspace_root)
+        except ValueError:
+            pass
+    if workspace_root and raw_path.parts and raw_path.parts[0] == workspace_root.name:
+        raw_path = Path(*raw_path.parts[1:])
+    return raw_path.as_posix()
+
+
+def _resolve_path(path_value: str, workspace_root: Optional[Path]) -> Path:
+    raw_path = Path(path_value)
+    candidates: List[Path] = []
+    if raw_path.is_absolute():
+        candidates.append(raw_path)
+    else:
+        candidates.append(raw_path)
+        if workspace_root:
+            candidates.append(workspace_root / raw_path)
+            if raw_path.parts and raw_path.parts[0] == workspace_root.name:
+                candidates.append(workspace_root / Path(*raw_path.parts[1:]))
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0] if candidates else raw_path
+
+
 def _build_implementation_artifacts(
     spec_data: Dict[str, Any],
     task_id: Optional[str],
@@ -52,21 +95,32 @@ def _build_implementation_artifacts(
     files: Optional[List[str]],
     incremental: bool,
     base_branch: str,
+    workspace_root: Optional[Path] = None,
 ) -> str:
     lines: list[str] = []
     file_paths: list[str] = []
+    if workspace_root is not None and not isinstance(workspace_root, Path):
+        workspace_root = Path(str(workspace_root))
     if files:
-        file_paths = list(files)
+        file_paths = _split_file_paths(files)
     elif task_id:
         task = _find_task(spec_data, task_id)
         if task and task.get("metadata", {}).get("file_path"):
-            file_paths = [task["metadata"]["file_path"]]
+            file_paths = _split_file_paths(task["metadata"]["file_path"])
     elif phase_id:
         phase = _find_phase(spec_data, phase_id)
         if phase:
             for child in _get_child_nodes(spec_data, phase):
                 if child.get("metadata", {}).get("file_path"):
-                    file_paths.append(child["metadata"]["file_path"])
+                    file_paths.extend(_split_file_paths(child["metadata"]["file_path"]))
+    if file_paths:
+        deduped: List[str] = []
+        seen = set()
+        for file_path in file_paths:
+            if file_path not in seen:
+                seen.add(file_path)
+                deduped.append(file_path)
+        file_paths = deduped
     if incremental:
         try:
             import subprocess
@@ -82,16 +136,25 @@ def _build_implementation_artifacts(
                     result.stdout.strip().split("\n") if result.stdout else []
                 )
                 if file_paths:
-                    file_paths = [path for path in file_paths if path in changed_files]
+                    changed_set = {
+                        _normalize_for_comparison(path, workspace_root)
+                        for path in changed_files
+                        if path
+                    }
+                    file_paths = [
+                        path
+                        for path in file_paths
+                        if _normalize_for_comparison(path, workspace_root) in changed_set
+                    ]
                 else:
-                    file_paths = changed_files
+                    file_paths = [path for path in changed_files if path]
                 lines.append(
                     f"*Incremental review: {len(file_paths)} changed files since {base_branch}*\n"
                 )
         except Exception:
             lines.append(f"*Warning: Could not get git diff from {base_branch}*\n")
     for file_path in file_paths[:5]:
-        path = Path(file_path)
+        path = _resolve_path(file_path, workspace_root)
         if path.exists():
             try:
                 content = path.read_text(encoding="utf-8")

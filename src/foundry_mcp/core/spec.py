@@ -16,9 +16,13 @@ TEMPLATES = ("simple", "medium", "complex", "security")
 CATEGORIES = ("investigation", "implementation", "refactoring", "decision", "research")
 
 # Valid verification types for verify nodes
-# - test: Automated tests via mcp__foundry-mcp__test-run
+# - run-tests: Automated tests via mcp__foundry-mcp__test-run
 # - fidelity: Implementation-vs-spec comparison via mcp__foundry-mcp__spec-review-fidelity
-VERIFICATION_TYPES = ("test", "fidelity")
+# - manual: Manual verification steps
+VERIFICATION_TYPES = ("run-tests", "fidelity", "manual")
+
+# Valid phase templates for reusable phase structures
+PHASE_TEMPLATES = ("planning", "implementation", "testing", "security", "documentation")
 
 
 def find_git_root() -> Optional[Path]:
@@ -684,6 +688,287 @@ def add_phase(
     }, None
 
 
+def add_phase_bulk(
+    spec_id: str,
+    phase_title: str,
+    tasks: List[Dict[str, Any]],
+    phase_description: Optional[str] = None,
+    phase_purpose: Optional[str] = None,
+    phase_estimated_hours: Optional[float] = None,
+    metadata_defaults: Optional[Dict[str, Any]] = None,
+    position: Optional[int] = None,
+    link_previous: bool = True,
+    specs_dir: Optional[Path] = None,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Add a new phase with pre-defined tasks in a single atomic operation.
+
+    Creates a phase and all specified tasks/verify nodes without auto-generating
+    verification scaffolding. This enables creating complete phase structures
+    in one operation.
+
+    Args:
+        spec_id: Specification ID to mutate.
+        phase_title: Phase title.
+        tasks: List of task definitions, each containing:
+            - type: "task" or "verify" (required)
+            - title: Task title (required)
+            - description: Optional description
+            - file_path: Optional associated file path
+            - estimated_hours: Optional time estimate
+            - verification_type: Optional verification type for verify tasks
+        phase_description: Optional phase description.
+        phase_purpose: Optional purpose/goal metadata string.
+        phase_estimated_hours: Optional estimated hours for the phase.
+        metadata_defaults: Optional defaults applied to tasks missing explicit values.
+            Supported keys: category, estimated_hours
+        position: Optional zero-based insertion index in spec-root children.
+        link_previous: Whether to automatically block on the previous phase.
+        specs_dir: Specs directory override.
+
+    Returns:
+        Tuple of (result_dict, error_message).
+        On success: ({"phase_id": ..., "tasks_created": [...], ...}, None)
+        On failure: (None, "error message")
+    """
+    # Validate required parameters
+    if not spec_id or not spec_id.strip():
+        return None, "Specification ID is required"
+
+    if not phase_title or not phase_title.strip():
+        return None, "Phase title is required"
+
+    if not tasks or not isinstance(tasks, list) or len(tasks) == 0:
+        return None, "At least one task definition is required"
+
+    if phase_estimated_hours is not None and phase_estimated_hours < 0:
+        return None, "phase_estimated_hours must be non-negative"
+
+    phase_title = phase_title.strip()
+    defaults = metadata_defaults or {}
+
+    # Validate metadata_defaults values
+    if defaults:
+        default_est_hours = defaults.get("estimated_hours")
+        if default_est_hours is not None:
+            if not isinstance(default_est_hours, (int, float)) or default_est_hours < 0:
+                return None, "metadata_defaults.estimated_hours must be a non-negative number"
+        default_category = defaults.get("category")
+        if default_category is not None and not isinstance(default_category, str):
+            return None, "metadata_defaults.category must be a string"
+
+    # Validate each task definition
+    valid_task_types = {"task", "verify"}
+    for idx, task_def in enumerate(tasks):
+        if not isinstance(task_def, dict):
+            return None, f"Task at index {idx} must be a dictionary"
+
+        task_type = task_def.get("type")
+        if not task_type or task_type not in valid_task_types:
+            return None, f"Task at index {idx} must have type 'task' or 'verify'"
+
+        task_title = task_def.get("title")
+        if not task_title or not isinstance(task_title, str) or not task_title.strip():
+            return None, f"Task at index {idx} must have a non-empty title"
+
+        est_hours = task_def.get("estimated_hours")
+        if est_hours is not None:
+            if not isinstance(est_hours, (int, float)) or est_hours < 0:
+                return None, f"Task at index {idx} has invalid estimated_hours"
+
+    # Find specs directory
+    if specs_dir is None:
+        specs_dir = find_specs_directory()
+
+    if specs_dir is None:
+        return (
+            None,
+            "No specs directory found. Use specs_dir parameter or set SDD_SPECS_DIR.",
+        )
+
+    spec_path = find_spec_file(spec_id, specs_dir)
+    if spec_path is None:
+        return None, f"Specification '{spec_id}' not found"
+
+    spec_data = load_spec(spec_id, specs_dir)
+    if spec_data is None:
+        return None, f"Failed to load specification '{spec_id}'"
+
+    hierarchy = spec_data.get("hierarchy", {})
+    spec_root = hierarchy.get("spec-root")
+
+    if spec_root is None:
+        return None, "Specification root node 'spec-root' not found"
+
+    if spec_root.get("type") not in {"spec", "root"}:
+        return None, "Specification root node has invalid type"
+
+    children = spec_root.get("children", []) or []
+    if not isinstance(children, list):
+        children = []
+
+    insert_index = len(children)
+    if position is not None and position >= 0:
+        insert_index = min(position, len(children))
+
+    # Generate phase ID
+    phase_id, phase_num = _generate_phase_id(hierarchy)
+
+    # Build phase metadata
+    phase_metadata: Dict[str, Any] = {
+        "purpose": (phase_purpose.strip() if phase_purpose else ""),
+    }
+    if phase_description:
+        phase_metadata["description"] = phase_description.strip()
+    if phase_estimated_hours is not None:
+        phase_metadata["estimated_hours"] = phase_estimated_hours
+
+    # Create phase node (without children initially)
+    phase_node = {
+        "type": "phase",
+        "title": phase_title,
+        "status": "pending",
+        "parent": "spec-root",
+        "children": [],
+        "total_tasks": 0,
+        "completed_tasks": 0,
+        "metadata": phase_metadata,
+        "dependencies": {
+            "blocks": [],
+            "blocked_by": [],
+            "depends": [],
+        },
+    }
+
+    hierarchy[phase_id] = phase_node
+
+    # Insert phase into spec-root children
+    if insert_index == len(children):
+        children.append(phase_id)
+    else:
+        children.insert(insert_index, phase_id)
+    spec_root["children"] = children
+
+    # Link to previous phase if requested
+    linked_phase_id: Optional[str] = None
+    if link_previous and insert_index > 0 and insert_index == len(children) - 1:
+        candidate = children[insert_index - 1]
+        previous = hierarchy.get(candidate)
+        if previous and previous.get("type") == "phase":
+            linked_phase_id = candidate
+            prev_deps = previous.setdefault(
+                "dependencies",
+                {"blocks": [], "blocked_by": [], "depends": []},
+            )
+            blocks = prev_deps.setdefault("blocks", [])
+            if phase_id not in blocks:
+                blocks.append(phase_id)
+            phase_node["dependencies"]["blocked_by"].append(candidate)
+
+    # Create tasks under the phase
+    tasks_created: List[Dict[str, Any]] = []
+    task_counter = 0
+    verify_counter = 0
+
+    for task_def in tasks:
+        task_type = task_def["type"]
+        task_title = task_def["title"].strip()
+
+        # Generate task ID based on type
+        if task_type == "verify":
+            verify_counter += 1
+            task_id = f"verify-{phase_num}-{verify_counter}"
+        else:
+            task_counter += 1
+            task_id = f"task-{phase_num}-{task_counter}"
+
+        # Build task metadata with defaults cascade
+        task_metadata: Dict[str, Any] = {}
+
+        # Apply description
+        desc = task_def.get("description")
+        if desc and isinstance(desc, str):
+            task_metadata["description"] = desc.strip()
+
+        # Apply file_path
+        file_path = task_def.get("file_path")
+        if file_path and isinstance(file_path, str):
+            task_metadata["file_path"] = file_path.strip()
+
+        # Apply estimated_hours (task-level overrides defaults)
+        est_hours = task_def.get("estimated_hours")
+        if est_hours is not None:
+            task_metadata["estimated_hours"] = float(est_hours)
+        elif defaults.get("estimated_hours") is not None:
+            task_metadata["estimated_hours"] = float(defaults["estimated_hours"])
+
+        # Apply category from defaults if not specified
+        category = task_def.get("category") or defaults.get("category")
+        if category and isinstance(category, str):
+            task_metadata["category"] = category.strip()
+
+        # Apply verification_type for verify tasks
+        if task_type == "verify":
+            verify_type = task_def.get("verification_type")
+            if verify_type and verify_type in VERIFICATION_TYPES:
+                task_metadata["verification_type"] = verify_type
+
+        # Create task node
+        task_node = {
+            "type": task_type,
+            "title": task_title,
+            "status": "pending",
+            "parent": phase_id,
+            "children": [],
+            "total_tasks": 1,
+            "completed_tasks": 0,
+            "metadata": task_metadata,
+            "dependencies": {
+                "blocks": [],
+                "blocked_by": [],
+                "depends": [],
+            },
+        }
+
+        hierarchy[task_id] = task_node
+        phase_node["children"].append(task_id)
+        phase_node["total_tasks"] += 1
+
+        tasks_created.append({
+            "task_id": task_id,
+            "title": task_title,
+            "type": task_type,
+        })
+
+    # Update spec-root total_tasks
+    total_tasks = spec_root.get("total_tasks", 0)
+    spec_root["total_tasks"] = total_tasks + phase_node["total_tasks"]
+
+    # Update spec-level estimated hours if provided
+    if phase_estimated_hours is not None:
+        spec_metadata = spec_data.setdefault("metadata", {})
+        current_hours = spec_metadata.get("estimated_hours")
+        if isinstance(current_hours, (int, float)):
+            spec_metadata["estimated_hours"] = current_hours + phase_estimated_hours
+        else:
+            spec_metadata["estimated_hours"] = phase_estimated_hours
+
+    # Save spec atomically
+    saved = save_spec(spec_id, spec_data, specs_dir)
+    if not saved:
+        return None, "Failed to save specification"
+
+    return {
+        "spec_id": spec_id,
+        "phase_id": phase_id,
+        "title": phase_title,
+        "position": insert_index,
+        "linked_previous": linked_phase_id,
+        "tasks_created": tasks_created,
+        "total_tasks": len(tasks_created),
+    }, None
+
+
 def _collect_descendants(hierarchy: Dict[str, Any], node_id: str) -> List[str]:
     """
     Recursively collect all descendant node IDs for a given node.
@@ -1142,6 +1427,226 @@ def get_template_structure(template: str, category: str) -> Dict[str, Any]:
     return base_hierarchy
 
 
+def get_phase_template_structure(
+    template: str, category: str = "implementation"
+) -> Dict[str, Any]:
+    """
+    Get the structure definition for a phase template.
+
+    Phase templates define reusable phase structures with pre-configured tasks.
+    Each template includes automatic verification scaffolding (run-tests + fidelity).
+
+    Args:
+        template: Phase template type (planning, implementation, testing, security, documentation).
+        category: Default task category for tasks in this phase.
+
+    Returns:
+        Dict with phase structure including:
+        - title: Phase title
+        - description: Phase description
+        - purpose: Phase purpose for metadata
+        - estimated_hours: Total estimated hours
+        - tasks: List of task definitions (title, description, category, estimated_hours)
+        - includes_verification: Always True (verification auto-added)
+    """
+    templates: Dict[str, Dict[str, Any]] = {
+        "planning": {
+            "title": "Planning & Discovery",
+            "description": "Requirements gathering, analysis, and initial planning",
+            "purpose": "Define scope, requirements, and acceptance criteria",
+            "estimated_hours": 4,
+            "tasks": [
+                {
+                    "title": "Define requirements",
+                    "description": "Document functional and non-functional requirements",
+                    "category": category,
+                    "estimated_hours": 2,
+                },
+                {
+                    "title": "Design solution approach",
+                    "description": "Outline the technical approach and architecture decisions",
+                    "category": category,
+                    "estimated_hours": 2,
+                },
+            ],
+        },
+        "implementation": {
+            "title": "Implementation",
+            "description": "Core development and feature implementation",
+            "purpose": "Build the primary functionality",
+            "estimated_hours": 8,
+            "tasks": [
+                {
+                    "title": "Implement core functionality",
+                    "description": "Build the main features and business logic",
+                    "category": category,
+                    "estimated_hours": 6,
+                },
+                {
+                    "title": "Add error handling",
+                    "description": "Implement error handling and edge cases",
+                    "category": category,
+                    "estimated_hours": 2,
+                },
+            ],
+        },
+        "testing": {
+            "title": "Testing & Validation",
+            "description": "Comprehensive testing and quality assurance",
+            "purpose": "Ensure code quality and correctness",
+            "estimated_hours": 6,
+            "tasks": [
+                {
+                    "title": "Write unit tests",
+                    "description": "Create unit tests for individual components",
+                    "category": "investigation",
+                    "estimated_hours": 3,
+                },
+                {
+                    "title": "Write integration tests",
+                    "description": "Create integration tests for component interactions",
+                    "category": "investigation",
+                    "estimated_hours": 3,
+                },
+            ],
+        },
+        "security": {
+            "title": "Security Review",
+            "description": "Security audit, vulnerability assessment, and hardening",
+            "purpose": "Identify and remediate security vulnerabilities",
+            "estimated_hours": 6,
+            "tasks": [
+                {
+                    "title": "Security audit",
+                    "description": "Review code for security vulnerabilities (OWASP Top 10)",
+                    "category": "investigation",
+                    "estimated_hours": 3,
+                },
+                {
+                    "title": "Security remediation",
+                    "description": "Fix identified vulnerabilities and harden implementation",
+                    "category": "implementation",
+                    "estimated_hours": 3,
+                },
+            ],
+        },
+        "documentation": {
+            "title": "Documentation",
+            "description": "Technical documentation and knowledge capture",
+            "purpose": "Document the implementation for maintainability",
+            "estimated_hours": 4,
+            "tasks": [
+                {
+                    "title": "Write API documentation",
+                    "description": "Document public APIs, parameters, and return values",
+                    "category": "research",
+                    "estimated_hours": 2,
+                },
+                {
+                    "title": "Write user guide",
+                    "description": "Create usage examples and integration guide",
+                    "category": "research",
+                    "estimated_hours": 2,
+                },
+            ],
+        },
+    }
+
+    if template not in templates:
+        raise ValueError(
+            f"Invalid phase template '{template}'. Must be one of: {', '.join(PHASE_TEMPLATES)}"
+        )
+
+    result = templates[template].copy()
+    result["includes_verification"] = True
+    result["template_name"] = template
+    return result
+
+
+def apply_phase_template(
+    spec_id: str,
+    template: str,
+    specs_dir: Optional[Path] = None,
+    category: str = "implementation",
+    position: Optional[int] = None,
+    link_previous: bool = True,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Apply a phase template to an existing spec.
+
+    Creates a new phase with pre-configured tasks based on the template.
+    Automatically includes verification scaffolding (run-tests + fidelity).
+
+    Args:
+        spec_id: ID of the spec to add the phase to.
+        template: Phase template name (planning, implementation, testing, security, documentation).
+        specs_dir: Path to specs directory (auto-detected if not provided).
+        category: Default task category for tasks (can be overridden by template).
+        position: Position to insert phase (None = append at end).
+        link_previous: Whether to link this phase to the previous one with dependencies.
+
+    Returns:
+        Tuple of (result_dict, error_message).
+        On success: ({"phase_id": ..., "tasks_created": [...], ...}, None)
+        On failure: (None, "error message")
+    """
+    # Validate template
+    if template not in PHASE_TEMPLATES:
+        return (
+            None,
+            f"Invalid phase template '{template}'. Must be one of: {', '.join(PHASE_TEMPLATES)}",
+        )
+
+    # Get template structure
+    template_struct = get_phase_template_structure(template, category)
+
+    # Build tasks list for add_phase_bulk
+    tasks = []
+    for task_def in template_struct["tasks"]:
+        tasks.append({
+            "type": "task",
+            "title": task_def["title"],
+            "description": task_def.get("description", ""),
+            "category": task_def.get("category", category),
+            "estimated_hours": task_def.get("estimated_hours", 1),
+        })
+
+    # Append verification scaffolding (run-tests + fidelity-review)
+    tasks.append({
+        "type": "verify",
+        "title": "Run tests",
+        "verification_type": "run-tests",
+    })
+    tasks.append({
+        "type": "verify",
+        "title": "Fidelity review",
+        "verification_type": "fidelity",
+    })
+
+    # Use add_phase_bulk to create the phase atomically
+    result, error = add_phase_bulk(
+        spec_id=spec_id,
+        phase_title=template_struct["title"],
+        tasks=tasks,
+        specs_dir=specs_dir,
+        phase_description=template_struct.get("description"),
+        phase_purpose=template_struct.get("purpose"),
+        phase_estimated_hours=template_struct.get("estimated_hours"),
+        position=position,
+        link_previous=link_previous,
+    )
+
+    if error:
+        return None, error
+
+    # Enhance result with template info
+    if result:
+        result["template_applied"] = template
+        result["template_title"] = template_struct["title"]
+
+    return result, None
+
+
 def create_spec(
     name: str,
     template: str = "medium",
@@ -1219,6 +1724,7 @@ def create_spec(
         "last_updated": now,
         "metadata": {
             "description": "",
+            "mission": "",
             "objectives": [],
             "complexity": "medium" if template in ("medium", "complex") else "low",
             "estimated_hours": estimated_hours,
@@ -1543,6 +2049,7 @@ def list_assumptions(
 FRONTMATTER_KEYS = (
     "title",
     "description",
+    "mission",
     "objectives",
     "complexity",
     "estimated_hours",

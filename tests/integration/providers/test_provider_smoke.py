@@ -131,7 +131,7 @@ class TestClaudeSmoke:
     ):
         """Test claude responds to a simple prompt."""
         provider = resolve_provider("claude", hooks=ProviderHooks())
-        request = provider_request_factory(simple_prompt, timeout=30.0)
+        request = provider_request_factory(simple_prompt, model="haiku", timeout=30.0)
 
         result = provider.generate(request)
 

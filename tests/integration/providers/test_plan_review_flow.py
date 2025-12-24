@@ -112,6 +112,7 @@ class TestClaudePlanReview:
         provider = resolve_provider("claude", hooks=ProviderHooks())
         request = provider_request_factory(
             simple_plan_review_prompt,
+            model="haiku",
             timeout=60.0,
             temperature=0.3,
         )

@@ -42,6 +42,10 @@
           "type": "string",
           "description": "High-level description of the specification."
         },
+        "mission": {
+          "type": "string",
+          "description": "Concise mission/goal statement for the entire specification."
+        },
         "objectives": {
           "type": "array",
           "items": {

@@ -82,6 +82,11 @@ specs/
 - `plan(action=create|list|review)` supports lightweight planning and review flows.
 - Notifications and sampling channels surface phase completions to MCP clients.
 
+### Batch metadata utilities
+
+- `task(action=metadata-batch)` — Apply metadata updates (e.g., `file_path`, `estimated_hours`) to multiple nodes at once. Supports flexible AND-based filtering by `node_type`, `phase_id`, or `pattern` regex. Includes `dry_run` mode for previewing changes.
+- `task(action=fix-verification-types)` — Auto-fix invalid or missing `verification_type` on verify nodes. Supports legacy mappings (`test` → `run-tests`, `auto` → `run-tests`) and defaults unknown types to `manual`. Includes `dry_run` mode for previewing fixes.
+
 ### Code, docs, and testing intelligence
 
 - Code navigation tools via `code(action=...)` support symbol lookup and call-graph tracing.

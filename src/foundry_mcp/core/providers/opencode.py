@@ -150,7 +150,7 @@ OPENCODE_MODELS: List[ModelDescriptor] = [
         },
     ),
     ModelDescriptor(
-        id="openai/gpt-5.1-codex",
+        id="openai/gpt-5.1-codex-mini",
         display_name="OpenAI GPT-5.1 Codex Mini (via OpenCode)",
         capabilities={
             ProviderCapability.TEXT,
@@ -168,7 +168,7 @@ OPENCODE_METADATA = ProviderMetadata(
     provider_id="opencode",
     display_name="OpenCode AI SDK",
     models=OPENCODE_MODELS,
-    default_model="openai/gpt-5.2-codex",
+    default_model="openai/gpt-5.1-codex-mini",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING},
     security_flags={"writes_allowed": False, "read_only": True},
     extra={
@@ -206,7 +206,9 @@ class OpenCodeProvider(ProviderContext):
         self._env = self._prepare_subprocess_env(env)
 
         self._timeout = timeout or DEFAULT_TIMEOUT_SECONDS
-        self._model = self._ensure_model(model or metadata.default_model or self._first_model_id())
+        self._model = self._ensure_model(
+            model or metadata.default_model or self._first_model_id()
+        )
         self._server_process: Optional[subprocess.Popen[str]] = None
         self._config_file_path: Optional[Path] = None
 
@@ -231,7 +233,9 @@ class OpenCodeProvider(ProviderContext):
         # Clean up config file
         self._cleanup_config_file()
 
-    def _prepare_subprocess_env(self, custom_env: Optional[Dict[str, str]]) -> Dict[str, str]:
+    def _prepare_subprocess_env(
+        self, custom_env: Optional[Dict[str, str]]
+    ) -> Dict[str, str]:
         """
         Prepare environment variables for subprocess execution.
 

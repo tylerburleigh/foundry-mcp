@@ -687,7 +687,13 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
 
     spec_requirements = _build_spec_requirements(spec_data, task_id, phase_id)
     implementation_artifacts = _build_implementation_artifacts(
-        spec_data, task_id, phase_id, files, incremental, base_branch
+        spec_data,
+        task_id,
+        phase_id,
+        files,
+        incremental,
+        base_branch,
+        workspace_root=ws_path,
     )
     test_results = (
         _build_test_results(spec_data, task_id, phase_id) if include_tests else ""
@@ -760,6 +766,7 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
                 fidelity_reviews_dir.mkdir(parents=True, exist_ok=True)
                 for response in successful_responses:
                     provider_parsed = _parse_json_content(response.content)
+                    provider_file = fidelity_reviews_dir / f"{base_name}-{response.provider_id}.md"
                     if provider_parsed:
                         provider_md = _format_fidelity_markdown(
                             provider_parsed,
@@ -770,11 +777,28 @@ def _handle_fidelity(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
                             phase_id=phase_id,
                             provider_id=response.provider_id,
                         )
-                        provider_file = fidelity_reviews_dir / f"{base_name}-{response.provider_id}.md"
                         provider_file.write_text(provider_md, encoding="utf-8")
                         provider_review_paths.append({
                             "provider_id": response.provider_id,
                             "path": str(provider_file),
+                        })
+                    else:
+                        # JSON parsing failed - write raw content as fallback
+                        logger.warning(
+                            "Provider %s returned non-JSON content, writing raw response",
+                            response.provider_id,
+                        )
+                        raw_md = (
+                            f"# Fidelity Review (Raw): {spec_id}\n\n"
+                            f"**Provider:** {response.provider_id}\n"
+                            f"**Note:** Response could not be parsed as JSON\n\n"
+                            f"## Raw Response\n\n```\n{response.content}\n```\n"
+                        )
+                        provider_file.write_text(raw_md, encoding="utf-8")
+                        provider_review_paths.append({
+                            "provider_id": response.provider_id,
+                            "path": str(provider_file),
+                            "parse_error": True,
                         })
             except Exception as e:
                 logger.warning("Failed to write provider review files: %s", e)

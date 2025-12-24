@@ -16,6 +16,7 @@ AI-enhanced reviews use:
 
 import json
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import click
@@ -545,8 +546,15 @@ def _run_fidelity_review(
     spec_requirements = _build_spec_requirements(spec_data, task_id, phase_id)
 
     # Build implementation artifacts (file contents, git diff if incremental)
+    workspace_root = Path(specs_dir).parent if specs_dir else None
     implementation_artifacts = _build_implementation_artifacts(
-        spec_data, task_id, phase_id, files, incremental, base_branch
+        spec_data,
+        task_id,
+        phase_id,
+        files,
+        incremental,
+        base_branch,
+        workspace_root=workspace_root,
     )
 
     # Build test results section

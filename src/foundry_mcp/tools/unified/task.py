@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -49,6 +50,10 @@ from foundry_mcp.core.task import (
     remove_task,
     update_estimate,
     update_task_metadata,
+)
+from foundry_mcp.core.validation import (
+    VALID_VERIFICATION_TYPES,
+    VERIFICATION_TYPE_MAPPING,
 )
 from foundry_mcp.tools.unified.router import (
     ActionDefinition,
@@ -2033,6 +2038,567 @@ def _handle_update_metadata(*, config: ServerConfig, payload: Dict[str, Any]) ->
     return asdict(response)
 
 
+_VALID_NODE_TYPES = {"task", "verify", "phase", "subtask"}
+# Note: VALID_VERIFICATION_TYPES imported from foundry_mcp.core.validation
+
+
+def _match_nodes_for_batch(
+    hierarchy: Dict[str, Any],
+    *,
+    phase_id: Optional[str] = None,
+    pattern: Optional[str] = None,
+    node_type: Optional[str] = None,
+) -> List[str]:
+    """Filter nodes by phase_id, regex pattern on title/id, and/or node_type.
+
+    All provided filters are combined with AND logic.
+    Returns list of matching node IDs.
+    """
+    matched: List[str] = []
+    compiled_pattern = None
+    if pattern:
+        try:
+            compiled_pattern = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            return []  # Invalid regex returns empty
+
+    for node_id, node_data in hierarchy.items():
+        if node_id == "spec-root":
+            continue
+
+        # Filter by node_type if specified
+        if node_type and node_data.get("type") != node_type:
+            continue
+
+        # Filter by phase_id if specified (must be under that phase)
+        if phase_id:
+            node_parent = node_data.get("parent")
+            # Direct children of the phase
+            if node_parent != phase_id:
+                # Check if it's a nested child (e.g., subtask under task under phase)
+                parent_node = hierarchy.get(node_parent, {})
+                if parent_node.get("parent") != phase_id:
+                    continue
+
+        # Filter by regex pattern on title or node_id
+        if compiled_pattern:
+            title = node_data.get("title", "")
+            if not (compiled_pattern.search(title) or compiled_pattern.search(node_id)):
+                continue
+
+        matched.append(node_id)
+
+    return sorted(matched)
+
+
+def _handle_metadata_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """Batch update metadata across multiple nodes matching specified criteria.
+
+    Filters (combined with AND logic):
+    - phase_id: Target all tasks under a specific phase
+    - pattern: Regex pattern to match task titles/IDs
+    - node_type: Target by node type (task, verify, phase, subtask)
+
+    Metadata keys supported:
+    - file_path, verification_type, owners, labels, estimated_hours,
+      description, category, command
+    """
+    request_id = _request_id()
+    action = "metadata-batch"
+
+    # Required: spec_id
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(
+            field="spec_id",
+            action=action,
+            message="Provide a non-empty spec identifier",
+            request_id=request_id,
+        )
+
+    # At least one filter is required
+    phase_id = payload.get("phase_id")
+    pattern = payload.get("pattern")
+    node_type = payload.get("node_type")
+
+    if phase_id is not None and (not isinstance(phase_id, str) or not phase_id.strip()):
+        return _validation_error(
+            field="phase_id",
+            action=action,
+            message="phase_id must be a non-empty string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if pattern is not None:
+        if not isinstance(pattern, str) or not pattern.strip():
+            return _validation_error(
+                field="pattern",
+                action=action,
+                message="pattern must be a non-empty string",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+        # Validate regex
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            return _validation_error(
+                field="pattern",
+                action=action,
+                message=f"Invalid regex pattern: {exc}",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+
+    if node_type is not None:
+        if not isinstance(node_type, str) or node_type not in _VALID_NODE_TYPES:
+            return _validation_error(
+                field="node_type",
+                action=action,
+                message=f"node_type must be one of: {sorted(_VALID_NODE_TYPES)}",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+
+    # At least one filter must be provided
+    has_filter = any([phase_id, pattern, node_type])
+    if not has_filter:
+        return _validation_error(
+            field="phase_id",
+            action=action,
+            message="Provide at least one filter: phase_id, pattern, or node_type",
+            request_id=request_id,
+            code=ErrorCode.MISSING_REQUIRED,
+            remediation="Specify phase_id, pattern (regex), and/or node_type to target nodes",
+        )
+
+    # Validate metadata fields
+    file_path = payload.get("file_path")
+    verification_type = payload.get("verification_type")
+    owners = payload.get("owners")
+    labels = payload.get("labels")
+    estimated_hours = payload.get("estimated_hours")
+    description = payload.get("description")
+    category = payload.get("category")
+    command = payload.get("command")
+
+    if file_path is not None and not isinstance(file_path, str):
+        return _validation_error(
+            field="file_path",
+            action=action,
+            message="file_path must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if verification_type is not None:
+        if not isinstance(verification_type, str):
+            return _validation_error(
+                field="verification_type",
+                action=action,
+                message="verification_type must be a string",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+        if verification_type not in VALID_VERIFICATION_TYPES:
+            return _validation_error(
+                field="verification_type",
+                action=action,
+                message=f"verification_type must be one of: {sorted(VALID_VERIFICATION_TYPES)}",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+
+    if owners is not None:
+        if not isinstance(owners, list) or not all(isinstance(o, str) for o in owners):
+            return _validation_error(
+                field="owners",
+                action=action,
+                message="owners must be a list of strings",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+
+    if labels is not None:
+        if not isinstance(labels, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in labels.items()
+        ):
+            return _validation_error(
+                field="labels",
+                action=action,
+                message="labels must be a dict with string keys and values",
+                request_id=request_id,
+                code=ErrorCode.INVALID_FORMAT,
+            )
+
+    if estimated_hours is not None and not isinstance(estimated_hours, (int, float)):
+        return _validation_error(
+            field="estimated_hours",
+            action=action,
+            message="estimated_hours must be a number",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if description is not None and not isinstance(description, str):
+        return _validation_error(
+            field="description",
+            action=action,
+            message="description must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if category is not None and not isinstance(category, str):
+        return _validation_error(
+            field="category",
+            action=action,
+            message="category must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    if command is not None and not isinstance(command, str):
+        return _validation_error(
+            field="command",
+            action=action,
+            message="command must be a string",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
+    # At least one metadata field must be provided
+    metadata_fields = [
+        file_path,
+        verification_type,
+        owners,
+        labels,
+        estimated_hours,
+        description,
+        category,
+        command,
+    ]
+    has_metadata = any(field is not None for field in metadata_fields)
+    if not has_metadata:
+        return _validation_error(
+            field="file_path",
+            action=action,
+            message="Provide at least one metadata field to update",
+            request_id=request_id,
+            code=ErrorCode.MISSING_REQUIRED,
+            remediation="Specify file_path, verification_type, owners, labels, estimated_hours, description, category, or command",
+        )
+
+    dry_run = payload.get("dry_run", False)
+    if dry_run is not None and not isinstance(dry_run, bool):
+        return _validation_error(
+            field="dry_run",
+            action=action,
+            message="dry_run must be a boolean",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+    dry_run_bool = bool(dry_run)
+
+    # Load spec
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    spec_data, error = _load_spec_data(spec_id.strip(), specs_dir, request_id)
+    if error:
+        return error
+    assert spec_data is not None
+
+    start = time.perf_counter()
+    hierarchy = spec_data.get("hierarchy", {})
+
+    # Find matching nodes
+    matched_nodes = _match_nodes_for_batch(
+        hierarchy,
+        phase_id=phase_id.strip() if phase_id else None,
+        pattern=pattern.strip() if pattern else None,
+        node_type=node_type,
+    )
+
+    if not matched_nodes:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        return asdict(
+            success_response(
+                spec_id=spec_id.strip(),
+                matched_count=0,
+                updated_count=0,
+                nodes=[],
+                filters={
+                    "phase_id": phase_id,
+                    "pattern": pattern,
+                    "node_type": node_type,
+                },
+                dry_run=dry_run_bool,
+                message="No nodes matched the specified filters",
+                request_id=request_id,
+                telemetry={"duration_ms": round(elapsed_ms, 2)},
+            )
+        )
+
+    # Build metadata update dict
+    metadata_update: Dict[str, Any] = {}
+    if file_path is not None:
+        metadata_update["file_path"] = file_path
+    if verification_type is not None:
+        metadata_update["verification_type"] = verification_type
+    if owners is not None:
+        metadata_update["owners"] = owners
+    if labels is not None:
+        metadata_update["labels"] = labels
+    if estimated_hours is not None:
+        metadata_update["estimated_hours"] = float(estimated_hours)
+    if description is not None:
+        metadata_update["description"] = description
+    if category is not None:
+        metadata_update["category"] = category
+    if command is not None:
+        metadata_update["command"] = command
+
+    # Capture original values for diff preview and rollback
+    original_metadata: Dict[str, Dict[str, Any]] = {}
+    for node_id in matched_nodes:
+        node = hierarchy.get(node_id, {})
+        existing_meta = node.get("metadata", {})
+        # Store only the fields we're updating
+        original_metadata[node_id] = {
+            key: existing_meta.get(key) for key in metadata_update.keys()
+        }
+
+    # Preview or apply
+    updated_nodes: List[Dict[str, Any]] = []
+    for node_id in matched_nodes:
+        node = hierarchy.get(node_id, {})
+        orig_vals = original_metadata[node_id]
+        node_info: Dict[str, Any] = {
+            "node_id": node_id,
+            "title": node.get("title", ""),
+            "type": node.get("type", ""),
+            "fields_updated": list(metadata_update.keys()),
+        }
+
+        # Add diff preview: show old vs new values for each field
+        diff: Dict[str, Dict[str, Any]] = {}
+        for key, new_val in metadata_update.items():
+            old_val = orig_vals.get(key)
+            if old_val != new_val:
+                diff[key] = {"old": old_val, "new": new_val}
+        if diff:
+            node_info["diff"] = diff
+
+        updated_nodes.append(node_info)
+
+        if not dry_run_bool:
+            # Apply metadata update
+            if "metadata" not in node:
+                node["metadata"] = {}
+            node["metadata"].update(metadata_update)
+
+    # Save if not dry_run, with rollback on failure
+    if not dry_run_bool:
+        if specs_dir is None or not save_spec(spec_id.strip(), spec_data, specs_dir):
+            # Rollback: restore original metadata values
+            for node_id, orig_vals in original_metadata.items():
+                node = hierarchy.get(node_id, {})
+                if "metadata" in node:
+                    for key, orig_val in orig_vals.items():
+                        if orig_val is None:
+                            node["metadata"].pop(key, None)
+                        else:
+                            node["metadata"][key] = orig_val
+            return asdict(
+                error_response(
+                    "Failed to save spec after batch update; changes rolled back",
+                    error_code=ErrorCode.INTERNAL_ERROR,
+                    error_type=ErrorType.INTERNAL,
+                    remediation="Check filesystem permissions and retry",
+                    request_id=request_id,
+                    data={
+                        "rollback_applied": True,
+                        "nodes_affected": len(matched_nodes),
+                    },
+                )
+            )
+
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    warnings: List[str] = []
+    if len(matched_nodes) > _TASK_WARNING_THRESHOLD:
+        warnings.append(
+            f"Updated {len(matched_nodes)} nodes; consider using more specific filters."
+        )
+
+    response = success_response(
+        spec_id=spec_id.strip(),
+        matched_count=len(matched_nodes),
+        updated_count=len(matched_nodes) if not dry_run_bool else 0,
+        nodes=updated_nodes,
+        filters={
+            "phase_id": phase_id,
+            "pattern": pattern,
+            "node_type": node_type,
+        },
+        metadata_applied=metadata_update,
+        dry_run=dry_run_bool,
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+    if warnings:
+        response_dict = asdict(response)
+        meta = response_dict.setdefault("meta", {})
+        meta["warnings"] = warnings
+        _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+        _metrics.counter(_metric(action), labels={"status": "success"})
+        return response_dict
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+    return asdict(response)
+
+
+def _handle_fix_verification_types(
+    *, config: ServerConfig, payload: Dict[str, Any]
+) -> dict:
+    """Fix verification types across all verify nodes in a spec.
+
+    This action:
+    1. Finds all verify nodes with invalid or missing verification_type
+    2. Maps legacy values (e.g., 'test' -> 'run-tests') using VERIFICATION_TYPE_MAPPING
+    3. Sets missing types to 'run-tests' (default)
+    4. Sets unknown types to 'manual' (fallback)
+
+    Supports dry-run mode to preview changes without persisting.
+    """
+    request_id = _request_id()
+    action = "fix-verification-types"
+
+    # Required: spec_id
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(
+            field="spec_id",
+            action=action,
+            message="Provide a non-empty spec identifier",
+            request_id=request_id,
+        )
+
+    dry_run = payload.get("dry_run", False)
+    if dry_run is not None and not isinstance(dry_run, bool):
+        return _validation_error(
+            field="dry_run",
+            action=action,
+            message="dry_run must be a boolean",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+    dry_run_bool = bool(dry_run)
+
+    # Load spec
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    spec_data, error = _load_spec_data(spec_id.strip(), specs_dir, request_id)
+    if error:
+        return error
+    assert spec_data is not None
+
+    start = time.perf_counter()
+    hierarchy = spec_data.get("hierarchy", {})
+
+    # Find verify nodes and collect fixes
+    fixes: List[Dict[str, Any]] = []
+    for node_id, node_data in hierarchy.items():
+        if node_data.get("type") != "verify":
+            continue
+
+        metadata = node_data.get("metadata", {})
+        current_type = metadata.get("verification_type")
+
+        # Determine the fix needed
+        fix_info: Optional[Dict[str, Any]] = None
+
+        if current_type is None:
+            # Missing verification_type -> default to 'run-tests'
+            fix_info = {
+                "node_id": node_id,
+                "title": node_data.get("title", ""),
+                "issue": "missing",
+                "old_value": None,
+                "new_value": "run-tests",
+            }
+        elif current_type not in VALID_VERIFICATION_TYPES:
+            # Invalid type -> check mapping or fallback to 'manual'
+            mapped = VERIFICATION_TYPE_MAPPING.get(current_type)
+            if mapped:
+                fix_info = {
+                    "node_id": node_id,
+                    "title": node_data.get("title", ""),
+                    "issue": "legacy",
+                    "old_value": current_type,
+                    "new_value": mapped,
+                }
+            else:
+                fix_info = {
+                    "node_id": node_id,
+                    "title": node_data.get("title", ""),
+                    "issue": "invalid",
+                    "old_value": current_type,
+                    "new_value": "manual",
+                }
+
+        if fix_info:
+            fixes.append(fix_info)
+
+            if not dry_run_bool:
+                # Apply the fix
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+                node_data["metadata"]["verification_type"] = fix_info["new_value"]
+
+    # Save if not dry_run and there were fixes
+    if not dry_run_bool and fixes:
+        if specs_dir is None or not save_spec(spec_id.strip(), spec_data, specs_dir):
+            return asdict(
+                error_response(
+                    "Failed to save spec after fixing verification types",
+                    error_code=ErrorCode.INTERNAL_ERROR,
+                    error_type=ErrorType.INTERNAL,
+                    remediation="Check filesystem permissions and retry",
+                    request_id=request_id,
+                )
+            )
+
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    # Count by issue type
+    missing_count = sum(1 for f in fixes if f["issue"] == "missing")
+    legacy_count = sum(1 for f in fixes if f["issue"] == "legacy")
+    invalid_count = sum(1 for f in fixes if f["issue"] == "invalid")
+
+    response = success_response(
+        spec_id=spec_id.strip(),
+        total_fixes=len(fixes),
+        applied_count=len(fixes) if not dry_run_bool else 0,
+        fixes=fixes,
+        summary={
+            "missing_set_to_run_tests": missing_count,
+            "legacy_mapped": legacy_count,
+            "invalid_set_to_manual": invalid_count,
+        },
+        valid_types=sorted(VALID_VERIFICATION_TYPES),
+        legacy_mappings=VERIFICATION_TYPE_MAPPING,
+        dry_run=dry_run_bool,
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+    return asdict(response)
+
+
 _ACTION_DEFINITIONS = [
     ActionDefinition(
         name="prepare",
@@ -2077,6 +2643,16 @@ _ACTION_DEFINITIONS = [
         name="update-metadata",
         handler=_handle_update_metadata,
         summary="Update task metadata fields",
+    ),
+    ActionDefinition(
+        name="metadata-batch",
+        handler=_handle_metadata_batch,
+        summary="Batch update metadata across multiple nodes matching filters",
+    ),
+    ActionDefinition(
+        name="fix-verification-types",
+        handler=_handle_fix_verification_types,
+        summary="Fix invalid/missing verification types across verify nodes",
     ),
     ActionDefinition(
         name="progress",
@@ -2166,6 +2742,13 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         dry_run: bool = False,
         max_depth: int = 2,
         include_metadata: bool = False,
+        # metadata-batch specific parameters
+        phase_id: Optional[str] = None,
+        pattern: Optional[str] = None,
+        node_type: Optional[str] = None,
+        owners: Optional[List[str]] = None,
+        labels: Optional[Dict[str, str]] = None,
+        category: Optional[str] = None,
     ) -> dict:
         payload = {
             "spec_id": spec_id,
@@ -2202,6 +2785,13 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
             "dry_run": dry_run,
             "max_depth": max_depth,
             "include_metadata": include_metadata,
+            # metadata-batch specific
+            "phase_id": phase_id,
+            "pattern": pattern,
+            "node_type": node_type,
+            "owners": owners,
+            "labels": labels,
+            "category": category,
         }
         return _dispatch_task_action(action=action, payload=payload, config=config)
 

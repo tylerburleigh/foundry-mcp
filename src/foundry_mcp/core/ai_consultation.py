@@ -44,7 +44,7 @@ import hashlib
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -1626,6 +1626,10 @@ class ConsultationOrchestrator:
         effective_workflow = workflow_name or request.workflow.value
         workflow_config = self._config.get_workflow_config(effective_workflow)
         min_models = workflow_config.min_models
+
+        # Apply workflow-specific timeout override if configured
+        if workflow_config.timeout_override is not None:
+            request = replace(request, timeout=workflow_config.timeout_override)
 
         # Generate cache key
         cache_key = self._generate_cache_key(request)

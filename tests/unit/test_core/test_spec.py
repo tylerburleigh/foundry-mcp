@@ -7,11 +7,14 @@ from pathlib import Path
 import pytest
 
 from foundry_mcp.core.spec import (
+    PHASE_TEMPLATES,
+    apply_phase_template,
     find_specs_directory,
     find_spec_file,
-    load_spec,
-    list_specs,
     get_node,
+    get_phase_template_structure,
+    list_specs,
+    load_spec,
     update_node,
     add_revision,
     update_frontmatter,
@@ -483,6 +486,27 @@ class TestUpdateFrontmatter:
         # Verify persisted
         spec_data = load_spec("test-spec-001", temp_specs_dir)
         assert spec_data["metadata"]["description"] == "Updated description"
+
+    def test_update_frontmatter_mission_field(self, temp_specs_dir, sample_spec):
+        """Should allow writing the new mission metadata field."""
+        spec_file = temp_specs_dir / "active" / "test-spec-001.json"
+        spec_file.write_text(json.dumps(sample_spec))
+
+        result, error = update_frontmatter(
+            "test-spec-001",
+            key="mission",
+            value="Align labelers on student correctness goals",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result["value"] == "Align labelers on student correctness goals"
+
+        spec_data = load_spec("test-spec-001", temp_specs_dir)
+        assert (
+            spec_data["metadata"]["mission"]
+            == "Align labelers on student correctness goals"
+        )
 
     def test_update_frontmatter_with_previous_value(self, temp_specs_dir, sample_spec):
         """Should return previous value when updating existing field."""
@@ -1095,3 +1119,244 @@ class TestRemovePhase:
 
         assert result is None
         assert "not found" in error
+
+
+class TestPhaseTemplates:
+    """Tests for phase template functions."""
+
+    def test_phase_templates_constant(self):
+        """Should define valid phase templates."""
+        assert PHASE_TEMPLATES == (
+            "planning",
+            "implementation",
+            "testing",
+            "security",
+            "documentation",
+        )
+
+    def test_get_phase_template_structure_planning(self):
+        """Should return correct structure for planning template."""
+        result = get_phase_template_structure("planning")
+
+        assert result["template_name"] == "planning"
+        assert result["title"] == "Planning & Discovery"
+        assert result["estimated_hours"] == 4
+        assert result["includes_verification"] is True
+        assert len(result["tasks"]) == 2
+        assert result["tasks"][0]["title"] == "Define requirements"
+        assert result["tasks"][1]["title"] == "Design solution approach"
+
+    def test_get_phase_template_structure_implementation(self):
+        """Should return correct structure for implementation template."""
+        result = get_phase_template_structure("implementation")
+
+        assert result["template_name"] == "implementation"
+        assert result["title"] == "Implementation"
+        assert result["estimated_hours"] == 8
+        assert len(result["tasks"]) == 2
+        assert result["tasks"][0]["title"] == "Implement core functionality"
+
+    def test_get_phase_template_structure_testing(self):
+        """Should return correct structure for testing template."""
+        result = get_phase_template_structure("testing")
+
+        assert result["template_name"] == "testing"
+        assert result["title"] == "Testing & Validation"
+        assert result["estimated_hours"] == 6
+        assert len(result["tasks"]) == 2
+        # Testing tasks should have investigation category
+        assert result["tasks"][0]["category"] == "investigation"
+
+    def test_get_phase_template_structure_security(self):
+        """Should return correct structure for security template."""
+        result = get_phase_template_structure("security")
+
+        assert result["template_name"] == "security"
+        assert result["title"] == "Security Review"
+        assert result["estimated_hours"] == 6
+        assert len(result["tasks"]) == 2
+
+    def test_get_phase_template_structure_documentation(self):
+        """Should return correct structure for documentation template."""
+        result = get_phase_template_structure("documentation")
+
+        assert result["template_name"] == "documentation"
+        assert result["title"] == "Documentation"
+        assert result["estimated_hours"] == 4
+        assert len(result["tasks"]) == 2
+        # Documentation tasks should have research category
+        assert result["tasks"][0]["category"] == "research"
+
+    def test_get_phase_template_structure_with_category_override(self):
+        """Should apply category to tasks that use the category parameter."""
+        result = get_phase_template_structure("planning", category="refactoring")
+
+        # Planning tasks use the passed category
+        assert result["tasks"][0]["category"] == "refactoring"
+        assert result["tasks"][1]["category"] == "refactoring"
+
+    def test_get_phase_template_structure_invalid_template(self):
+        """Should raise ValueError for invalid template name."""
+        with pytest.raises(ValueError) as exc_info:
+            get_phase_template_structure("invalid-template")
+
+        assert "Invalid phase template" in str(exc_info.value)
+        assert "invalid-template" in str(exc_info.value)
+
+    def test_all_templates_have_required_fields(self):
+        """Should ensure all templates have required fields."""
+        required_fields = [
+            "title",
+            "description",
+            "purpose",
+            "estimated_hours",
+            "tasks",
+            "includes_verification",
+            "template_name",
+        ]
+
+        for template_name in PHASE_TEMPLATES:
+            result = get_phase_template_structure(template_name)
+            for field in required_fields:
+                assert field in result, f"{template_name} missing field: {field}"
+
+
+class TestApplyPhaseTemplate:
+    """Tests for apply_phase_template function."""
+
+    def _create_base_spec(self, temp_specs_dir, spec_id="test-spec"):
+        """Create a minimal spec for testing."""
+        spec_data = {
+            "spec_id": spec_id,
+            "title": "Test Spec",
+            "metadata": {
+                "title": "Test Spec",
+                "version": "1.0.0",
+            },
+            "hierarchy": {
+                "spec-root": {
+                    "type": "spec",
+                    "title": "Test Spec",
+                    "status": "pending",
+                    "parent": None,
+                    "children": [],
+                    "total_tasks": 0,
+                    "completed_tasks": 0,
+                    "metadata": {"purpose": "Testing", "category": "implementation"},
+                    "dependencies": {"blocks": [], "blocked_by": [], "depends": []},
+                },
+            },
+        }
+        spec_path = temp_specs_dir / "active" / f"{spec_id}.json"
+        spec_path.write_text(json.dumps(spec_data))
+        return spec_path
+
+    def test_apply_phase_template_success(self, temp_specs_dir):
+        """Should successfully apply a phase template."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-apply")
+
+        result, error = apply_phase_template(
+            spec_id="test-apply",
+            template="planning",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result is not None
+        assert result["template_applied"] == "planning"
+        assert result["template_title"] == "Planning & Discovery"
+        assert "phase_id" in result
+        assert result["total_tasks"] == 4  # 2 tasks from template + 2 verify tasks
+
+    def test_apply_phase_template_creates_tasks(self, temp_specs_dir):
+        """Should create tasks from the template."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-tasks")
+
+        result, error = apply_phase_template(
+            spec_id="test-tasks",
+            template="implementation",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result["total_tasks"] == 4  # 2 tasks from template + 2 verify tasks
+
+        # Verify spec was updated
+        spec = load_spec("test-tasks", temp_specs_dir)
+        phase_id = result["phase_id"]
+        assert phase_id in spec["hierarchy"]
+        assert spec["hierarchy"][phase_id]["title"] == "Implementation"
+
+        # Verify verification tasks were created
+        phase_children = spec["hierarchy"][phase_id]["children"]
+        verify_tasks = [
+            tid for tid in phase_children
+            if spec["hierarchy"][tid]["type"] == "verify"
+        ]
+        assert len(verify_tasks) == 2
+
+    def test_apply_phase_template_invalid_template(self, temp_specs_dir):
+        """Should return error for invalid template."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-invalid")
+
+        result, error = apply_phase_template(
+            spec_id="test-invalid",
+            template="nonexistent",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert result is None
+        assert "Invalid phase template" in error
+
+    def test_apply_phase_template_spec_not_found(self, temp_specs_dir):
+        """Should return error for nonexistent spec."""
+        result, error = apply_phase_template(
+            spec_id="nonexistent-spec",
+            template="planning",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert result is None
+        assert error is not None
+
+    def test_apply_phase_template_with_category(self, temp_specs_dir):
+        """Should apply custom category to tasks."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-category")
+
+        result, error = apply_phase_template(
+            spec_id="test-category",
+            template="planning",
+            category="refactoring",
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result is not None
+
+    def test_apply_phase_template_with_position(self, temp_specs_dir):
+        """Should respect position parameter."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-position")
+
+        result, error = apply_phase_template(
+            spec_id="test-position",
+            template="planning",
+            position=0,
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result is not None
+
+    def test_apply_phase_template_without_linking(self, temp_specs_dir):
+        """Should respect link_previous=False."""
+        self._create_base_spec(temp_specs_dir, spec_id="test-no-link")
+
+        result, error = apply_phase_template(
+            spec_id="test-no-link",
+            template="planning",
+            link_previous=False,
+            specs_dir=temp_specs_dir,
+        )
+
+        assert error is None
+        assert result is not None

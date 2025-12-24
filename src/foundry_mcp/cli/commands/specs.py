@@ -523,6 +523,7 @@ def create(
         "last_updated": now,
         "metadata": {
             "description": "",
+            "mission": "",
             "objectives": [],
             "complexity": "medium" if template in ("medium", "complex") else "low",
             "estimated_hours": sum(

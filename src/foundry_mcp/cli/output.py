@@ -35,12 +35,12 @@ def emit(data: Any) -> None:
     """Emit JSON to stdout.
 
     This is the single output function for all CLI commands.
-    Data is serialized with indent=2 for readability when debugging.
+    Data is serialized in minified format for smaller payloads.
 
     Args:
         data: Any JSON-serializable data structure.
     """
-    print(json.dumps(data, indent=2, default=str))
+    print(json.dumps(data, separators=(",", ":"), default=str))
 
 
 def emit_error(
@@ -75,7 +75,7 @@ def emit_error(
         details=details,
         request_id=_ensure_request_id(),
     )
-    print(json.dumps(asdict(response), indent=2, default=str), file=sys.stderr)
+    print(json.dumps(asdict(response), separators=(",", ":"), default=str), file=sys.stderr)
     sys.exit(1)
 
 

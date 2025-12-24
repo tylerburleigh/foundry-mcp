@@ -81,7 +81,8 @@
       "metadata": {
         "details": "Document the requirements and acceptance criteria",
         "category": "implementation",
-        "estimated_hours": 1
+        "estimated_hours": 1,
+        "file_path": "specs/pending/spec-modification-capabilities-2025-12-23-001.json"
       },
       "dependencies": {
         "blocks": [],
@@ -170,7 +171,8 @@
       "metadata": {
         "details": "Implement the main features",
         "category": "implementation",
-        "estimated_hours": 4
+        "estimated_hours": 4,
+        "file_path": "src/foundry_mcp/core/task.py"
       },
       "dependencies": {
         "blocks": [],
