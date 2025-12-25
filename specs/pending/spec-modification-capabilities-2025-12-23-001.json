@@ -2,17 +2,20 @@
   "spec_id": "spec-modification-capabilities-2025-12-23-001",
   "title": "spec-modification-capabilities",
   "generated": "2025-12-23T14:54:29.088964Z",
-  "last_updated": "2025-12-23T14:57:18.947430Z",
+  "last_updated": "2025-12-25T00:00:00.000000Z",
   "metadata": {
     "description": "Add validated spec modification capabilities across tasks, phases, bulk edits, and history while aligning with MCP contracts.",
     "objectives": [
       "Provide task and phase mutation actions with validated inputs and standard response envelopes.",
       "Support bulk updates and find/replace with safety limits, previews, and clear summaries.",
       "Add spec history, diff, rollback, and quality checks without breaking existing workflows.",
-      "Prefer extending existing actions (update-metadata, metadata-batch, backup_spec, revision-add) instead of introducing duplicates."
+      "Prefer extending existing actions (update-metadata, metadata-batch, backup_spec, revision-add) instead of introducing duplicates.",
+      "Define error codes and remediation messages per 07-error-semantics.md.",
+      "Include response-v2 contract tests per 10-testing-fixtures.md.",
+      "Update capabilities manifest per 13-tool-discovery.md."
     ],
     "complexity": "medium",
-    "estimated_hours": 174.0,
+    "estimated_hours": 188.0,
     "assumptions": [
       "Extend existing routers/actions when possible; avoid new actions that duplicate current behavior."
     ],
@@ -39,7 +42,7 @@
         "phase-6",
         "phase-7"
       ],
-      "total_tasks": 47,
+      "total_tasks": 54,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Coordinate the rollout of spec modification tooling across core, routers, tests, and docs.",
@@ -237,15 +240,17 @@
       "children": [
         "verify-3-1",
         "verify-3-2",
+        "task-3-0",
         "task-3-1",
         "task-3-2",
         "task-3-3",
         "task-3-4",
         "task-3-5",
         "task-3-6",
-        "task-3-7"
+        "task-3-7",
+        "task-3-8"
       ],
-      "total_tasks": 9,
+      "total_tasks": 11,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Enable core editing capabilities (title updates via task.update-metadata and task.move) plus file_path bug fix",
@@ -306,6 +311,32 @@
         "depends": []
       }
     },
+    "task-3-0": {
+      "type": "task",
+      "title": "Define error codes and remediation messages for new actions",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create error code constants (SCREAMING_SNAKE_CASE) and remediation message templates for all new actions per 07-error-semantics.md. Error codes: move (CIRCULAR_DEPENDENCY, INVALID_PARENT, TASK_NOT_FOUND), add-dependency (CIRCULAR_DEPENDENCY, SELF_REFERENCE, TASK_NOT_FOUND), remove-dependency (DEPENDENCY_NOT_FOUND, TASK_NOT_FOUND), phase-move (INVALID_POSITION, PHASE_NOT_FOUND), spec-find-replace (INVALID_REGEX_PATTERN, PATTERN_TOO_BROAD, NO_MATCHES_FOUND), spec-rollback (BACKUP_NOT_FOUND, BACKUP_CORRUPTED, ROLLBACK_FAILED), diff (SPEC_NOT_FOUND, BACKUP_NOT_FOUND, COMPARISON_FAILED).",
+        "acceptance_criteria": [
+          "All error codes use SCREAMING_SNAKE_CASE naming convention",
+          "Each error has error_type classification (validation, not_found, conflict, internal)",
+          "Each error has actionable remediation message",
+          "Error codes documented in central location or ErrorCode enum"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "src/foundry_mcp/core/errors.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
     "phase-4": {
       "type": "phase",
       "title": "Essential Structure Operations",
@@ -321,9 +352,10 @@
         "task-4-5",
         "task-4-6",
         "task-4-7",
-        "task-4-8"
+        "task-4-8",
+        "task-4-9"
       ],
-      "total_tasks": 10,
+      "total_tasks": 11,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Enable dependency management, phase reordering, and structured requirements",
@@ -396,9 +428,10 @@
         "task-5-2",
         "task-5-3",
         "task-5-4",
-        "task-5-5"
+        "task-5-5",
+        "task-5-6"
       ],
-      "total_tasks": 7,
+      "total_tasks": 8,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Enable efficient batch updates and text replacement across specs",
@@ -472,9 +505,10 @@
         "task-6-3",
         "task-6-4",
         "task-6-5",
-        "task-6-6"
+        "task-6-6",
+        "task-6-7"
       ],
-      "total_tasks": 8,
+      "total_tasks": 9,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Enable versioned backups with diff, history, and rollback capabilities",
@@ -547,9 +581,11 @@
         "task-7-2",
         "task-7-3",
         "task-7-4",
-        "task-7-5"
+        "task-7-5",
+        "task-7-6",
+        "task-7-7"
       ],
-      "total_tasks": 7,
+      "total_tasks": 9,
       "completed_tasks": 0,
       "metadata": {
         "purpose": "Add completeness checking and duplicate detection",
@@ -637,7 +673,11 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "description": "Update existing `update-metadata` action in task router to accept title updates. Validate spec_id/task_id and input fields. Call update_task_metadata(). Use response helpers and error semantics.",
+        "description": "Update existing `update-metadata` action in task router to accept title updates. Validate spec_id/task_id and input fields. Call update_task_metadata(). Use response helpers and error semantics. Success response: {success: true, data: {task_id, updated_fields, previous_values}, meta: {version: 'response-v2'}}. Error response: {success: false, error: 'Task not found', data: {error_code: 'TASK_NOT_FOUND', error_type: 'not_found', remediation: 'Verify task_id exists'}}.",
+        "acceptance_criteria": [
+          "Response follows response-v2 envelope structure",
+          "Errors include error_code, error_type, and remediation fields"
+        ],
         "estimated_hours": 2.0,
         "file_path": "src/foundry_mcp/tools/unified/task.py",
         "task_category": "implementation"
@@ -677,7 +717,12 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "description": "Register action `move` in task router. Validate target_parent and position. Call move_task(). Use response helpers and include dependency warnings.",
+        "description": "Register action `move` in task router. Validate target_parent and position. Call move_task(). Use response helpers and include dependency warnings. Success response: {success: true, data: {task_id, old_parent, new_parent, new_position}, meta: {version: 'response-v2'}}. Error response: {success: false, error: 'Circular dependency detected', data: {error_code: 'CIRCULAR_DEPENDENCY', error_type: 'conflict', remediation: 'Task cannot be moved under its own descendants'}}.",
+        "acceptance_criteria": [
+          "Dry-run mode returns preview without modifying spec",
+          "Response follows response-v2 envelope structure",
+          "Errors include error_code, error_type, and remediation fields"
+        ],
         "estimated_hours": 2.0,
         "file_path": "src/foundry_mcp/tools/unified/task.py",
         "task_category": "implementation"
@@ -748,6 +793,32 @@
         "depends": []
       }
     },
+    "task-3-8": {
+      "type": "task",
+      "title": "Add response-v2 contract tests for Phase 3 actions",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create contract tests per 10-testing-fixtures.md validating: (1) response envelope structure matches response-v2, (2) error responses include error_code/error_type/remediation fields, (3) edge cases (empty results, invalid inputs, partial success), (4) fixtures are fresh and schema-aligned. Cover update-metadata and move actions.",
+        "acceptance_criteria": [
+          "All new handlers have contract tests validating response-v2 schema",
+          "Error path tests verify error_code, error_type, remediation fields",
+          "Fixtures match current schema version",
+          "Test edge cases: empty results, invalid inputs"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_contracts/test_phase3_contracts.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
     "task-4-1": {
       "type": "task",
       "title": "Add manage_task_dependency() function to core",
@@ -777,7 +848,12 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "description": "Register actions `add-dependency` and `remove-dependency` in task router. Accept depends_on/blocks parameters. Validate IDs, prevent cycles, use response helpers.",
+        "description": "Register actions `add-dependency` and `remove-dependency` in task router. Accept depends_on/blocks parameters. Validate IDs, prevent cycles, use response helpers. Success response: {success: true, data: {source_task, target_task, relationship_type}, meta: {version: 'response-v2'}}. Error response for cycles: {success: false, error: 'Circular dependency', data: {error_code: 'CIRCULAR_DEPENDENCY', error_type: 'conflict', remediation: 'This dependency would create a cycle'}}.",
+        "acceptance_criteria": [
+          "Dry-run mode returns preview without modifying spec",
+          "Response follows response-v2 envelope structure",
+          "Errors include error_code, error_type, and remediation fields"
+        ],
         "estimated_hours": 2.0,
         "file_path": "src/foundry_mcp/tools/unified/task.py",
         "task_category": "implementation"
@@ -908,6 +984,31 @@
         "depends": []
       }
     },
+    "task-4-9": {
+      "type": "task",
+      "title": "Add response-v2 contract tests for Phase 4 actions",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create contract tests per 10-testing-fixtures.md validating: (1) response envelope structure matches response-v2, (2) error responses include error_code/error_type/remediation fields, (3) edge cases. Cover add-dependency, remove-dependency, phase-move, and add-requirement actions.",
+        "acceptance_criteria": [
+          "All new handlers have contract tests validating response-v2 schema",
+          "Error path tests verify error_code, error_type, remediation fields",
+          "Fixtures match current schema version"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_contracts/test_phase4_contracts.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
     "task-5-1": {
       "type": "task",
       "title": "Add batch_update_tasks() helper for metadata-batch",
@@ -977,7 +1078,12 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "description": "Register `spec-find-replace` action in authoring router. Accept find, replace, scope, use_regex parameters, validate input, use response helpers + error semantics.",
+        "description": "Register `spec-find-replace` action in authoring router. Accept find, replace, scope, use_regex parameters, validate input, use response helpers + error semantics. Success response: {success: true, data: {matches_found, replacements_made, sample_changes}, meta: {version: 'response-v2'}}. Error response: {success: false, error: 'Invalid regex pattern', data: {error_code: 'INVALID_REGEX_PATTERN', error_type: 'validation', remediation: 'Check regex syntax'}}.",
+        "acceptance_criteria": [
+          "Dry-run mode returns preview without modifying spec",
+          "Response follows response-v2 envelope structure",
+          "Errors include error_code, error_type, and remediation fields"
+        ],
         "estimated_hours": 1.0,
         "file_path": "src/foundry_mcp/tools/unified/authoring.py",
         "task_category": "implementation"
@@ -1000,6 +1106,32 @@
         "description": "Test metadata-batch by status/parent/pattern, description/metadata updates, and dry_run modes. Test spec-find-replace literal and regex, scope filtering, and preview summaries.",
         "estimated_hours": 2.0,
         "file_path": "tests/unit/test_core/test_task_batch_update.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-6": {
+      "type": "task",
+      "title": "Add response-v2 contract tests for Phase 5 actions",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create contract tests per 10-testing-fixtures.md validating: (1) response envelope structure matches response-v2, (2) error responses include error_code/error_type/remediation fields, (3) edge cases (partial success, empty matches). Cover metadata-batch extension and spec-find-replace actions.",
+        "acceptance_criteria": [
+          "All new handlers have contract tests validating response-v2 schema",
+          "Error path tests verify error_code, error_type, remediation fields",
+          "Partial success scenarios include meta.warnings",
+          "Dry-run mode returns preview without modifying spec"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_contracts/test_phase5_contracts.py",
         "task_category": "implementation"
       },
       "dependencies": {
@@ -1097,7 +1229,13 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "description": "Register spec actions `diff` and `history` in spec router, and authoring action `spec-rollback` in authoring router. History should merge backup entries with metadata.revision_history. Use response helpers, error semantics, and pagination.",
+        "description": "Register spec actions `diff` and `history` in spec router, and authoring action `spec-rollback` in authoring router. History should merge backup entries with metadata.revision_history. Use response helpers, error semantics, and pagination. spec-rollback success: {success: true, data: {restored_from, backup_created}, meta: {version: 'response-v2'}}. spec-rollback error: {success: false, error: 'Backup not found', data: {error_code: 'BACKUP_NOT_FOUND', error_type: 'not_found', remediation: 'Use history action to list available backups'}}.",
+        "acceptance_criteria": [
+          "spec-rollback: Dry-run mode returns preview without modifying spec",
+          "Response follows response-v2 envelope structure",
+          "Errors include error_code, error_type, and remediation fields",
+          "history action supports pagination via meta.pagination"
+        ],
         "estimated_hours": 3.0,
         "file_path": "src/foundry_mcp/tools/unified/spec.py; src/foundry_mcp/tools/unified/authoring.py",
         "task_category": "implementation"
@@ -1120,6 +1258,32 @@
         "description": "Test backup creation, listing with pagination, diff against backup/spec, rollback to previous/timestamp, backup before rollback, and partial diff handling.",
         "estimated_hours": 3.0,
         "file_path": "tests/unit/test_core/test_spec_history.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-7": {
+      "type": "task",
+      "title": "Add response-v2 contract tests for Phase 6 actions",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create contract tests per 10-testing-fixtures.md validating: (1) response envelope structure matches response-v2, (2) error responses include error_code/error_type/remediation fields, (3) pagination in history action, (4) edge cases. Cover diff, history, and spec-rollback actions.",
+        "acceptance_criteria": [
+          "All new handlers have contract tests validating response-v2 schema",
+          "Error path tests verify error_code, error_type, remediation fields",
+          "History action tests pagination via meta.pagination",
+          "Dry-run mode returns preview without modifying spec"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_contracts/test_phase6_contracts.py",
         "task_category": "implementation"
       },
       "dependencies": {
@@ -1221,6 +1385,58 @@
         "estimated_hours": 2.0,
         "file_path": "tests/unit/test_core/test_spec_validation.py",
         "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-6": {
+      "type": "task",
+      "title": "Add response-v2 contract tests for Phase 7 actions",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create contract tests per 10-testing-fixtures.md validating: (1) response envelope structure matches response-v2, (2) error responses include error_code/error_type/remediation fields, (3) edge cases (no duplicates found, 100% complete). Cover completeness-check and duplicate-detection actions.",
+        "acceptance_criteria": [
+          "All new handlers have contract tests validating response-v2 schema",
+          "Error path tests verify error_code, error_type, remediation fields",
+          "Truncation scenarios include meta.warnings"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "tests/unit/test_contracts/test_phase7_contracts.py",
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-7": {
+      "type": "task",
+      "title": "Update capabilities manifest with new action metadata",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add all new actions to mcp/capabilities_manifest.json per 13-tool-discovery.md with: usage examples, rate limits, input/output schemas, tags, and capability negotiation flags. Actions: move, add-dependency, remove-dependency, phase-move, add-requirement, spec-find-replace, diff, history, spec-rollback, completeness-check, duplicate-detection.",
+        "acceptance_criteria": [
+          "All new actions registered in capabilities_manifest.json",
+          "Each action has usage_example field with realistic example",
+          "Each action has tags for discoverability",
+          "Rate limits documented where applicable",
+          "Input/output schemas match implementation"
+        ],
+        "estimated_hours": 2.0,
+        "file_path": "mcp/capabilities_manifest.json",
+        "task_category": "documentation"
       },
       "dependencies": {
         "blocks": [],
