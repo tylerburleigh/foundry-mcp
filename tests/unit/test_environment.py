@@ -509,13 +509,14 @@ class TestSddSetup:
 
     def test_toml_content(self):
         """Test that generated TOML has expected content."""
-        from foundry_mcp.tools.unified.environment import _DEFAULT_TOML_CONTENT
+        from foundry_mcp.tools.unified.environment import _get_default_toml_content
 
-        assert "[workspace]" in _DEFAULT_TOML_CONTENT
-        assert "specs_dir" in _DEFAULT_TOML_CONTENT
-        assert "[workflow]" in _DEFAULT_TOML_CONTENT
-        assert "mode" in _DEFAULT_TOML_CONTENT
-        assert "[logging]" in _DEFAULT_TOML_CONTENT
+        toml_content = _get_default_toml_content()
+        assert "[workspace]" in toml_content
+        assert "specs_dir" in toml_content
+        assert "[workflow]" in toml_content
+        assert "mode" in toml_content
+        assert "[logging]" in toml_content
 
     def test_idempotent_setup(self):
         """Test that running setup twice is safe (idempotent)."""

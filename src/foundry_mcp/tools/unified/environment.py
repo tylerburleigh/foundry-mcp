@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
-from foundry_mcp.config import ServerConfig
+from foundry_mcp.config import ServerConfig, _PACKAGE_VERSION
 from foundry_mcp.core.context import generate_correlation_id, get_correlation_id
 from foundry_mcp.core.feature_flags import FeatureFlag, FlagState, get_flag_service
 from foundry_mcp.core.naming import canonical_tool
@@ -45,7 +45,7 @@ try:
 except ValueError:
     pass
 
-_DEFAULT_TOML_CONTENT = """[workspace]
+_DEFAULT_TOML_TEMPLATE = """[workspace]
 specs_dir = "./specs"
 
 [logging]
@@ -54,7 +54,7 @@ structured = true
 
 [server]
 name = "foundry-mcp"
-version = "0.3.3"
+version = "{version}"
 
 [workflow]
 mode = "single"
@@ -170,11 +170,16 @@ def _update_permissions(
     return {"changes": changes}
 
 
+def _get_default_toml_content() -> str:
+    """Get default TOML content with current package version."""
+    return _DEFAULT_TOML_TEMPLATE.format(version=_PACKAGE_VERSION)
+
+
 def _write_default_toml(toml_path: Path) -> None:
     """Write default foundry-mcp.toml configuration file."""
 
     with open(toml_path, "w") as handle:
-        handle.write(_DEFAULT_TOML_CONTENT)
+        handle.write(_get_default_toml_content())
 
 
 def _init_specs_directory(base_path: Path, dry_run: bool) -> Dict[str, Any]:

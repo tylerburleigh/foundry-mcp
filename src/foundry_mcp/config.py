@@ -27,6 +27,7 @@ import logging
 import functools
 import time
 from dataclasses import dataclass, field
+from importlib.metadata import version as get_package_version, PackageNotFoundError
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Callable, TypeVar
 
@@ -37,6 +38,17 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_version() -> str:
+    """Get package version from metadata (single source of truth: pyproject.toml)."""
+    try:
+        return get_package_version("foundry-mcp")
+    except PackageNotFoundError:
+        return "0.5.0"  # Fallback for dev without install
+
+
+_PACKAGE_VERSION = _get_version()
 
 T = TypeVar("T")
 
@@ -458,7 +470,7 @@ class ServerConfig:
 
     # Server configuration
     server_name: str = "foundry-mcp"
-    server_version: str = "0.5.0"
+    server_version: str = field(default_factory=lambda: _PACKAGE_VERSION)
 
     # Git workflow configuration
     git: GitSettings = field(default_factory=GitSettings)
