@@ -6,6 +6,8 @@ synthesis strategies for combining responses.
 
 import asyncio
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Optional
 
 from foundry_mcp.config import ResearchConfig
@@ -104,16 +106,15 @@ class ConsensusWorkflow(ResearchWorkflowBase):
             system_prompt=system_prompt,
         )
 
-        # Execute parallel requests
+        # Execute parallel requests using ThreadPoolExecutor
+        # This avoids asyncio.run() conflicts with MCP server's event loop
         try:
-            responses = asyncio.run(
-                self._execute_parallel(
-                    prompt=prompt,
-                    providers=valid_providers,
-                    system_prompt=system_prompt,
-                    timeout=timeout_per_provider,
-                    max_concurrent=max_concurrent,
-                )
+            responses = self._execute_parallel_sync(
+                prompt=prompt,
+                providers=valid_providers,
+                system_prompt=system_prompt,
+                timeout=timeout_per_provider,
+                max_concurrent=max_concurrent,
             )
         except Exception as exc:
             logger.error("Parallel execution failed: %s", exc)
@@ -167,6 +168,122 @@ class ConsensusWorkflow(ResearchWorkflowBase):
 
         return result
 
+    def _execute_parallel_sync(
+        self,
+        prompt: str,
+        providers: list[str],
+        system_prompt: Optional[str],
+        timeout: float,
+        max_concurrent: int,
+    ) -> list[ModelResponse]:
+        """Execute requests to multiple providers in parallel using ThreadPoolExecutor.
+
+        This approach avoids asyncio.run() conflicts when called from within
+        an MCP server's event loop.
+
+        Args:
+            prompt: User prompt
+            providers: Provider IDs to query
+            system_prompt: Optional system prompt
+            timeout: Timeout per provider
+            max_concurrent: Max concurrent requests
+
+        Returns:
+            List of ModelResponse objects
+        """
+        responses: list[ModelResponse] = []
+
+        with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            # Submit all provider queries
+            future_to_provider = {
+                executor.submit(
+                    self._query_provider_sync,
+                    provider_id,
+                    prompt,
+                    system_prompt,
+                    timeout,
+                ): provider_id
+                for provider_id in providers
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_provider, timeout=timeout * len(providers)):
+                provider_id = future_to_provider[future]
+                try:
+                    response = future.result()
+                    responses.append(response)
+                except Exception as exc:
+                    responses.append(
+                        ModelResponse(
+                            provider_id=provider_id,
+                            content="",
+                            success=False,
+                            error_message=str(exc),
+                        )
+                    )
+
+        return responses
+
+    def _query_provider_sync(
+        self,
+        provider_id: str,
+        prompt: str,
+        system_prompt: Optional[str],
+        timeout: float,
+    ) -> ModelResponse:
+        """Query a single provider synchronously.
+
+        Args:
+            provider_id: Provider to query
+            prompt: User prompt
+            system_prompt: Optional system prompt
+            timeout: Request timeout
+
+        Returns:
+            ModelResponse with result or error
+        """
+        start_time = time.perf_counter()
+
+        try:
+            provider = resolve_provider(provider_id, hooks=ProviderHooks())
+            request = ProviderRequest(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                timeout=timeout,
+            )
+
+            result = provider.generate(request)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+
+            if result.status != ProviderStatus.SUCCESS:
+                return ModelResponse(
+                    provider_id=provider_id,
+                    model_used=result.model_used,
+                    content=result.content or "",
+                    success=False,
+                    error_message=f"Provider returned status: {result.status.value}",
+                    duration_ms=duration_ms,
+                )
+
+            return ModelResponse(
+                provider_id=provider_id,
+                model_used=result.model_used,
+                content=result.content,
+                success=True,
+                tokens_used=result.tokens.total_tokens if result.tokens else None,
+                duration_ms=duration_ms,
+            )
+
+        except Exception as exc:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return ModelResponse(
+                provider_id=provider_id,
+                content="",
+                success=False,
+                error_message=str(exc),
+                duration_ms=duration_ms,
+            )
+
     async def _execute_parallel(
         self,
         prompt: str,
@@ -175,7 +292,10 @@ class ConsensusWorkflow(ResearchWorkflowBase):
         timeout: float,
         max_concurrent: int,
     ) -> list[ModelResponse]:
-        """Execute requests to multiple providers in parallel.
+        """Execute requests to multiple providers in parallel (async version).
+
+        Note: This async method is kept for potential future use but the sync
+        version (_execute_parallel_sync) is preferred to avoid event loop conflicts.
 
         Args:
             prompt: User prompt

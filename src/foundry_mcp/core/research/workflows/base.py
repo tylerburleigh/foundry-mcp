@@ -149,7 +149,7 @@ class ResearchWorkflowBase(ABC):
             prompt=prompt,
             system_prompt=system_prompt,
             model=model,
-            timeout=timeout or 30.0,
+            timeout=timeout or self.config.default_timeout,
             temperature=temperature,
             max_tokens=max_tokens,
         )

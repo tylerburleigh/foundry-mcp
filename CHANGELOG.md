@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2025-12-30
+
+### Fixed
+
+- **Consensus Event Loop Conflict**: Fixed `asyncio.run() cannot be called from a running event loop` error
+  - Replaced `asyncio.run()` with `ThreadPoolExecutor` for parallel provider execution
+  - Works correctly within MCP server's event loop context
+  - New `_execute_parallel_sync()` and `_query_provider_sync()` methods for thread-based parallelism
+
+- **Research Timeout Configuration**: Fixed thinkdeep and other workflows timing out after 30 seconds
+  - Added `default_timeout` config option to `[research]` section (default: 60 seconds)
+  - Workflows now use configurable timeout from config instead of hardcoded 30s
+  - Longer-running investigation workflows like thinkdeep no longer timeout prematurely
+
+## [0.7.7] - 2025-12-30
+
+### Added
+
+- **Research ProviderSpec Alignment**: Research config now supports full ProviderSpec notation like consultation
+  - `default_provider` accepts both simple IDs (`"gemini"`) and ProviderSpec (`"[cli]gemini:gemini-2.5-flash"`)
+  - `consensus_providers` accepts mixed notation for flexible model selection per provider
+  - New `ResearchConfig.get_default_provider_spec()` helper parses default provider
+  - New `ResearchConfig.get_consensus_provider_specs()` helper parses consensus providers
+  - New `ProviderSpec.parse_flexible()` method for backward-compatible parsing
+  - Workflows (`chat`, `consensus`, `thinkdeep`, `ideate`) now extract models from specs
+  - Added `[research]` section to sample config with notation examples
+
 ## [0.7.6] - 2025-12-30
 
 ### Fixed

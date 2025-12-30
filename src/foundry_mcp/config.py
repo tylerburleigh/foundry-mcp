@@ -445,6 +445,7 @@ class ResearchConfig:
         consensus_providers: List of provider IDs for CONSENSUS workflow
         thinkdeep_max_depth: Maximum investigation depth for THINKDEEP workflow
         ideate_perspectives: List of perspectives for IDEATE brainstorming
+        default_timeout: Default timeout in seconds for provider calls (thinkdeep uses 2x)
     """
 
     enabled: bool = True
@@ -460,6 +461,7 @@ class ResearchConfig:
     ideate_perspectives: List[str] = field(
         default_factory=lambda: ["technical", "creative", "practical", "visionary"]
     )
+    default_timeout: float = 60.0  # 60 seconds default, configurable
 
     @classmethod
     def from_toml_dict(cls, data: Dict[str, Any]) -> "ResearchConfig":
@@ -493,6 +495,7 @@ class ResearchConfig:
             consensus_providers=consensus_providers,
             thinkdeep_max_depth=int(data.get("thinkdeep_max_depth", 5)),
             ideate_perspectives=ideate_perspectives,
+            default_timeout=float(data.get("default_timeout", 60.0)),
         )
 
     def get_storage_path(self) -> Path:
