@@ -91,9 +91,7 @@ class ResearchWorkflowBase(ABC):
         Returns:
             ProviderContext instance or None if unavailable
         """
-        if not provider_id:
-            spec = self.config.get_default_provider_spec()
-            provider_id = spec.provider
+        provider_id = provider_id or self.config.default_provider
 
         # Check cache first
         if provider_id in self._provider_cache:
@@ -139,19 +137,12 @@ class ResearchWorkflowBase(ABC):
         Returns:
             WorkflowResult with response or error
         """
-        # Parse default provider spec to get provider_id and model if not specified
-        if not provider_id:
-            spec = self.config.get_default_provider_spec()
-            provider_id = spec.provider
-            if not model and spec.model:
-                model = spec.model
-
         provider = self._resolve_provider(provider_id, hooks)
         if provider is None:
             return WorkflowResult(
                 success=False,
                 content="",
-                error=f"Provider '{provider_id}' is not available",
+                error=f"Provider '{provider_id or self.config.default_provider}' is not available",
             )
 
         request = ProviderRequest(

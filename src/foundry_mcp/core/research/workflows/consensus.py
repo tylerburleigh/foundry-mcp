@@ -75,15 +75,8 @@ class ConsensusWorkflow(ResearchWorkflowBase):
         Returns:
             WorkflowResult with synthesized or combined response
         """
-        # Resolve providers - support both simple IDs and ProviderSpec notation
-        if providers:
-            # User provided providers - use as-is (simple provider IDs expected)
-            provider_ids = providers
-        else:
-            # Use config defaults - parse ProviderSpec to get provider IDs
-            specs = self.config.get_consensus_provider_specs()
-            provider_ids = [spec.provider for spec in specs]
-
+        # Resolve providers
+        provider_ids = providers or self.config.consensus_providers
         available = available_providers()
         valid_providers = [p for p in provider_ids if p in available]
 
@@ -94,16 +87,11 @@ class ConsensusWorkflow(ResearchWorkflowBase):
                 error=f"No valid providers available. Requested: {provider_ids}, Available: {available}",
             )
 
-        # Resolve synthesis provider from spec if not specified
-        if not synthesis_provider:
-            synthesis_spec = self.config.get_default_provider_spec()
-            synthesis_provider = synthesis_spec.provider
-
         # Create consensus config and state
         consensus_config = ConsensusConfig(
             providers=valid_providers,
             strategy=strategy,
-            synthesis_provider=synthesis_provider,
+            synthesis_provider=synthesis_provider or self.config.default_provider,
             timeout_per_provider=timeout_per_provider,
             max_concurrent=max_concurrent,
             require_all=require_all,

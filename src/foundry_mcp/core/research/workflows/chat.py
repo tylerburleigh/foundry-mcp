@@ -140,15 +140,11 @@ class ChatWorkflow(ResearchWorkflowBase):
                 return thread
             logger.warning("Thread %s not found, creating new thread", thread_id)
 
-        # Create new thread using parsed spec for default provider
-        if not provider_id:
-            spec = self.config.get_default_provider_spec()
-            provider_id = spec.provider
-
+        # Create new thread
         return ConversationThread(
             title=title,
             system_prompt=system_prompt,
-            provider_id=provider_id,
+            provider_id=provider_id or self.config.default_provider,
         )
 
     def _build_context(self, thread: ConversationThread) -> str:
