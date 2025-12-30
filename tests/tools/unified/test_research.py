@@ -193,15 +193,6 @@ class TestResearchDispatch:
             MockWorkflow.assert_called_once()
             assert result["success"] is True
 
-    def test_dispatch_to_route(self, mock_feature_flag, mock_config, mock_memory):
-        """Should dispatch 'route' action and return recommendation."""
-        from foundry_mcp.tools.unified.research import _dispatch_research_action
-
-        result = _dispatch_research_action(action="route", prompt="Help me")
-
-        assert result["success"] is True
-        assert "recommended_workflow" in result["data"]
-
     def test_dispatch_invalid_action(self, mock_feature_flag, mock_config, mock_memory):
         """Should return error for invalid action."""
         from foundry_mcp.tools.unified.research import _dispatch_research_action
@@ -212,19 +203,6 @@ class TestResearchDispatch:
         assert "invalid_action" in result["error"].lower()
         assert "data" in result
         assert result["data"]["error_code"] == "VALIDATION_ERROR"
-
-    def test_dispatch_case_insensitive(
-        self, mock_feature_flag, mock_config, mock_memory
-    ):
-        """Should handle case-insensitive action names."""
-        from foundry_mcp.tools.unified.research import _dispatch_research_action
-
-        # ActionRouter is case-insensitive by default
-        result = _dispatch_research_action(action="ROUTE", prompt="Test")
-
-        assert result["success"] is True
-        assert "recommended_workflow" in result["data"]
-
 
 # =============================================================================
 # Chat Handler Tests
@@ -476,69 +454,6 @@ class TestIdeateHandler:
 
 
 # =============================================================================
-# Route Handler Tests
-# =============================================================================
-
-
-class TestRouteHandler:
-    """Tests for route action handler."""
-
-    def test_route_requires_prompt(self, mock_feature_flag, mock_config, mock_memory):
-        """Should return validation error when prompt is missing."""
-        from foundry_mcp.tools.unified.research import _handle_route
-
-        result = _handle_route()
-
-        assert result["success"] is False
-        assert "prompt" in result["error"].lower()
-
-    def test_route_recommends_chat(self, mock_feature_flag, mock_config, mock_memory):
-        """Should recommend chat for simple prompts."""
-        from foundry_mcp.tools.unified.research import _handle_route
-
-        result = _handle_route(prompt="How do I fix this bug?")
-
-        assert result["success"] is True
-        assert result["data"]["recommended_workflow"] == "chat"
-        assert "alternatives" in result["data"]
-
-    def test_route_recommends_consensus(
-        self, mock_feature_flag, mock_config, mock_memory
-    ):
-        """Should recommend consensus for multi-perspective prompts."""
-        from foundry_mcp.tools.unified.research import _handle_route
-
-        result = _handle_route(
-            prompt="Compare different perspectives on this architecture"
-        )
-
-        assert result["success"] is True
-        assert result["data"]["recommended_workflow"] == "consensus"
-
-    def test_route_recommends_thinkdeep(
-        self, mock_feature_flag, mock_config, mock_memory
-    ):
-        """Should recommend thinkdeep for investigation prompts."""
-        from foundry_mcp.tools.unified.research import _handle_route
-
-        result = _handle_route(prompt="Investigate why this performance issue happens")
-
-        assert result["success"] is True
-        assert result["data"]["recommended_workflow"] == "thinkdeep"
-
-    def test_route_recommends_ideate(
-        self, mock_feature_flag, mock_config, mock_memory
-    ):
-        """Should recommend ideate for brainstorming prompts."""
-        from foundry_mcp.tools.unified.research import _handle_route
-
-        result = _handle_route(prompt="Brainstorm creative ideas for the new feature")
-
-        assert result["success"] is True
-        assert result["data"]["recommended_workflow"] == "ideate"
-
-
-# =============================================================================
 # Thread Management Handler Tests
 # =============================================================================
 
@@ -711,9 +626,9 @@ class TestResponseEnvelope:
         self, mock_feature_flag, mock_config, mock_memory
     ):
         """Success responses should have meta.version=response-v2."""
-        from foundry_mcp.tools.unified.research import _handle_route
+        from foundry_mcp.tools.unified.research import _handle_thread_list
 
-        result = _handle_route(prompt="Test prompt")
+        result = _handle_thread_list()  # Simplest handler
 
         assert result["success"] is True
         assert "meta" in result
@@ -723,9 +638,9 @@ class TestResponseEnvelope:
         self, mock_feature_flag, mock_config, mock_memory
     ):
         """Error responses should have meta.version=response-v2."""
-        from foundry_mcp.tools.unified.research import _handle_route
+        from foundry_mcp.tools.unified.research import _handle_chat
 
-        result = _handle_route()  # Missing prompt
+        result = _handle_chat()  # Missing prompt
 
         assert result["success"] is False
         assert "meta" in result

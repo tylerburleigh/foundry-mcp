@@ -50,7 +50,6 @@ _ACTION_SUMMARY = {
     "consensus": "Multi-model parallel consultation with synthesis",
     "thinkdeep": "Hypothesis-driven systematic investigation",
     "ideate": "Creative brainstorming with idea clustering",
-    "route": "Intelligent workflow selection based on prompt analysis",
     "thread-list": "List conversation threads",
     "thread-get": "Get full thread details including messages",
     "thread-delete": "Delete a conversation thread",
@@ -354,61 +353,6 @@ def _handle_ideate(
         )
 
 
-def _handle_route(
-    *,
-    prompt: Optional[str] = None,
-    **kwargs: Any,
-) -> dict:
-    """Handle route action - analyze prompt and recommend workflow."""
-    if not prompt:
-        return _validation_error("prompt", "route", "Required non-empty string")
-
-    # Simple heuristic routing based on prompt analysis
-    prompt_lower = prompt.lower()
-
-    recommendation = "chat"
-    confidence = 0.5
-    reasoning = "Default single-model conversation"
-
-    # Check for multi-model indicators
-    if any(
-        phrase in prompt_lower
-        for phrase in ["different perspectives", "multiple models", "compare", "consensus", "opinions"]
-    ):
-        recommendation = "consensus"
-        confidence = 0.8
-        reasoning = "Prompt suggests comparing multiple viewpoints"
-
-    # Check for investigation indicators
-    elif any(
-        phrase in prompt_lower
-        for phrase in ["investigate", "analyze deeply", "hypothesis", "why", "root cause", "understand"]
-    ):
-        recommendation = "thinkdeep"
-        confidence = 0.7
-        reasoning = "Prompt suggests systematic investigation"
-
-    # Check for brainstorming indicators
-    elif any(
-        phrase in prompt_lower
-        for phrase in ["brainstorm", "ideas", "creative", "innovate", "possibilities", "options"]
-    ):
-        recommendation = "ideate"
-        confidence = 0.8
-        reasoning = "Prompt suggests creative brainstorming"
-
-    return asdict(
-        success_response(
-            data={
-                "recommended_workflow": recommendation,
-                "confidence": confidence,
-                "reasoning": reasoning,
-                "alternatives": [w for w in ["chat", "consensus", "thinkdeep", "ideate"] if w != recommendation],
-            }
-        )
-    )
-
-
 def _handle_thread_list(
     *,
     status: Optional[str] = None,
@@ -527,11 +471,6 @@ def _build_router() -> ActionRouter:
             name="ideate",
             handler=_handle_ideate,
             summary=_ACTION_SUMMARY["ideate"],
-        ),
-        ActionDefinition(
-            name="route",
-            handler=_handle_route,
-            summary=_ACTION_SUMMARY["route"],
         ),
         ActionDefinition(
             name="thread-list",

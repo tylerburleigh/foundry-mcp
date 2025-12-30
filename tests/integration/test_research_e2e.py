@@ -477,35 +477,6 @@ class TestIdeateWorkflowE2E:
 
 
 # =============================================================================
-# Route Action E2E Tests
-# =============================================================================
-
-
-class TestRouteActionE2E:
-    """End-to-end tests for route action through router."""
-
-    def test_route_recommends_workflow(
-        self, mock_feature_flag, mock_config, mock_memory
-    ):
-        """Route action recommends appropriate workflow."""
-        from foundry_mcp.tools.unified.research import _dispatch_research_action
-
-        result = _dispatch_research_action(
-            action="route",
-            prompt="I need help understanding this concept",
-        )
-
-        assert result["success"] is True
-        assert "recommended_workflow" in result["data"]
-        assert result["data"]["recommended_workflow"] in [
-            "chat",
-            "consensus",
-            "thinkdeep",
-            "ideate",
-        ]
-
-
-# =============================================================================
 # Feature Flag E2E Tests
 # =============================================================================
 
@@ -522,7 +493,7 @@ class TestFeatureFlagE2E:
         # When feature flag is disabled, the dispatch should handle this
         # The exact behavior depends on implementation - check for either error or the flag check
         result = _dispatch_research_action(
-            action="route",  # Use route since it's simpler
+            action="chat",
             prompt="Hello",
         )
 

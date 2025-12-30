@@ -243,18 +243,6 @@ class TestResearchRouterSmoke:
         assert result["data"]["content"], "Expected non-empty response"
         assert "thread_id" in result["data"]
 
-    def test_route_action(self):
-        """Route action recommends appropriate workflow."""
-        from foundry_mcp.tools.unified.research import _dispatch_research_action
-
-        result = _dispatch_research_action(
-            action="route",
-            prompt="I want to brainstorm ideas for a new feature",
-        )
-
-        assert result["success"] is True
-        assert "recommended_workflow" in result["data"]
-
     def test_thinkdeep_action(self):
         """ThinkDeep action starts investigation."""
         from foundry_mcp.tools.unified.research import _dispatch_research_action
