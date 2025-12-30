@@ -171,6 +171,7 @@ class FeatureFlagRegistry:
         self._overrides: Dict[
             str, Dict[str, bool]
         ] = {}  # client_id -> flag_name -> value
+        self._global_overrides: Dict[str, bool] = {}  # flag_name -> value (from config)
 
     def register(self, flag: FeatureFlag) -> None:
         """Register a feature flag.
@@ -229,6 +230,10 @@ class FeatureFlagRegistry:
         if client_id in self._overrides:
             if flag_name in self._overrides[client_id]:
                 return self._overrides[client_id][flag_name]
+
+        # Check for global override (from config file)
+        if flag_name in self._global_overrides:
+            return self._global_overrides[flag_name]
 
         # Check if flag exists
         flag = self._flags.get(flag_name)
@@ -325,6 +330,44 @@ class FeatureFlagRegistry:
             self._overrides.pop(client_id, None)
         else:
             self._overrides.clear()
+
+    def set_global_override(self, flag_name: str, enabled: bool) -> None:
+        """Set a global override for a flag (typically from config file).
+
+        Global overrides apply to all clients but can be overridden by
+        client-specific overrides set via set_override().
+
+        Args:
+            flag_name: Name of the flag to override
+            enabled: Override value
+        """
+        self._global_overrides[flag_name] = enabled
+        logger.debug(f"Set global override: {flag_name}={enabled}")
+
+    def clear_global_override(self, flag_name: str) -> None:
+        """Clear a global override for a flag.
+
+        Args:
+            flag_name: Name of the flag to clear
+        """
+        self._global_overrides.pop(flag_name, None)
+
+    def clear_all_global_overrides(self) -> None:
+        """Clear all global overrides."""
+        self._global_overrides.clear()
+
+    def apply_config_overrides(self, features: Dict[str, bool]) -> None:
+        """Apply feature flag overrides from config file.
+
+        This is the primary method for applying settings from the [features]
+        section of foundry-mcp.toml.
+
+        Args:
+            features: Dictionary mapping flag names to enabled/disabled values
+        """
+        for flag_name, enabled in features.items():
+            self.set_global_override(flag_name, enabled)
+        logger.info(f"Applied {len(features)} feature flag overrides from config")
 
     def get_flags_for_capabilities(
         self,

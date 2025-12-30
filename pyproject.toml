@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "foundry-mcp"
-version = "0.7.5"
+version = "0.7.6"
 description = "MCP server for SDD toolkit spec management"
 readme = "README.md"
 license = "MIT"
@@ -27,6 +27,7 @@ dependencies = [
     "mcp>=1.0.0",
     "click>=8.0.0",
     "tomli>=2.0.0; python_version < '3.11'",
+    "filelock>=3.20.1",
 ]
 
 [project.optional-dependencies]

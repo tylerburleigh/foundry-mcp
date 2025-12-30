@@ -703,6 +703,10 @@ class ServerConfig:
             if "research" in data:
                 self.research = ResearchConfig.from_toml_dict(data["research"])
 
+            # Feature flags settings
+            if "features" in data:
+                self._apply_feature_flags(data["features"])
+
         except Exception as e:
             logger.error(f"Error loading config file {path}: {e}")
 
@@ -878,6 +882,35 @@ class ServerConfig:
                 self.dashboard.refresh_interval_ms = int(dash_refresh)
             except ValueError:
                 pass
+
+        # Feature flag overrides from environment
+        if feature_flags := os.environ.get("FOUNDRY_MCP_FEATURES"):
+            # Format: "flag1=true,flag2=false"
+            features = {}
+            for item in feature_flags.split(","):
+                item = item.strip()
+                if "=" in item:
+                    name, value = item.split("=", 1)
+                    features[name.strip()] = _parse_bool(value.strip())
+            if features:
+                self._apply_feature_flags(features)
+
+    def _apply_feature_flags(self, features: Dict[str, Any]) -> None:
+        """Apply feature flag overrides to the global registry.
+
+        Args:
+            features: Dictionary mapping flag names to boolean values
+        """
+        from foundry_mcp.core.feature_flags import get_flag_service
+
+        flag_service = get_flag_service()
+        parsed_features = {}
+        for name, value in features.items():
+            if isinstance(value, bool):
+                parsed_features[name] = value
+            else:
+                parsed_features[name] = _parse_bool(value)
+        flag_service.apply_config_overrides(parsed_features)
 
     def validate_api_key(self, key: Optional[str]) -> bool:
         """

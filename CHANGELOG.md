@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6] - 2025-12-30
+
+### Fixed
+
+- **Research Tools Feature Flag**: Fixed bug where `research_tools = true` in `[features]` config section was ignored
+  - Root cause 1: `research_tools` flag was never registered in the feature flag registry
+  - Root cause 2: `[features]` section in TOML config was not being read
+  - Added flag registration in `research.py` following `provider.py` pattern
+  - Added global override support to `FeatureFlagRegistry` for config-based flag settings
+  - Added `[features]` section handling in `ServerConfig._load_toml()`
+  - Added `FOUNDRY_MCP_FEATURES` environment variable support (format: `flag1=true,flag2=false`)
+
+### Added
+
+- **Feature Flag Global Overrides**: New methods on `FeatureFlagRegistry`:
+  - `set_global_override(flag_name, enabled)` - Set config-based override for all clients
+  - `clear_global_override(flag_name)` - Clear a global override
+  - `clear_all_global_overrides()` - Clear all global overrides
+  - `apply_config_overrides(features)` - Apply multiple overrides from config dict
+
+### Dependencies
+
+- Added `filelock>=3.20.1` as a required dependency
+
 ## [Unreleased]
 
 ### Fixed
