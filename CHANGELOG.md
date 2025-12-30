@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9] - 2025-12-30
+
+### Fixed
+
+- **Provider Detector Cache Isolation**: Fixed test pollution where availability cache persisted across tests
+  - `reset_detectors()` now clears `_AVAILABILITY_CACHE` to ensure fresh detection
+  - Prevents false negatives when test order affects cached availability results
+
+- **Research E2E Test Fixtures**: Added missing `max_messages_per_thread` to mock_config fixture
+  - Fixed `TypeError: '>=' not supported between instances of 'MagicMock' and 'int'`
+  - Research chat workflow now works correctly in test mode
+
+- **OpenCode Model Validation Test**: Removed obsolete test for empty model validation
+  - Model validation was delegated to CLI in v0.7.5 but test was not removed
+  - OpenCode provider correctly passes any model to CLI for validation
+
 ## [0.7.8] - 2025-12-30
 
 ### Fixed
