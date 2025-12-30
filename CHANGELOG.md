@@ -32,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Multi-perspective idea generation
     - Automatic clustering and scoring
     - Detailed plan elaboration for selected clusters
-  - **route**: Intelligent workflow selection based on prompt analysis
 - **ResearchConfig**: New configuration section for research workflows
   - Configurable storage path, TTL, max messages per thread
   - Default provider and consensus provider list
