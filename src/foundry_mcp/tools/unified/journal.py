@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple, cast
 
@@ -27,7 +27,6 @@ from foundry_mcp.core.responses import (
     ErrorType,
     error_response,
     success_response,
-    to_json,
 )
 from foundry_mcp.core.spec import find_specs_directory, load_spec, save_spec
 from foundry_mcp.tools.unified.router import (
@@ -90,7 +89,7 @@ def _validation_error(
     code: ErrorCode = ErrorCode.INVALID_FORMAT,
     remediation: Optional[str] = None,
 ) -> dict:
-    return to_json(
+    return asdict(
         error_response(
             f"Invalid field '{field}' for journal.{action}: {message}",
             error_code=code,
@@ -179,7 +178,7 @@ def _persist_spec(
 ) -> Optional[dict]:
     try:
         if not save_spec(spec_id, spec_data, specs_dir):
-            return to_json(
+            return asdict(
                 error_response(
                     f"Failed to save spec '{spec_id}'",
                     error_code=ErrorCode.INTERNAL_ERROR,
@@ -189,7 +188,7 @@ def _persist_spec(
             )
     except Exception as exc:  # pragma: no cover - defensive guard
         logger.exception("Failed to persist spec %s", spec_id)
-        return to_json(
+        return asdict(
             error_response(
                 f"Failed to save spec '{spec_id}': {exc}",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -493,7 +492,7 @@ def perform_journal_add(
         )
     except Exception as exc:  # pragma: no cover - defensive guard
         logger.exception("Error adding journal entry for %s", spec_id)
-        return to_json(
+        return asdict(
             error_response(
                 f"Failed to add journal entry: {exc}",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -516,7 +515,7 @@ def perform_journal_add(
         },
     }
 
-    return to_json(success_response(data=data))
+    return asdict(success_response(data=data))
 
 
 def perform_journal_list(
@@ -548,7 +547,7 @@ def perform_journal_list(
             decoded = decode_cursor(cursor)
             start_after_ts = decoded.get("last_ts")
         except CursorError as exc:
-            return to_json(
+            return asdict(
                 error_response(
                     f"Invalid cursor: {exc}",
                     error_code=ErrorCode.INVALID_FORMAT,
@@ -566,7 +565,7 @@ def perform_journal_list(
         )
     except Exception as exc:  # pragma: no cover - defensive guard
         logger.exception("Error retrieving journal entries for %s", spec_id)
-        return to_json(
+        return asdict(
             error_response(
                 f"Failed to fetch journal entries: {exc}",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -613,7 +612,7 @@ def perform_journal_list(
         "page_size": page_size,
     }
 
-    return to_json(
+    return asdict(
         success_response(
             data=data,
             pagination=pagination,
@@ -649,7 +648,7 @@ def perform_journal_list_unjournaled(
             decoded = decode_cursor(cursor)
             start_after_id = decoded.get("last_id")
         except CursorError as exc:
-            return to_json(
+            return asdict(
                 error_response(
                     f"Invalid cursor: {exc}",
                     error_code=ErrorCode.INVALID_FORMAT,
@@ -662,7 +661,7 @@ def perform_journal_list_unjournaled(
         tasks = find_unjournaled_tasks(spec_data)
     except Exception as exc:  # pragma: no cover - defensive guard
         logger.exception("Error listing unjournaled tasks for %s", spec_id)
-        return to_json(
+        return asdict(
             error_response(
                 f"Failed to list unjournaled tasks: {exc}",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -707,7 +706,7 @@ def perform_journal_list_unjournaled(
         "page_size": page_size,
     }
 
-    return to_json(
+    return asdict(
         success_response(
             data=data,
             pagination=pagination,
@@ -794,7 +793,7 @@ def _dispatch_journal_action(
         return _JOURNAL_ROUTER.dispatch(action=action, config=config, **payload)
     except ActionRouterError as exc:
         allowed = ", ".join(exc.allowed_actions)
-        return to_json(
+        return asdict(
             error_response(
                 f"Unsupported journal action '{action}'. Allowed actions: {allowed}",
                 error_code=ErrorCode.VALIDATION_ERROR,

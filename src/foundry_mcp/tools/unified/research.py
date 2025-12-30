@@ -7,6 +7,7 @@ THINKDEEP, and IDEATE workflows via a unified MCP tool interface.
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -27,7 +28,6 @@ from foundry_mcp.core.responses import (
     ErrorType,
     error_response,
     success_response,
-    to_json,
 )
 from foundry_mcp.tools.unified.router import (
     ActionDefinition,
@@ -116,7 +116,7 @@ def _validation_error(
     remediation: Optional[str] = None,
 ) -> dict:
     """Create a validation error response."""
-    return to_json(
+    return asdict(
         error_response(
             f"Invalid field '{field}' for research.{action}: {message}",
             error_code=code,
@@ -162,7 +162,7 @@ def _handle_chat(
     )
 
     if result.success:
-        return to_json(
+        return asdict(
             success_response(
                 data={
                     "content": result.content,
@@ -175,7 +175,7 @@ def _handle_chat(
             )
         )
     else:
-        return to_json(
+        return asdict(
             error_response(
                 result.error or "Chat failed",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -232,7 +232,7 @@ def _handle_consensus(
     )
 
     if result.success:
-        return to_json(
+        return asdict(
             success_response(
                 data={
                     "content": result.content,
@@ -244,7 +244,7 @@ def _handle_consensus(
             )
         )
     else:
-        return to_json(
+        return asdict(
             error_response(
                 result.error or "Consensus failed",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -286,7 +286,7 @@ def _handle_thinkdeep(
     )
 
     if result.success:
-        return to_json(
+        return asdict(
             success_response(
                 data={
                     "content": result.content,
@@ -300,7 +300,7 @@ def _handle_thinkdeep(
             )
         )
     else:
-        return to_json(
+        return asdict(
             error_response(
                 result.error or "ThinkDeep failed",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -347,7 +347,7 @@ def _handle_ideate(
     )
 
     if result.success:
-        return to_json(
+        return asdict(
             success_response(
                 data={
                     "content": result.content,
@@ -359,7 +359,7 @@ def _handle_ideate(
             )
         )
     else:
-        return to_json(
+        return asdict(
             error_response(
                 result.error or "Ideate failed",
                 error_code=ErrorCode.INTERNAL_ERROR,
@@ -392,7 +392,7 @@ def _handle_thread_list(
     workflow = ChatWorkflow(config.research, _get_memory())
     threads = workflow.list_threads(status=thread_status, limit=limit)
 
-    return to_json(
+    return asdict(
         success_response(
             data={
                 "threads": threads,
@@ -416,7 +416,7 @@ def _handle_thread_get(
     thread = workflow.get_thread(thread_id)
 
     if not thread:
-        return to_json(
+        return asdict(
             error_response(
                 f"Thread '{thread_id}' not found",
                 error_code=ErrorCode.NOT_FOUND,
@@ -425,7 +425,7 @@ def _handle_thread_get(
             )
         )
 
-    return to_json(success_response(data=thread))
+    return asdict(success_response(data=thread))
 
 
 def _handle_thread_delete(
@@ -442,7 +442,7 @@ def _handle_thread_delete(
     deleted = workflow.delete_thread(thread_id)
 
     if not deleted:
-        return to_json(
+        return asdict(
             error_response(
                 f"Thread '{thread_id}' not found",
                 error_code=ErrorCode.NOT_FOUND,
@@ -451,7 +451,7 @@ def _handle_thread_delete(
             )
         )
 
-    return to_json(
+    return asdict(
         success_response(
             data={
                 "deleted": True,
@@ -516,7 +516,7 @@ def _dispatch_research_action(action: str, **kwargs: Any) -> dict:
         return _RESEARCH_ROUTER.dispatch(action=action, **kwargs)
     except ActionRouterError as exc:
         allowed = ", ".join(exc.allowed_actions)
-        return to_json(
+        return asdict(
             error_response(
                 f"Unsupported research action '{action}'. Allowed: {allowed}",
                 error_code=ErrorCode.VALIDATION_ERROR,
@@ -626,7 +626,7 @@ def register_unified_research_tool(mcp: FastMCP, config: ServerConfig) -> None:
         # Check feature flag
         flag_service = get_flag_service()
         if not flag_service.is_enabled("research_tools"):
-            return to_json(
+            return asdict(
                 error_response(
                     "Research tools are not enabled",
                     error_code=ErrorCode.FEATURE_DISABLED,
