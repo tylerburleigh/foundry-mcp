@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.7] - 2025-12-30
+
+### Added
+
+- **Research ProviderSpec Alignment**: Research config now supports full ProviderSpec notation like consultation
+  - `default_provider` accepts both simple IDs (`"gemini"`) and ProviderSpec (`"[cli]gemini:gemini-2.5-flash"`)
+  - `consensus_providers` accepts mixed notation for flexible model selection per provider
+  - New `ResearchConfig.get_default_provider_spec()` helper parses default provider
+  - New `ResearchConfig.get_consensus_provider_specs()` helper parses consensus providers
+  - New `ProviderSpec.parse_flexible()` method for backward-compatible parsing
+  - Workflows (`chat`, `consensus`, `thinkdeep`, `ideate`) now extract models from specs
+  - Added `[research]` section to sample config with notation examples
+
 ## [0.7.6] - 2025-12-30
 
 ### Fixed
