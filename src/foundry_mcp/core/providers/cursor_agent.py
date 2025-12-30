@@ -438,15 +438,21 @@ class CursorAgentProvider(ProviderContext):
 
             stderr_text = (retry_process.stderr or stderr_text).strip()
             logger.debug(f"Cursor Agent CLI stderr (retry): {stderr_text or 'no stderr'}")
+            error_msg = f"Cursor Agent CLI exited with code {retry_process.returncode}"
+            if stderr_text:
+                error_msg += f": {stderr_text[:500]}"
             raise ProviderExecutionError(
-                f"Cursor Agent CLI exited with code {retry_process.returncode}",
+                error_msg,
                 provider=self.metadata.provider_id,
             )
 
         stderr_text = (completed.stderr or "").strip()
         logger.debug(f"Cursor Agent CLI stderr: {stderr_text or 'no stderr'}")
+        error_msg = f"Cursor Agent CLI exited with code {completed.returncode}"
+        if stderr_text:
+            error_msg += f": {stderr_text[:500]}"
         raise ProviderExecutionError(
-            f"Cursor Agent CLI exited with code {completed.returncode}",
+            error_msg,
             provider=self.metadata.provider_id,
         )
 

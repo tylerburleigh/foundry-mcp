@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 from .base import (
-    ModelDescriptor,
     ProviderCapability,
     ProviderContext,
     ProviderExecutionError,
@@ -122,52 +121,10 @@ def _default_runner(
     )
 
 
-OPENCODE_MODELS: List[ModelDescriptor] = [
-    ModelDescriptor(
-        id="openai/gpt-5.2",
-        display_name="OpenAI GPT-5.2 (via OpenCode)",
-        capabilities={
-            ProviderCapability.TEXT,
-            ProviderCapability.STREAMING,
-        },
-        routing_hints={
-            "configurable": True,
-            "source": "opencode config",
-            "note": "Accepts any model ID - validated by opencode CLI",
-        },
-    ),
-    ModelDescriptor(
-        id="openai/gpt-5.2-codex",
-        display_name="OpenAI GPT-5.2 Codex (via OpenCode)",
-        capabilities={
-            ProviderCapability.TEXT,
-            ProviderCapability.STREAMING,
-        },
-        routing_hints={
-            "configurable": True,
-            "source": "opencode config",
-            "note": "Accepts any model ID - validated by opencode CLI",
-        },
-    ),
-    ModelDescriptor(
-        id="openai/gpt-5.1-codex-mini",
-        display_name="OpenAI GPT-5.1 Codex Mini (via OpenCode)",
-        capabilities={
-            ProviderCapability.TEXT,
-            ProviderCapability.STREAMING,
-        },
-        routing_hints={
-            "configurable": True,
-            "source": "opencode config",
-            "note": "Accepts any model ID - validated by opencode CLI",
-        },
-    ),
-]
-
 OPENCODE_METADATA = ProviderMetadata(
     provider_id="opencode",
     display_name="OpenCode AI SDK",
-    models=OPENCODE_MODELS,
+    models=[],  # Model validation delegated to CLI
     default_model="openai/gpt-5.1-codex-mini",
     capabilities={ProviderCapability.TEXT, ProviderCapability.STREAMING},
     security_flags={"writes_allowed": False, "read_only": True},
@@ -206,9 +163,7 @@ class OpenCodeProvider(ProviderContext):
         self._env = self._prepare_subprocess_env(env)
 
         self._timeout = timeout or DEFAULT_TIMEOUT_SECONDS
-        self._model = self._ensure_model(
-            model or metadata.default_model or self._first_model_id()
-        )
+        self._model = model or metadata.default_model or "openai/gpt-5.1-codex-mini"
         self._server_process: Optional[subprocess.Popen[bytes]] = None
         self._config_file_path: Optional[Path] = None
 
@@ -296,27 +251,6 @@ class OpenCodeProvider(ProviderContext):
                 pass
             finally:
                 self._config_file_path = None
-
-    def _first_model_id(self) -> str:
-        if not self.metadata.models:
-            raise ProviderUnavailableError(
-                "OpenCode provider metadata is missing model descriptors.",
-                provider=self.metadata.provider_id,
-            )
-        return self.metadata.models[0].id
-
-    def _ensure_model(self, candidate: str) -> str:
-        # Validate that the model is not empty
-        if not candidate or not candidate.strip():
-            raise ProviderExecutionError(
-                "Model identifier cannot be empty",
-                provider=self.metadata.provider_id,
-            )
-
-        # For opencode, we accept any model ID and let opencode CLI validate it
-        # This avoids maintaining a hardcoded list that would become stale
-        # opencode CLI supports many models across providers (OpenAI, Anthropic, etc.)
-        return candidate
 
     def _is_port_open(self, port: int, host: str = "localhost") -> bool:
         """Check if a TCP port is open and accepting connections."""
@@ -440,7 +374,7 @@ class OpenCodeProvider(ProviderContext):
         """Resolve model from request metadata or use default."""
         model_override = request.metadata.get("model") if request.metadata else None
         if model_override:
-            return self._ensure_model(str(model_override))
+            return str(model_override)
         return self._model
 
     def _emit_stream_if_requested(self, content: str, *, stream: bool) -> None:
@@ -497,8 +431,11 @@ class OpenCodeProvider(ProviderContext):
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
             logger.debug(f"OpenCode wrapper stderr: {stderr or 'no stderr'}")
+            error_msg = f"OpenCode wrapper exited with code {completed.returncode}"
+            if stderr:
+                error_msg += f": {stderr[:500]}"
             raise ProviderExecutionError(
-                f"OpenCode wrapper exited with code {completed.returncode}",
+                error_msg,
                 provider=self.metadata.provider_id,
             )
 

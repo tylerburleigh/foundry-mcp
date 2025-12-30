@@ -273,8 +273,11 @@ class GeminiProvider(ProviderContext):
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
             logger.debug(f"Gemini CLI stderr: {stderr or 'no stderr'}")
+            error_msg = f"Gemini CLI exited with code {completed.returncode}"
+            if stderr:
+                error_msg += f": {stderr[:500]}"
             raise ProviderExecutionError(
-                f"Gemini CLI exited with code {completed.returncode}",
+                error_msg,
                 provider=self.metadata.provider_id,
             )
 

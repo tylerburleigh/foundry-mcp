@@ -31,7 +31,7 @@ availability_cache_ttl = 3600
 # Format: "[api]provider/model" or "[cli]transport[:backend/model|:model]"
 priority = [
     "[cli]gemini:pro",
-    "[cli]codex:gpt-5.1-codex",
+    "[cli]codex:gpt-5.2-codex",
     "[cli]cursor-agent:gpt-5.1-codex",
     "[cli]opencode:openai/gpt-5.2-codex",
     "[cli]claude:opus",
@@ -50,17 +50,17 @@ cache_ttl = 3600
 # Fidelity review requires 2 models for consensus to catch implementation deviations
 [consultation.workflows.fidelity_review]
 min_models = 2
-timeout_override = 60.0
+timeout_override = 600.0
 
 # Plan review requires 2 models for consensus on architectural decisions
 [consultation.workflows.plan_review]
 min_models = 2
-timeout_override = 60.0
+timeout_override = 300.0
 
 # Markdown plan review (pre-spec) requires 2 models for consensus
 [consultation.workflows.markdown_plan_review]
 min_models = 2
-timeout_override = 60.0
+timeout_override = 300.0
 
 # Doc generation uses single model (default min_models=1)
 [consultation.workflows.doc_generation]

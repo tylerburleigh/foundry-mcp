@@ -332,7 +332,8 @@ class CodexProvider(ProviderContext):
 
     def _build_command(self, model: str, prompt: str, attachments: List[str]) -> List[str]:
         # Note: codex CLI requires --json flag for JSONL output (non-interactive mode)
-        command = [self._binary, "exec", "--sandbox", "read-only", "--json"]
+        # --skip-git-repo-check allows running outside trusted git directories
+        command = [self._binary, "exec", "--sandbox", "read-only", "--skip-git-repo-check", "--json"]
         if model:
             command.extend(["-m", model])
         for path in attachments:
@@ -492,8 +493,11 @@ class CodexProvider(ProviderContext):
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
             logger.debug(f"Codex CLI stderr: {stderr or 'no stderr'}")
+            error_msg = f"Codex CLI exited with code {completed.returncode}"
+            if stderr:
+                error_msg += f": {stderr[:500]}"
             raise ProviderExecutionError(
-                f"Codex CLI exited with code {completed.returncode}",
+                error_msg,
                 provider=self.metadata.provider_id,
             )
 

@@ -334,8 +334,11 @@ class ClaudeProvider(ProviderContext):
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
             logger.debug(f"Claude CLI stderr: {stderr or 'no stderr'}")
+            error_msg = f"Claude CLI exited with code {completed.returncode}"
+            if stderr:
+                error_msg += f": {stderr[:500]}"
             raise ProviderExecutionError(
-                f"Claude CLI exited with code {completed.returncode}",
+                error_msg,
                 provider=self.metadata.provider_id,
             )
 
