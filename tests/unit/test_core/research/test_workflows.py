@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from foundry_mcp.config import ResearchConfig
+from foundry_mcp.core.providers import ProviderStatus
 from foundry_mcp.core.research.memory import ResearchMemory
 from foundry_mcp.core.research.models import (
     ConfidenceLevel,
@@ -421,6 +422,89 @@ class TestConsensusWorkflow:
         assert isinstance(result.success, bool)
         assert isinstance(result.content, str)
         assert isinstance(result.metadata, dict)
+
+    def test_execute_with_full_provider_specs(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+    ):
+        """Should correctly parse full provider specs like [cli]codex:gpt-5.2.
+
+        This tests that consensus workflow properly handles provider specs from config
+        that include the [cli] prefix and model specification.
+        """
+        workflow = ConsensusWorkflow(research_config, mock_memory)
+
+        with patch(
+            "foundry_mcp.core.research.workflows.consensus.available_providers",
+            return_value=["codex", "gemini"],
+        ):
+            with patch(
+                "foundry_mcp.core.research.workflows.consensus.resolve_provider"
+            ) as mock_resolve:
+                # Set up mock provider that returns successful results
+                mock_context = MagicMock()
+                mock_result = MagicMock()
+                mock_result.status = ProviderStatus.SUCCESS
+                mock_result.content = "Test response"
+                mock_result.model_used = "gpt-5.2"
+                mock_result.tokens = MagicMock()
+                mock_result.tokens.total_tokens = 100
+                mock_context.generate.return_value = mock_result
+                mock_resolve.return_value = mock_context
+
+                result = workflow.execute(
+                    prompt="Test question",
+                    providers=["[cli]codex:gpt-5.2", "[cli]gemini:pro"],
+                    strategy=ConsensusStrategy.FIRST_VALID,
+                )
+
+                # Verify resolve_provider was called with parsed base IDs and models
+                assert mock_resolve.call_count == 2
+                calls = mock_resolve.call_args_list
+
+                # First call should be for codex with model gpt-5.2
+                assert calls[0][0][0] == "codex"
+                assert calls[0][1]["model"] == "gpt-5.2"
+
+                # Second call should be for gemini with model pro
+                assert calls[1][0][0] == "gemini"
+                assert calls[1][1]["model"] == "pro"
+
+    def test_execute_filters_unavailable_providers_with_specs(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+    ):
+        """Should filter out unavailable providers even with full specs."""
+        workflow = ConsensusWorkflow(research_config, mock_memory)
+
+        with patch(
+            "foundry_mcp.core.research.workflows.consensus.available_providers",
+            return_value=["gemini"],  # Only gemini available
+        ):
+            with patch(
+                "foundry_mcp.core.research.workflows.consensus.resolve_provider"
+            ) as mock_resolve:
+                mock_context = MagicMock()
+                mock_result = MagicMock()
+                mock_result.status = ProviderStatus.SUCCESS
+                mock_result.content = "Test response"
+                mock_result.model_used = "pro"
+                mock_result.tokens = MagicMock()
+                mock_result.tokens.total_tokens = 100
+                mock_context.generate.return_value = mock_result
+                mock_resolve.return_value = mock_context
+
+                result = workflow.execute(
+                    prompt="Test",
+                    providers=["[cli]codex:gpt-5.2", "[cli]gemini:pro"],
+                    strategy=ConsensusStrategy.FIRST_VALID,
+                )
+
+                # Only gemini should be called since codex is not available
+                assert mock_resolve.call_count == 1
+                assert mock_resolve.call_args[0][0] == "gemini"
 
 
 # =============================================================================
