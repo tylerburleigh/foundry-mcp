@@ -5,6 +5,92 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.11] - 2025-12-30
+
+### Fixed
+
+- **Consensus Workflow Provider Spec Parsing**: Extended provider spec parsing fix to consensus workflow
+  - Full specs like `[cli]codex:gpt-5.2` in `consensus_providers` config now work correctly
+  - Parses specs in `execute()`, `_query_provider_sync()`, and `_query_single_provider()`
+  - Filters providers by base ID availability while preserving model selection
+
+## [0.7.10] - 2025-12-30
+
+### Fixed
+
+- **Research Workflow Provider Spec Parsing**: Fixed `_resolve_provider` to handle full provider specs
+  - Full specs like `[cli]codex:gpt-5.2-codex` in `default_provider` config now work correctly
+  - Extracts base provider ID for availability check (e.g., `codex` from full spec)
+  - Passes model from spec to `resolve_provider()` for proper model selection
+  - Caches providers by full spec string to differentiate model variants
+
+## [0.7.9] - 2025-12-30
+
+### Fixed
+
+- **Provider Detector Cache Isolation**: Fixed test pollution where availability cache persisted across tests
+  - `reset_detectors()` now clears `_AVAILABILITY_CACHE` to ensure fresh detection
+  - Prevents false negatives when test order affects cached availability results
+
+- **Research E2E Test Fixtures**: Added missing `max_messages_per_thread` to mock_config fixture
+  - Fixed `TypeError: '>=' not supported between instances of 'MagicMock' and 'int'`
+  - Research chat workflow now works correctly in test mode
+
+- **OpenCode Model Validation Test**: Removed obsolete test for empty model validation
+  - Model validation was delegated to CLI in v0.7.5 but test was not removed
+  - OpenCode provider correctly passes any model to CLI for validation
+
+## [0.7.8] - 2025-12-30
+
+### Fixed
+
+- **Consensus Event Loop Conflict**: Fixed `asyncio.run() cannot be called from a running event loop` error
+  - Replaced `asyncio.run()` with `ThreadPoolExecutor` for parallel provider execution
+  - Works correctly within MCP server's event loop context
+  - New `_execute_parallel_sync()` and `_query_provider_sync()` methods for thread-based parallelism
+
+- **Research Timeout Configuration**: Fixed thinkdeep and other workflows timing out after 30 seconds
+  - Added `default_timeout` config option to `[research]` section (default: 60 seconds)
+  - Workflows now use configurable timeout from config instead of hardcoded 30s
+  - Longer-running investigation workflows like thinkdeep no longer timeout prematurely
+
+## [0.7.7] - 2025-12-30
+
+### Added
+
+- **Research ProviderSpec Alignment**: Research config now supports full ProviderSpec notation like consultation
+  - `default_provider` accepts both simple IDs (`"gemini"`) and ProviderSpec (`"[cli]gemini:gemini-2.5-flash"`)
+  - `consensus_providers` accepts mixed notation for flexible model selection per provider
+  - New `ResearchConfig.get_default_provider_spec()` helper parses default provider
+  - New `ResearchConfig.get_consensus_provider_specs()` helper parses consensus providers
+  - New `ProviderSpec.parse_flexible()` method for backward-compatible parsing
+  - Workflows (`chat`, `consensus`, `thinkdeep`, `ideate`) now extract models from specs
+  - Added `[research]` section to sample config with notation examples
+
+## [0.7.6] - 2025-12-30
+
+### Fixed
+
+- **Research Tools Feature Flag**: Fixed bug where `research_tools = true` in `[features]` config section was ignored
+  - Root cause 1: `research_tools` flag was never registered in the feature flag registry
+  - Root cause 2: `[features]` section in TOML config was not being read
+  - Added flag registration in `research.py` following `provider.py` pattern
+  - Added global override support to `FeatureFlagRegistry` for config-based flag settings
+  - Added `[features]` section handling in `ServerConfig._load_toml()`
+  - Added `FOUNDRY_MCP_FEATURES` environment variable support (format: `flag1=true,flag2=false`)
+
+### Added
+
+- **Feature Flag Global Overrides**: New methods on `FeatureFlagRegistry`:
+  - `set_global_override(flag_name, enabled)` - Set config-based override for all clients
+  - `clear_global_override(flag_name)` - Clear a global override
+  - `clear_all_global_overrides()` - Clear all global overrides
+  - `apply_config_overrides(features)` - Apply multiple overrides from config dict
+
+### Dependencies
+
+- Added `filelock>=3.20.1` as a required dependency
+
 ## [Unreleased]
 
 ## [0.8.0] - 2026-01-01

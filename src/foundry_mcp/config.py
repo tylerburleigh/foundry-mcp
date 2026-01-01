@@ -452,6 +452,7 @@ class ResearchConfig:
         consensus_providers: List of provider IDs for CONSENSUS workflow
         thinkdeep_max_depth: Maximum investigation depth for THINKDEEP workflow
         ideate_perspectives: List of perspectives for IDEATE brainstorming
+        default_timeout: Default timeout in seconds for provider calls (thinkdeep uses 2x)
         deep_research_max_iterations: Maximum refinement iterations for DEEP_RESEARCH
         deep_research_max_sub_queries: Maximum sub-queries for query decomposition
         deep_research_max_sources: Maximum sources per sub-query
@@ -483,6 +484,7 @@ class ResearchConfig:
     ideate_perspectives: List[str] = field(
         default_factory=lambda: ["technical", "creative", "practical", "visionary"]
     )
+    default_timeout: float = 60.0  # 60 seconds default, configurable
     # Deep research configuration
     deep_research_max_iterations: int = 3
     deep_research_max_sub_queries: int = 5
@@ -578,6 +580,7 @@ class ResearchConfig:
             consensus_providers=consensus_providers,
             thinkdeep_max_depth=int(data.get("thinkdeep_max_depth", 5)),
             ideate_perspectives=ideate_perspectives,
+            default_timeout=float(data.get("default_timeout", 60.0)),
             # Deep research configuration
             deep_research_max_iterations=int(data.get("deep_research_max_iterations", 3)),
             deep_research_max_sub_queries=int(data.get("deep_research_max_sub_queries", 5)),
@@ -802,6 +805,16 @@ class ResearchConfig:
         api_key = self.get_search_provider_api_key("google", required=required)
         cse_id = self.get_search_provider_api_key("google_cse", required=required)
         return api_key, cse_id
+
+    def get_default_provider_spec(self) -> "ProviderSpec":
+        """Parse default_provider into a ProviderSpec."""
+        from foundry_mcp.core.llm_config import ProviderSpec
+        return ProviderSpec.parse_flexible(self.default_provider)
+
+    def get_consensus_provider_specs(self) -> List["ProviderSpec"]:
+        """Parse consensus_providers into ProviderSpec list."""
+        from foundry_mcp.core.llm_config import ProviderSpec
+        return [ProviderSpec.parse_flexible(p) for p in self.consensus_providers]
 
 
 _VALID_COMMIT_CADENCE = {"manual", "task", "phase"}
@@ -1040,6 +1053,10 @@ class ServerConfig:
             if "research" in data:
                 self.research = ResearchConfig.from_toml_dict(data["research"])
 
+            # Feature flags settings
+            if "features" in data:
+                self._apply_feature_flags(data["features"])
+
         except Exception as e:
             logger.error(f"Error loading config file {path}: {e}")
 
@@ -1228,6 +1245,35 @@ class ServerConfig:
             self.research.google_cse_id = google_cse
         if semantic_scholar_key := os.environ.get("SEMANTIC_SCHOLAR_API_KEY"):
             self.research.semantic_scholar_api_key = semantic_scholar_key
+
+        # Feature flag overrides from environment
+        if feature_flags := os.environ.get("FOUNDRY_MCP_FEATURES"):
+            # Format: "flag1=true,flag2=false"
+            features = {}
+            for item in feature_flags.split(","):
+                item = item.strip()
+                if "=" in item:
+                    name, value = item.split("=", 1)
+                    features[name.strip()] = _parse_bool(value.strip())
+            if features:
+                self._apply_feature_flags(features)
+
+    def _apply_feature_flags(self, features: Dict[str, Any]) -> None:
+        """Apply feature flag overrides to the global registry.
+
+        Args:
+            features: Dictionary mapping flag names to boolean values
+        """
+        from foundry_mcp.core.feature_flags import get_flag_service
+
+        flag_service = get_flag_service()
+        parsed_features = {}
+        for name, value in features.items():
+            if isinstance(value, bool):
+                parsed_features[name] = value
+            else:
+                parsed_features[name] = _parse_bool(value)
+        flag_service.apply_config_overrides(parsed_features)
 
     def validate_api_key(self, key: Optional[str]) -> bool:
         """
