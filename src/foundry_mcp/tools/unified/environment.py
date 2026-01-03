@@ -44,7 +44,7 @@ structured = true
 # Available: health, plan, pr, error, metrics, journal, authoring, review,
 #            spec, task, provider, environment, lifecycle, verification,
 #            server, test, research
-disabled_tools = ["error", "metrics", "health"]
+disabled_tools = ["error", "metrics", "health", "environment"]
 
 [workflow]
 mode = "single"

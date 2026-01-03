@@ -65,9 +65,8 @@ structured = true
 #   test        - Test runner integration
 #   research    - Research workflows (chat, consensus, thinkdeep, ideate, deep)
 #
-# Default: disable error, metrics, and health to save context tokens
-# (health is only used during initial setup)
-disabled_tools = ["error", "metrics", "health"]
+# Default: disable tools only used during setup or for dashboard features
+disabled_tools = ["error", "metrics", "health", "environment"]
 
 # Environment variable alternative: FOUNDRY_MCP_DISABLED_TOOLS (comma-separated)
 # Example: FOUNDRY_MCP_DISABLED_TOOLS=error,metrics,research
