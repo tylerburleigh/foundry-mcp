@@ -766,6 +766,11 @@
             "required": true,
             "enum": [
               "prepare",
+              "prepare-batch",
+              "start-batch",
+              "complete-batch",
+              "reset-batch",
+              "session-config",
               "next",
               "info",
               "check-deps",
@@ -913,6 +918,54 @@
               "task_id": "task-1-2",
               "requirement_type": "acceptance",
               "text": "All unit tests must pass with 100% coverage"
+            }
+          },
+          {
+            "description": "Find independent tasks for parallel execution",
+            "input": {
+              "action": "prepare-batch",
+              "spec_id": "my-feature-spec-001",
+              "max_tasks": 3
+            }
+          },
+          {
+            "description": "Atomically start multiple tasks",
+            "input": {
+              "action": "start-batch",
+              "spec_id": "my-feature-spec-001",
+              "task_ids": ["task-1-1", "task-1-2", "task-1-3"]
+            }
+          },
+          {
+            "description": "Complete multiple tasks with partial failure support",
+            "input": {
+              "action": "complete-batch",
+              "spec_id": "my-feature-spec-001",
+              "completions": [
+                {"task_id": "task-1-1", "success": true, "completion_note": "Implemented feature"},
+                {"task_id": "task-1-2", "success": false, "completion_note": "Tests failing"}
+              ]
+            }
+          },
+          {
+            "description": "Reset stale in_progress tasks",
+            "input": {
+              "action": "reset-batch",
+              "spec_id": "my-feature-spec-001"
+            }
+          },
+          {
+            "description": "Enable autonomous mode for continuous task execution",
+            "input": {
+              "action": "session-config",
+              "auto_mode": true
+            }
+          },
+          {
+            "description": "Get current session configuration",
+            "input": {
+              "action": "session-config",
+              "get": true
             }
           }
         ]

@@ -103,6 +103,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-01-03
+
+### Added
+
+- **Batch Operations for Parallel Task Execution**: New actions for autonomous multi-task workflows
+  - `prepare-batch`: Find independent tasks for parallel execution with file-path conflict detection
+  - `start-batch`: Atomically start multiple tasks as in_progress (all-or-nothing validation)
+  - `complete-batch`: Complete multiple tasks with partial failure support
+  - `reset-batch`: Reset batch on failure, returning tasks to pending status
+  - Token budget support for context-aware batch sizing
+  - Stale task detection for tasks stuck in_progress beyond threshold
+  - Dependency graph visualization in prepare-batch responses
+
+- **Autonomous Session Context Tracking**: CLI context management for continuous task processing
+  - `AutonomousSession` class for tracking batch state across operations
+  - `ContextTracker` for managing session lifecycle and context limits
+  - Integration with task router for session-aware operations
+
+### Changed
+
+- Enhanced development guide with batch operations documentation and usage examples
+
 ## [0.8.0] - 2026-01-01
 
 ### Added

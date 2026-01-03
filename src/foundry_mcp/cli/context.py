@@ -30,6 +30,43 @@ class SessionStats:
 
 
 @dataclass
+class AutonomousSession:
+    """
+    Ephemeral state for autonomous task execution mode.
+
+    This tracks whether the agent is running in autonomous mode where
+    it continues to the next task without explicit user confirmation.
+
+    NOTE: This state is EPHEMERAL - it exists only in memory and does
+    not persist across CLI restarts. Each new CLI session starts with
+    autonomous mode disabled.
+    """
+    enabled: bool = False
+    tasks_completed: int = 0
+    pause_reason: Optional[str] = None  # Why auto-mode paused: "limit", "error", "user", "context"
+    started_at: Optional[str] = None    # ISO timestamp when auto-mode was enabled
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON output."""
+        return {
+            "enabled": self.enabled,
+            "tasks_completed": self.tasks_completed,
+            "pause_reason": self.pause_reason,
+            "started_at": self.started_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AutonomousSession":
+        """Create from dictionary (for in-session use only)."""
+        return cls(
+            enabled=data.get("enabled", False),
+            tasks_completed=data.get("tasks_completed", 0),
+            pause_reason=data.get("pause_reason"),
+            started_at=data.get("started_at"),
+        )
+
+
+@dataclass
 class ContextSession:
     """
     Tracks a CLI session with limits and markers.
@@ -44,6 +81,7 @@ class ContextSession:
     limits: SessionLimits = field(default_factory=SessionLimits)
     stats: SessionStats = field(default_factory=SessionStats)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    autonomous: Optional[AutonomousSession] = None
 
     @property
     def consultations_remaining(self) -> int:
@@ -111,6 +149,7 @@ class ContextSession:
                 "at_limit": self.at_limit,
             },
             "metadata": self.metadata,
+            "autonomous": self.autonomous.to_dict() if self.autonomous else None,
         }
 
 

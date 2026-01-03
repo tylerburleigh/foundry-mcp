@@ -13,6 +13,7 @@ A comprehensive guide for developers contributing to foundry-mcp.
 - [Testing](#testing)
 - [CLI Development](#cli-development)
 - [Common Workflows](#common-workflows)
+- [Batch Operations & Autonomous Mode](#batch-operations--autonomous-mode)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
 
@@ -664,6 +665,204 @@ python -c "from foundry_mcp.server import create_server; print('OK')"
 
 ---
 
+## Batch Operations & Autonomous Mode
+
+The task router supports batch operations for parallel task execution and autonomous mode for continuous task processing.
+
+### Batch Actions
+
+#### prepare-batch
+
+Finds multiple independent tasks that can be executed in parallel.
+
+```python
+# Find up to 3 independent tasks for parallel execution
+result = mcp__foundry_mcp__task(
+    action="prepare-batch",
+    spec_id="my-spec-001",
+    max_tasks=3,          # Optional: default is 3
+    token_budget=50000,   # Optional: max combined context tokens
+)
+```
+
+Response includes:
+- `tasks`: List of task contexts with dependencies, phase info, parent context
+- `task_count`: Number of tasks returned
+- `warnings`: List of warnings (e.g., logical coupling disclaimer)
+- `stale_tasks`: Tasks stuck in `in_progress` for >1 hour
+- `dependency_graph`: Visual representation of task relationships
+
+Independent tasks must have:
+- Different file paths (no conflicts)
+- No dependency relationships between them
+- Tasks without `file_path` are treated as exclusive barriers
+
+#### start-batch
+
+Atomically starts multiple tasks as `in_progress`. All-or-nothing validation.
+
+```python
+# Start tasks as in_progress atomically
+result = mcp__foundry_mcp__task(
+    action="start-batch",
+    spec_id="my-spec-001",
+    task_ids=["task-1-1", "task-1-2", "task-1-3"],
+)
+```
+
+Returns:
+- `started`: List of successfully started task IDs
+- `started_count`: Number of tasks started
+- `started_at`: ISO timestamp
+
+Validation includes:
+- All tasks must exist and be pending
+- No dependency conflicts between tasks
+- No file path conflicts
+
+#### complete-batch
+
+Completes multiple tasks with partial failure support.
+
+```python
+# Complete tasks with individual results
+result = mcp__foundry_mcp__task(
+    action="complete-batch",
+    spec_id="my-spec-001",
+    completions=[
+        {"task_id": "task-1-1", "success": True, "completion_note": "Implemented feature X"},
+        {"task_id": "task-1-2", "success": False, "completion_note": "Tests failing, needs investigation"},
+        {"task_id": "task-1-3", "success": True, "completion_note": "Refactored module Y"},
+    ],
+)
+```
+
+Returns:
+- `results`: Per-task status (completed, failed, skipped, error)
+- `completed_count`: Number successfully completed
+- `failed_count`: Number marked as failed
+
+Failed tasks get `status: "failed"` with incremented `retry_count`.
+
+#### reset-batch
+
+Resets stale or specified `in_progress` tasks back to pending.
+
+```python
+# Auto-detect and reset stale tasks (>1 hour in progress)
+result = mcp__foundry_mcp__task(
+    action="reset-batch",
+    spec_id="my-spec-001",
+)
+
+# Or reset specific tasks
+result = mcp__foundry_mcp__task(
+    action="reset-batch",
+    spec_id="my-spec-001",
+    task_ids=["task-1-1", "task-1-2"],
+)
+```
+
+### Session Configuration
+
+The `session-config` action manages ephemeral autonomous session state.
+
+```python
+# Get current session config
+result = mcp__foundry_mcp__task(
+    action="session-config",
+    get=True,
+)
+
+# Enable autonomous mode
+result = mcp__foundry_mcp__task(
+    action="session-config",
+    auto_mode=True,
+)
+
+# Disable autonomous mode
+result = mcp__foundry_mcp__task(
+    action="session-config",
+    auto_mode=False,
+)
+```
+
+Response includes:
+- `session_id`: Unique session identifier
+- `autonomous`: Session state with:
+  - `enabled`: Whether autonomous mode is active
+  - `tasks_completed`: Count of tasks completed in this session
+  - `pause_reason`: Why auto-mode paused (if paused)
+  - `started_at`: When autonomous mode was enabled
+
+### Autonomous Mode Pause Triggers
+
+Autonomous mode automatically pauses when guardrails are hit:
+
+| Pause Reason | Trigger | Description |
+|--------------|---------|-------------|
+| `context` | Context usage >= 85% | Token/context budget nearing limit |
+| `error` | >= 3 consecutive errors | Too many failures indicate investigation needed |
+| `blocked` | All remaining tasks blocked | No actionable tasks available |
+| `limit` | Session limit reached | Max consultations or tokens exceeded |
+| `user` | User disabled auto-mode | Explicit user request to stop |
+
+The `_check_autonomous_limits()` helper in `core/batch_operations.py` evaluates these conditions and updates `AutonomousSession.pause_reason`.
+
+### Autonomous Mode Workflow Example
+
+```python
+# 1. Enable autonomous mode
+mcp__foundry_mcp__task(action="session-config", auto_mode=True)
+
+# 2. Loop: prepare and execute tasks
+while True:
+    # Get next task
+    result = mcp__foundry_mcp__task(action="prepare", spec_id="my-spec")
+
+    if result["data"].get("spec_complete"):
+        print("Spec complete!")
+        break
+
+    # Check autonomous session hints
+    auto_hints = result["data"].get("auto_mode_hints", {})
+
+    # If high complexity or user input needed, pause
+    if auto_hints.get("estimated_complexity") == "high":
+        print("Complex task - requesting user confirmation")
+        break
+
+    if auto_hints.get("may_require_user_input"):
+        print("Task may need user input")
+        break
+
+    # Get current session and check limits
+    session = mcp__foundry_mcp__task(action="session-config", get=True)
+    pause_reason = session["data"]["autonomous"].get("pause_reason")
+
+    if pause_reason:
+        print(f"Autonomous mode paused: {pause_reason}")
+        break
+
+    # Execute task...
+    task_id = result["data"]["task_id"]
+    mcp__foundry_mcp__task(action="start", spec_id="my-spec", task_id=task_id)
+
+    # ... implement task ...
+
+    mcp__foundry_mcp__task(
+        action="complete",
+        spec_id="my-spec",
+        task_id=task_id,
+        completion_note="Task completed successfully",
+    )
+
+# 3. Disable autonomous mode when done
+mcp__foundry_mcp__task(action="session-config", auto_mode=False)
+```
+
+---
+
 ## Best Practices
 
 ### General
@@ -731,4 +930,4 @@ python -c "from foundry_mcp.server import create_server; print('OK')"
 
 ---
 
-*Last updated: 2025-11-28*
+*Last updated: 2026-01-02*
