@@ -57,6 +57,19 @@ from foundry_mcp.core.task import (
     update_task_metadata,
     update_task_requirements,
 )
+from foundry_mcp.core.batch_operations import (
+    prepare_batch_context,
+    start_batch,
+    complete_batch,
+    reset_batch,
+    DEFAULT_MAX_TASKS,
+    DEFAULT_TOKEN_BUDGET,
+    STALE_TASK_THRESHOLD_HOURS,
+)
+from foundry_mcp.cli.context import (
+    AutonomousSession,
+    get_context_tracker,
+)
 from foundry_mcp.core.validation import (
     VALID_VERIFICATION_TYPES,
     VERIFICATION_TYPE_MAPPING,
@@ -256,6 +269,303 @@ def _handle_prepare(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
     _metrics.counter(_metric(action), labels={"status": "success"})
     return _attach_meta(result, request_id=request_id, duration_ms=elapsed_ms)
+
+
+def _handle_prepare_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """
+    Handle prepare-batch action for parallel task execution.
+
+    Returns multiple independent tasks with context for parallel implementation.
+    """
+    request_id = _request_id()
+    action = "prepare-batch"
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(
+            field="spec_id",
+            action=action,
+            message="Provide a non-empty spec identifier",
+            request_id=request_id,
+        )
+
+    # Optional parameters with defaults
+    max_tasks = payload.get("max_tasks", DEFAULT_MAX_TASKS)
+    if not isinstance(max_tasks, int) or max_tasks < 1:
+        return _validation_error(
+            field="max_tasks",
+            action=action,
+            message="max_tasks must be a positive integer",
+            request_id=request_id,
+            code=ErrorCode.VALIDATION_ERROR,
+        )
+
+    token_budget = payload.get("token_budget", DEFAULT_TOKEN_BUDGET)
+    if not isinstance(token_budget, int) or token_budget < 1000:
+        return _validation_error(
+            field="token_budget",
+            action=action,
+            message="token_budget must be an integer >= 1000",
+            request_id=request_id,
+            code=ErrorCode.VALIDATION_ERROR,
+        )
+
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    if specs_dir is None:
+        return _specs_dir_missing_error(request_id)
+
+    start = time.perf_counter()
+    result, error = prepare_batch_context(
+        spec_id=spec_id.strip(),
+        max_tasks=max_tasks,
+        token_budget=token_budget,
+        specs_dir=specs_dir,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    if error:
+        _metrics.counter(_metric(action), labels={"status": "error"})
+        return asdict(
+            error_response(
+                error,
+                error_code=ErrorCode.OPERATION_FAILED,
+                error_type=ErrorType.VALIDATION,
+                request_id=request_id,
+            )
+        )
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+
+    # Build response with batch context
+    response = success_response(
+        spec_id=spec_id.strip(),
+        tasks=result.get("tasks", []),
+        task_count=result.get("task_count", 0),
+        spec_complete=result.get("spec_complete", False),
+        all_blocked=result.get("all_blocked", False),
+        stale_tasks=result.get("stale_tasks", []),
+        dependency_graph=result.get("dependency_graph", {}),
+        token_estimate=result.get("token_estimate", 0),
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+
+    warnings = result.get("warnings", [])
+    return _attach_meta(
+        asdict(response),
+        request_id=request_id,
+        duration_ms=elapsed_ms,
+        warnings=warnings if warnings else None,
+    )
+
+
+def _handle_start_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """
+    Handle start-batch action for atomically starting multiple tasks.
+
+    Validates all tasks can be started before making any changes.
+    """
+    request_id = _request_id()
+    action = "start-batch"
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(
+            field="spec_id",
+            action=action,
+            message="Provide a non-empty spec identifier",
+            request_id=request_id,
+        )
+
+    task_ids = payload.get("task_ids")
+    if not isinstance(task_ids, list) or not task_ids:
+        return _validation_error(
+            field="task_ids",
+            action=action,
+            message="Provide a non-empty list of task IDs",
+            request_id=request_id,
+        )
+
+    # Validate all task_ids are strings
+    for i, tid in enumerate(task_ids):
+        if not isinstance(tid, str) or not tid.strip():
+            return _validation_error(
+                field=f"task_ids[{i}]",
+                action=action,
+                message="Each task ID must be a non-empty string",
+                request_id=request_id,
+                code=ErrorCode.VALIDATION_ERROR,
+            )
+
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    if specs_dir is None:
+        return _specs_dir_missing_error(request_id)
+
+    start = time.perf_counter()
+    result, error = start_batch(
+        spec_id=spec_id.strip(),
+        task_ids=[tid.strip() for tid in task_ids],
+        specs_dir=specs_dir,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    if error:
+        _metrics.counter(_metric(action), labels={"status": "error"})
+        # Include partial results in error response
+        return asdict(
+            error_response(
+                error,
+                error_code=ErrorCode.OPERATION_FAILED,
+                error_type=ErrorType.VALIDATION,
+                request_id=request_id,
+                details=result if result else None,
+            )
+        )
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+
+    response = success_response(
+        spec_id=spec_id.strip(),
+        started=result.get("started", []),
+        started_count=result.get("started_count", 0),
+        started_at=result.get("started_at"),
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+    return _attach_meta(asdict(response), request_id=request_id, duration_ms=elapsed_ms)
+
+
+def _handle_complete_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """Handle complete-batch action for completing multiple tasks with partial failure support."""
+    request_id = _request_id()
+    action = "complete-batch"
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(field="spec_id", action=action, message="Provide a non-empty spec identifier", request_id=request_id)
+
+    completions = payload.get("completions")
+    if not isinstance(completions, list) or not completions:
+        return _validation_error(field="completions", action=action, message="Provide a non-empty list of completions", request_id=request_id)
+
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    if specs_dir is None:
+        return _specs_dir_missing_error(request_id)
+
+    start = time.perf_counter()
+    result, error = complete_batch(spec_id=spec_id.strip(), completions=completions, specs_dir=specs_dir)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    if error:
+        _metrics.counter(_metric(action), labels={"status": "error"})
+        return asdict(error_response(error, error_code=ErrorCode.OPERATION_FAILED, error_type=ErrorType.VALIDATION, request_id=request_id, details=result if result else None))
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+
+    response = success_response(
+        spec_id=spec_id.strip(),
+        results=result.get("results", {}),
+        completed_count=result.get("completed_count", 0),
+        failed_count=result.get("failed_count", 0),
+        total_processed=result.get("total_processed", 0),
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+    return _attach_meta(asdict(response), request_id=request_id, duration_ms=elapsed_ms)
+
+
+def _handle_reset_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """
+    Handle reset-batch action for resetting stale or specified in_progress tasks.
+
+    Resets tasks back to pending status and clears started_at timestamp.
+    If task_ids not provided, finds stale tasks automatically based on threshold.
+    """
+    request_id = _request_id()
+    action = "reset-batch"
+    spec_id = payload.get("spec_id")
+    if not isinstance(spec_id, str) or not spec_id.strip():
+        return _validation_error(
+            field="spec_id",
+            action=action,
+            message="Provide a non-empty spec identifier",
+            request_id=request_id,
+        )
+
+    # Optional: specific task IDs to reset
+    task_ids = payload.get("task_ids")
+    if task_ids is not None:
+        if not isinstance(task_ids, list):
+            return _validation_error(
+                field="task_ids",
+                action=action,
+                message="task_ids must be a list of strings",
+                request_id=request_id,
+            )
+        # Validate all task_ids are strings
+        for i, tid in enumerate(task_ids):
+            if not isinstance(tid, str) or not tid.strip():
+                return _validation_error(
+                    field=f"task_ids[{i}]",
+                    action=action,
+                    message="Each task ID must be a non-empty string",
+                    request_id=request_id,
+                    code=ErrorCode.VALIDATION_ERROR,
+                )
+        task_ids = [tid.strip() for tid in task_ids]
+
+    # Optional: threshold in hours for stale detection
+    threshold_hours = payload.get("threshold_hours", STALE_TASK_THRESHOLD_HOURS)
+    if not isinstance(threshold_hours, (int, float)) or threshold_hours <= 0:
+        return _validation_error(
+            field="threshold_hours",
+            action=action,
+            message="threshold_hours must be a positive number",
+            request_id=request_id,
+        )
+
+    workspace = payload.get("workspace")
+    specs_dir = _resolve_specs_dir(config, workspace)
+    if specs_dir is None:
+        return _specs_dir_missing_error(request_id)
+
+    start = time.perf_counter()
+    result, error = reset_batch(
+        spec_id=spec_id.strip(),
+        task_ids=task_ids,
+        threshold_hours=float(threshold_hours),
+        specs_dir=specs_dir,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    if error:
+        _metrics.counter(_metric(action), labels={"status": "error"})
+        return asdict(
+            error_response(
+                error,
+                error_code=ErrorCode.OPERATION_FAILED,
+                error_type=ErrorType.VALIDATION,
+                request_id=request_id,
+                details=result if result else None,
+            )
+        )
+
+    _metrics.timer(_metric(action) + ".duration_ms", elapsed_ms)
+    _metrics.counter(_metric(action), labels={"status": "success"})
+
+    response = success_response(
+        spec_id=spec_id.strip(),
+        reset=result.get("reset", []),
+        reset_count=result.get("reset_count", 0),
+        errors=result.get("errors"),
+        message=result.get("message"),
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+    return _attach_meta(asdict(response), request_id=request_id, duration_ms=elapsed_ms)
 
 
 def _handle_next(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
@@ -3087,11 +3397,113 @@ def _handle_fix_verification_types(
     return asdict(response)
 
 
+def _handle_session_config(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
+    """
+    Handle session-config action: get/set autonomous mode preferences.
+
+    This action manages the ephemeral autonomous session state, allowing
+    agents to enable/disable autonomous mode and track task completion
+    during autonomous execution.
+
+    Parameters:
+        get: If true, just return current session config without changes
+        auto_mode: Set autonomous mode enabled (true) or disabled (false)
+
+    Returns:
+        Current session configuration including autonomous state
+    """
+    from datetime import datetime, timezone
+
+    request_id = _request_id()
+    action = "session-config"
+    start = time.perf_counter()
+
+    # Get parameters
+    get_only = payload.get("get", False)
+    auto_mode = payload.get("auto_mode")
+
+    # Get the context tracker and session
+    tracker = get_context_tracker()
+    session = tracker.get_or_create_session()
+
+    # Initialize autonomous if not present
+    if session.autonomous is None:
+        session.autonomous = AutonomousSession()
+
+    # If just getting, return current state
+    if get_only:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        response = success_response(
+            session_id=session.session_id,
+            autonomous=session.autonomous.to_dict(),
+            message="Current session configuration",
+            request_id=request_id,
+            telemetry={"duration_ms": round(elapsed_ms, 2)},
+        )
+        _metrics.counter(_metric(action), labels={"status": "success", "operation": "get"})
+        return asdict(response)
+
+    # Handle auto_mode setting
+    if auto_mode is not None:
+        if not isinstance(auto_mode, bool):
+            return _validation_error(
+                field="auto_mode",
+                action=action,
+                message="auto_mode must be a boolean (true/false)",
+                request_id=request_id,
+            )
+
+        previous_enabled = session.autonomous.enabled
+        session.autonomous.enabled = auto_mode
+
+        if auto_mode and not previous_enabled:
+            # Starting autonomous mode
+            session.autonomous.started_at = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
+            session.autonomous.tasks_completed = 0
+            session.autonomous.pause_reason = None
+        elif not auto_mode and previous_enabled:
+            # Stopping autonomous mode
+            session.autonomous.pause_reason = "user"
+
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    response = success_response(
+        session_id=session.session_id,
+        autonomous=session.autonomous.to_dict(),
+        message="Autonomous mode enabled" if session.autonomous.enabled else "Autonomous mode disabled",
+        request_id=request_id,
+        telemetry={"duration_ms": round(elapsed_ms, 2)},
+    )
+    _metrics.counter(_metric(action), labels={"status": "success", "operation": "set"})
+    return asdict(response)
+
+
 _ACTION_DEFINITIONS = [
     ActionDefinition(
         name="prepare",
         handler=_handle_prepare,
         summary="Prepare next actionable task context",
+    ),
+    ActionDefinition(
+        name="prepare-batch",
+        handler=_handle_prepare_batch,
+        summary="Prepare multiple independent tasks for parallel execution",
+    ),
+    ActionDefinition(
+        name="start-batch",
+        handler=_handle_start_batch,
+        summary="Atomically start multiple tasks as in_progress",
+    ),
+    ActionDefinition(
+        name="complete-batch",
+        handler=_handle_complete_batch,
+        summary="Complete multiple tasks with partial failure support",
+    ),
+    ActionDefinition(
+        name="reset-batch",
+        handler=_handle_reset_batch,
+        summary="Reset stale or specified in_progress tasks to pending",
     ),
     ActionDefinition(
         name="next", handler=_handle_next, summary="Return the next actionable task"
@@ -3182,6 +3594,11 @@ _ACTION_DEFINITIONS = [
         handler=_handle_hierarchy,
         summary="Return paginated hierarchy slices",
     ),
+    ActionDefinition(
+        name="session-config",
+        handler=_handle_session_config,
+        summary="Get/set autonomous session configuration",
+    ),
 ]
 
 _TASK_ROUTER = ActionRouter(tool_name="task", actions=_ACTION_DEFINITIONS)
@@ -3260,6 +3677,9 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         category: Optional[str] = None,
         parent_filter: Optional[str] = None,
         update_metadata: Optional[Dict[str, Any]] = None,
+        # session-config specific parameters
+        get: bool = False,
+        auto_mode: Optional[bool] = None,
     ) -> dict:
         payload = {
             "spec_id": spec_id,
@@ -3306,6 +3726,9 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
             "category": category,
             "parent_filter": parent_filter,
             "update_metadata": update_metadata,
+            # session-config specific
+            "get": get,
+            "auto_mode": auto_mode,
         }
         return _dispatch_task_action(action=action, payload=payload, config=config)
 

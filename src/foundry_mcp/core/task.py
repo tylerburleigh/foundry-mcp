@@ -533,6 +533,82 @@ def get_task_journal_summary(
     }
 
 
+def _compute_auto_mode_hints(
+    spec_data: Dict[str, Any],
+    task_id: str,
+    task_data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Compute hints for autonomous mode execution.
+
+    These hints help an autonomous agent decide whether to proceed
+    without user input or pause for confirmation.
+
+    Args:
+        spec_data: Loaded spec data
+        task_id: Current task ID
+        task_data: Task node data
+
+    Returns:
+        Dictionary with autonomous mode hints:
+        - estimated_complexity: "low", "medium", or "high"
+        - has_sibling_verify: bool (phase has verify tasks)
+        - may_require_user_input: bool (task category suggests user input needed)
+    """
+    hierarchy = spec_data.get("hierarchy", {})
+    metadata = task_data.get("metadata", {}) or {}
+
+    # Compute estimated_complexity
+    complexity = metadata.get("complexity", "").lower()
+    estimated_hours = metadata.get("estimated_hours")
+
+    if complexity in ("complex", "high"):
+        estimated_complexity = "high"
+    elif complexity in ("medium", "moderate"):
+        estimated_complexity = "medium"
+    elif complexity in ("simple", "low"):
+        estimated_complexity = "low"
+    elif estimated_hours is not None:
+        # Derive from hours if explicit complexity not set
+        if estimated_hours > 2:
+            estimated_complexity = "high"
+        elif estimated_hours > 0.5:
+            estimated_complexity = "medium"
+        else:
+            estimated_complexity = "low"
+    else:
+        # Default to medium if no hints
+        estimated_complexity = "medium"
+
+    # Check has_sibling_verify - look for verify tasks in same phase
+    parent_id = task_data.get("parent")
+    has_sibling_verify = False
+    if parent_id:
+        parent = hierarchy.get(parent_id, {})
+        children = parent.get("children", [])
+        for sibling_id in children:
+            if sibling_id != task_id:
+                sibling = hierarchy.get(sibling_id, {})
+                if sibling.get("type") == "verify":
+                    has_sibling_verify = True
+                    break
+
+    # Check may_require_user_input based on task_category
+    task_category = metadata.get("task_category", "").lower()
+    may_require_user_input = task_category in (
+        "decision",
+        "investigation",
+        "planning",
+        "design",
+    )
+
+    return {
+        "estimated_complexity": estimated_complexity,
+        "has_sibling_verify": has_sibling_verify,
+        "may_require_user_input": may_require_user_input,
+    }
+
+
 def prepare_task(
     spec_id: str,
     specs_dir: Path,
@@ -599,12 +675,16 @@ def prepare_task(
         "task_journal": get_task_journal_summary(spec_data, task_id),
     }
 
+    # Compute autonomous mode hints
+    auto_mode_hints = _compute_auto_mode_hints(spec_data, task_id, task_data)
+
     return asdict(success_response(
         task_id=task_id,
         task_data=task_data,
         dependencies=deps,
         spec_complete=False,
-        context=context
+        context=context,
+        auto_mode_hints=auto_mode_hints,
     ))
 
 
