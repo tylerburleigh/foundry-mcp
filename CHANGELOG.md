@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.11] - 2026-01-04
+
+### Fixed
+
+- **Deep research background task execution**: Sub-queries now execute correctly
+  - Root cause: `asyncio.create_task()` was called from sync MCP handlers without a running event loop
+  - Solution: Use daemon threads with `asyncio.run()` for reliable background execution
+  - `BackgroundTask` class now supports both thread-based and asyncio-based execution
+
+- **Intake-add priority validation UX**: Improved error messages and usability
+  - Handle explicit `null` from JSON as "use default p2" (previously caused confusing error)
+  - Error messages now include valid values: `p0, p1, p2, p3, p4`
+  - Added human-readable priority aliases: `critical`, `high`, `medium`, `low`, `lowest`
+
 ## [0.8.10] - 2026-01-04
 
 ### Added

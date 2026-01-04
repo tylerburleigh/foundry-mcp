@@ -626,8 +626,7 @@ class TestDeepResearchWorkflow:
         assert "Self-Preference Bias in LLM-as-a-Judge" in titles
         assert "A Different Paper About Something Else" in titles
 
-    @pytest.mark.asyncio
-    async def test_background_task_timeout(self, mock_config, mock_memory):
+    def test_background_task_timeout(self, mock_config, mock_memory):
         """Should mark background task as timed out."""
         from foundry_mcp.core.research.workflows.deep_research import (
             DeepResearchWorkflow,
@@ -652,7 +651,8 @@ class TestDeepResearchWorkflow:
                 task_timeout=0.05,
             )
             bg_task = workflow.get_background_task(state.id)
-            await bg_task.task
+            # Wait for the thread to complete (instead of awaiting asyncio task)
+            bg_task.thread.join(timeout=5.0)
 
         assert result.success is True
         assert bg_task.status == TaskStatus.TIMEOUT

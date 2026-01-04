@@ -2762,6 +2762,15 @@ _INTAKE_SOURCE_MAX_LEN = 100
 _INTAKE_REQUESTER_MAX_LEN = 100
 _INTAKE_IDEMPOTENCY_KEY_MAX_LEN = 64
 _INTAKE_PRIORITY_VALUES = ("p0", "p1", "p2", "p3", "p4")
+_INTAKE_PRIORITY_ALIASES = {
+    "critical": "p0",
+    "highest": "p0",
+    "high": "p1",
+    "medium": "p2",
+    "normal": "p2",
+    "low": "p3",
+    "lowest": "p4",
+}
 _INTAKE_TAG_PATTERN = "^[a-z0-9_-]+$"
 _TAG_REGEX = re.compile(_INTAKE_TAG_PATTERN)
 
@@ -2820,16 +2829,26 @@ def _handle_intake_add(*, config: ServerConfig, **payload: Any) -> dict:
             )
 
     # Validate priority (optional, enum p0-p4, default p2)
-    priority = payload.get("priority", "p2")
-    if not isinstance(priority, str):
+    # Handle both missing key AND explicit null from JSON
+    priority = payload.get("priority")
+    if priority is None:
+        priority = "p2"  # Default for both missing and explicit null
+    elif not isinstance(priority, str):
         return _validation_error(
             field="priority",
             action=action,
-            message="Priority must be a string",
+            message=f"Priority must be a string. Valid values: {', '.join(_INTAKE_PRIORITY_VALUES)}",
             request_id=request_id,
             code=ErrorCode.INVALID_FORMAT,
+            remediation=f"Use {', '.join(_INTAKE_PRIORITY_VALUES)} or aliases: {', '.join(_INTAKE_PRIORITY_ALIASES.keys())}",
         )
+
     priority = priority.strip().lower()
+
+    # Map human-readable aliases to canonical values
+    if priority in _INTAKE_PRIORITY_ALIASES:
+        priority = _INTAKE_PRIORITY_ALIASES[priority]
+
     if priority not in _INTAKE_PRIORITY_VALUES:
         return _validation_error(
             field="priority",
@@ -2837,7 +2856,7 @@ def _handle_intake_add(*, config: ServerConfig, **payload: Any) -> dict:
             message=f"Priority must be one of: {', '.join(_INTAKE_PRIORITY_VALUES)}",
             request_id=request_id,
             code=ErrorCode.VALIDATION_ERROR,
-            remediation="Use p0 (highest) through p4 (lowest), default is p2",
+            remediation=f"Use p0-p4 or aliases like 'high', 'medium', 'low'. Default is p2 (medium).",
         )
 
     # Validate tags (optional, max 20 items, each 1-32 chars, lowercase pattern)

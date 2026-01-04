@@ -4,11 +4,15 @@ Provides multi-phase iterative research through query decomposition,
 parallel source gathering, content analysis, and synthesized reporting.
 
 Key Features:
-- Background execution via asyncio.create_task()
+- Background execution via daemon threads with asyncio.run()
 - Immediate research_id return on start
 - Status polling while running
 - Task lifecycle tracking with cancellation support
 - Multi-agent supervisor orchestration hooks
+
+Note: Uses daemon threads (not asyncio.create_task()) to ensure background
+execution works correctly from synchronous MCP tool handlers where there
+is no running event loop.
 
 Inspired by:
 - open_deep_research: Multi-agent supervision with think-tool pauses
@@ -23,6 +27,7 @@ import json
 import logging
 import re
 import sys
+import threading
 import time
 import traceback
 from dataclasses import dataclass, field as dataclass_field
@@ -358,31 +363,36 @@ class AgentDecision:
 class BackgroundTask:
     """Tracks a background research task.
 
-    Wraps an asyncio.Task with additional metadata for lifecycle
-    management, cancellation support, and timeout handling.
+    Supports both asyncio.Task-based and thread-based execution for
+    lifecycle management, cancellation support, and timeout handling.
     """
 
     def __init__(
         self,
         research_id: str,
-        task: asyncio.Task[WorkflowResult],
+        task: Optional[asyncio.Task[WorkflowResult]] = None,
+        thread: Optional[threading.Thread] = None,
         timeout: Optional[float] = None,
     ) -> None:
         """Initialize background task.
 
         Args:
             research_id: ID of the research session
-            task: The asyncio task running the workflow
+            task: Optional asyncio task running the workflow (legacy)
+            thread: Optional thread running the workflow (preferred)
             timeout: Optional timeout in seconds
         """
         self.research_id = research_id
         self.task = task
+        self.thread = thread
         self.timeout = timeout
         self.status = TaskStatus.RUNNING
         self.started_at = time.time()
         self.completed_at: Optional[float] = None
         self.error: Optional[str] = None
         self.result: Optional[WorkflowResult] = None
+        # Event for signaling cancellation to thread-based execution
+        self._cancel_event = threading.Event()
 
     @property
     def elapsed_ms(self) -> float:
@@ -397,18 +407,36 @@ class BackgroundTask:
             return False
         return (time.time() - self.started_at) > self.timeout
 
+    @property
+    def is_cancelled(self) -> bool:
+        """Check if cancellation has been requested."""
+        return self._cancel_event.is_set()
+
     def cancel(self) -> bool:
         """Cancel the task.
 
         Returns:
             True if cancellation was requested, False if already done
         """
-        if self.task.done():
-            return False
-        self.task.cancel()
-        self.status = TaskStatus.CANCELLED
-        self.completed_at = time.time()
-        return True
+        # Handle thread-based execution
+        if self.thread is not None:
+            if not self.thread.is_alive():
+                return False
+            self._cancel_event.set()
+            # Give thread a chance to clean up
+            self.thread.join(timeout=5.0)
+            self.status = TaskStatus.CANCELLED
+            self.completed_at = time.time()
+            return True
+        # Handle asyncio-based execution (legacy)
+        elif self.task is not None:
+            if self.task.done():
+                return False
+            self.task.cancel()
+            self.status = TaskStatus.CANCELLED
+            self.completed_at = time.time()
+            return True
+        return False
 
     def mark_completed(self, result: WorkflowResult) -> None:
         """Mark task as completed with result."""
@@ -423,7 +451,11 @@ class BackgroundTask:
         self.status = TaskStatus.TIMEOUT
         self.completed_at = time.time()
         self.error = f"Task exceeded timeout of {self.timeout}s"
-        self.task.cancel()
+        # Signal cancellation
+        if self.thread is not None:
+            self._cancel_event.set()
+        elif self.task is not None:
+            self.task.cancel()
 
 
 # =============================================================================
@@ -1102,86 +1134,17 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
         max_concurrent: int,
         task_timeout: Optional[float],
     ) -> WorkflowResult:
-        """Start research as a background task.
+        """Start research as a background task using a daemon thread.
 
         Returns immediately with research_id. The actual workflow
-        runs in a detached asyncio task.
+        runs in a daemon thread using asyncio.run().
+
+        This approach works correctly from sync MCP tool handlers where
+        there is no running event loop.
         """
-        async def run_workflow() -> WorkflowResult:
-            """Execute the full workflow asynchronously."""
-            try:
-                coro = self._execute_workflow_async(
-                    state=state,
-                    provider_id=provider_id,
-                    timeout_per_operation=timeout_per_operation,
-                    max_concurrent=max_concurrent,
-                )
-                if task_timeout:
-                    return await asyncio.wait_for(coro, timeout=task_timeout)
-                return await coro
-            except asyncio.CancelledError:
-                state.metadata["cancelled"] = True
-                self.memory.save_deep_research(state)
-                self._write_audit_event(
-                    state,
-                    "workflow_cancelled",
-                    data={"cancelled": True},
-                    level="warning",
-                )
-                return WorkflowResult(
-                    success=False,
-                    content="",
-                    error="Research was cancelled",
-                    metadata={"research_id": state.id, "cancelled": True},
-                )
-            except asyncio.TimeoutError:
-                state.metadata["timeout"] = True
-                state.metadata["abort_phase"] = state.phase.value
-                state.metadata["abort_iteration"] = state.iteration
-                self.memory.save_deep_research(state)
-                self._write_audit_event(
-                    state,
-                    "workflow_timeout",
-                    data={
-                        "timeout_seconds": task_timeout,
-                        "abort_phase": state.phase.value,
-                        "abort_iteration": state.iteration,
-                    },
-                    level="warning",
-                )
-                return WorkflowResult(
-                    success=False,
-                    content="",
-                    error=f"Research timed out after {task_timeout}s",
-                    metadata={"research_id": state.id, "timeout": True},
-                )
-            except Exception as exc:
-                logger.exception("Background workflow failed: %s", exc)
-                self._write_audit_event(
-                    state,
-                    "workflow_error",
-                    data={"error": str(exc)},
-                    level="error",
-                )
-                return WorkflowResult(
-                    success=False,
-                    content="",
-                    error=str(exc),
-                    metadata={"research_id": state.id},
-                )
-
-        # Create and register the task
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # No running loop, create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        task = asyncio.create_task(run_workflow())
+        # Create BackgroundTask tracking structure first
         bg_task = BackgroundTask(
             research_id=state.id,
-            task=task,
             timeout=task_timeout,
         )
         self._tasks[state.id] = bg_task
@@ -1189,20 +1152,79 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
         # Register session for crash handler visibility
         _active_research_sessions[state.id] = state
 
-        self._write_audit_event(
-            state,
-            "background_task_started",
-            data={
-                "task_timeout": task_timeout,
-                "timeout_per_operation": timeout_per_operation,
-                "max_concurrent": max_concurrent,
-            },
-        )
+        # Reference to self for use in thread
+        workflow = self
 
-        # Set up completion callback
-        def on_complete(t: asyncio.Task) -> None:
+        def run_in_thread() -> None:
+            """Thread target that runs the async workflow."""
             try:
-                result = t.result()
+                async def run_workflow() -> WorkflowResult:
+                    """Execute the full workflow asynchronously."""
+                    try:
+                        coro = workflow._execute_workflow_async(
+                            state=state,
+                            provider_id=provider_id,
+                            timeout_per_operation=timeout_per_operation,
+                            max_concurrent=max_concurrent,
+                        )
+                        if task_timeout:
+                            return await asyncio.wait_for(coro, timeout=task_timeout)
+                        return await coro
+                    except asyncio.CancelledError:
+                        state.metadata["cancelled"] = True
+                        workflow.memory.save_deep_research(state)
+                        workflow._write_audit_event(
+                            state,
+                            "workflow_cancelled",
+                            data={"cancelled": True},
+                            level="warning",
+                        )
+                        return WorkflowResult(
+                            success=False,
+                            content="",
+                            error="Research was cancelled",
+                            metadata={"research_id": state.id, "cancelled": True},
+                        )
+                    except asyncio.TimeoutError:
+                        state.metadata["timeout"] = True
+                        state.metadata["abort_phase"] = state.phase.value
+                        state.metadata["abort_iteration"] = state.iteration
+                        workflow.memory.save_deep_research(state)
+                        workflow._write_audit_event(
+                            state,
+                            "workflow_timeout",
+                            data={
+                                "timeout_seconds": task_timeout,
+                                "abort_phase": state.phase.value,
+                                "abort_iteration": state.iteration,
+                            },
+                            level="warning",
+                        )
+                        return WorkflowResult(
+                            success=False,
+                            content="",
+                            error=f"Research timed out after {task_timeout}s",
+                            metadata={"research_id": state.id, "timeout": True},
+                        )
+                    except Exception as exc:
+                        logger.exception("Background workflow failed: %s", exc)
+                        workflow._write_audit_event(
+                            state,
+                            "workflow_error",
+                            data={"error": str(exc)},
+                            level="error",
+                        )
+                        return WorkflowResult(
+                            success=False,
+                            content="",
+                            error=str(exc),
+                            metadata={"research_id": state.id},
+                        )
+
+                # Run the async workflow in a new event loop
+                result = asyncio.run(run_workflow())
+
+                # Handle completion
                 if result.metadata and result.metadata.get("timeout"):
                     bg_task.status = TaskStatus.TIMEOUT
                     bg_task.result = result
@@ -1210,9 +1232,7 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                     bg_task.error = result.error
                 else:
                     bg_task.mark_completed(result)
-            except asyncio.CancelledError:
-                bg_task.status = TaskStatus.CANCELLED
-                bg_task.completed_at = time.time()
+
             except Exception as exc:
                 # Log the exception with full traceback
                 logger.exception(
@@ -1224,8 +1244,8 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 bg_task.completed_at = time.time()
                 # Record to error store and audit (best effort)
                 try:
-                    self._record_workflow_error(exc, state, "background_task")
-                    self._write_audit_event(
+                    workflow._record_workflow_error(exc, state, "background_task")
+                    workflow._write_audit_event(
                         state,
                         "background_task_failed",
                         data={
@@ -1240,7 +1260,26 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 # Unregister from active sessions
                 _active_research_sessions.pop(state.id, None)
 
-        task.add_done_callback(on_complete)
+        # Create and start the daemon thread
+        thread = threading.Thread(
+            target=run_in_thread,
+            name=f"deep-research-{state.id[:8]}",
+            daemon=True,  # Don't prevent process exit
+        )
+        bg_task.thread = thread
+
+        self._write_audit_event(
+            state,
+            "background_task_started",
+            data={
+                "task_timeout": task_timeout,
+                "timeout_per_operation": timeout_per_operation,
+                "max_concurrent": max_concurrent,
+                "thread_name": thread.name,
+            },
+        )
+
+        thread.start()
 
         return WorkflowResult(
             success=True,
