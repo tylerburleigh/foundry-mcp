@@ -1109,7 +1109,8 @@ def remove_task(
     # Validate task type (can only remove task, subtask, verify)
     task_type = task.get("type")
     if task_type not in ("task", "subtask", "verify"):
-        return None, f"Cannot remove node type '{task_type}'. Only task, subtask, or verify nodes can be removed."
+        hint = " Use `authoring action=\"phase-remove\"` instead." if task_type == "phase" else ""
+        return None, f"Cannot remove node type '{task_type}'. Only task, subtask, or verify nodes can be removed.{hint}"
 
     # Check for children
     children = task.get("children", [])
