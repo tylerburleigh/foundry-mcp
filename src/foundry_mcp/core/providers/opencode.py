@@ -364,8 +364,9 @@ class OpenCodeProvider(ProviderContext):
                 )
                 raise ProviderExecutionError(
                     f"Port {port} is in use but OpenCode server is not responding. "
-                    "Another process may be using this port. "
-                    "Try: lsof -i :{port} to identify the process.",
+                    "Possible causes: another process using this port, "
+                    "provider quota exceeded, or authentication issue. "
+                    f"Try: lsof -i :{port} | opencode config",
                     provider=self.metadata.provider_id,
                 )
 
