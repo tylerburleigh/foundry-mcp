@@ -113,6 +113,13 @@ def _build_implementation_artifacts(
             for child in _get_child_nodes(spec_data, phase):
                 if child.get("metadata", {}).get("file_path"):
                     file_paths.extend(_split_file_paths(child["metadata"]["file_path"]))
+    else:
+        # Full spec review - collect file_path from all tasks/subtasks/verify nodes
+        hierarchy_nodes = _get_hierarchy_nodes(spec_data)
+        for node in hierarchy_nodes.values():
+            if node.get("type") in ("task", "subtask", "verify"):
+                if node.get("metadata", {}).get("file_path"):
+                    file_paths.extend(_split_file_paths(node["metadata"]["file_path"]))
     if file_paths:
         deduped: List[str] = []
         seen = set()

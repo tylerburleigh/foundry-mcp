@@ -124,17 +124,17 @@ class TestGeminiProvider:
         assert "ignoring unsupported parameters" in caplog.text.lower()
 
     def test_build_command_includes_allowed_tools(self, hooks):
-        """GeminiProvider command should include allowed tools."""
+        """GeminiProvider command should include allowed tools (prompt via stdin)."""
         from foundry_mcp.core.providers.gemini import GEMINI_METADATA, GeminiProvider
 
         provider = GeminiProvider(metadata=GEMINI_METADATA, hooks=hooks)
-        command = provider._build_command("pro", "test prompt")
+        command = provider._build_command("pro")
 
         assert "gemini" in command[0]
         assert "--output-format" in command
         assert "json" in command
         assert "--allowed-tools" in command
-        assert "-p" in command
+        # Note: prompt is now passed via stdin, not CLI arg
 
     def test_successful_execution(self, hooks):
         """GeminiProvider should return valid result on success."""
@@ -402,7 +402,7 @@ class TestCursorAgentProvider:
         assert provider._model == "composer-1"
 
     def test_build_command_includes_print_and_json(self, hooks):
-        """CursorAgentProvider command should include --print and output format."""
+        """CursorAgentProvider command should include --print and output format (prompt via stdin)."""
         from foundry_mcp.core.providers.cursor_agent import (
             CURSOR_METADATA,
             CursorAgentProvider,
@@ -410,11 +410,12 @@ class TestCursorAgentProvider:
 
         provider = CursorAgentProvider(metadata=CURSOR_METADATA, hooks=hooks)
         request = ProviderRequest(prompt="test")
-        command = provider._build_command(request, "composer-1")
+        command, prompt = provider._build_command(request, "composer-1")
 
         assert "--print" in command
         assert "--output-format" in command
         assert "json" in command
+        assert "test" in prompt  # Prompt returned separately for stdin
 
     def test_successful_execution_json_mode(self, hooks, tmp_path):
         """CursorAgentProvider should parse JSON output correctly."""
@@ -471,7 +472,7 @@ class TestCursorAgentProvider:
         # First call fails with unknown option, retry succeeds
         call_count = [0]
 
-        def runner(command, *, timeout=None, env=None):
+        def runner(command, *, timeout=None, env=None, input_data=None):
             call_count[0] += 1
             if call_count[0] == 1:
                 return subprocess.CompletedProcess(
@@ -515,11 +516,11 @@ class TestClaudeProvider:
         assert provider._model == "opus"
 
     def test_build_command_includes_allowed_and_disallowed(self, hooks):
-        """ClaudeProvider command should include tool restrictions."""
+        """ClaudeProvider command should include tool restrictions (prompt via stdin)."""
         from foundry_mcp.core.providers.claude import CLAUDE_METADATA, ClaudeProvider
 
         provider = ClaudeProvider(metadata=CLAUDE_METADATA, hooks=hooks)
-        command = provider._build_command("sonnet", "test prompt")
+        command = provider._build_command("sonnet")
 
         assert "--print" in command
         assert "--output-format" in command
@@ -527,6 +528,7 @@ class TestClaudeProvider:
         assert "--allowed-tools" in command
         assert "--disallowed-tools" in command
         assert "--system-prompt" in command
+        # Note: prompt is now passed via stdin, not CLI arg
 
     def test_successful_execution(self, hooks):
         """ClaudeProvider should return valid result on success."""

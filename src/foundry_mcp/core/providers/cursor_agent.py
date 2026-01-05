@@ -166,6 +166,7 @@ class RunnerProtocol(Protocol):
         *,
         timeout: Optional[int] = None,
         env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
     ) -> subprocess.CompletedProcess[str]:
         raise NotImplementedError
 
@@ -175,12 +176,14 @@ def _default_runner(
     *,
     timeout: Optional[int] = None,
     env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
 ) -> subprocess.CompletedProcess[str]:
     """Invoke the cursor-agent CLI via subprocess."""
     return subprocess.run(  # noqa: S603,S607 - intentional CLI invocation
         list(command),
         capture_output=True,
         text=True,
+        input=input_data,
         timeout=timeout,
         env=env,
         check=False,
@@ -347,7 +350,7 @@ class CursorAgentProvider(ProviderContext):
         self,
         request: ProviderRequest,
         model: str,
-    ) -> List[str]:
+    ) -> Tuple[List[str], str]:
         """
         Assemble the cursor-agent CLI invocation with read-only config.
 
@@ -355,9 +358,13 @@ class CursorAgentProvider(ProviderContext):
             request: Generation request
             model: Model ID to use
 
+        Returns:
+            Tuple of (command args, prompt to pass via stdin)
+
         Note:
             Config is read from ~/.cursor/cli-config.json (managed by _create_readonly_config).
             Uses --print mode for non-interactive execution with JSON output.
+            Prompt is passed via stdin to avoid CLI argument length limits.
         """
         # cursor-agent in headless mode: --print --output-format json
         command = [self._binary, "--print", "--output-format", "json"]
@@ -374,25 +381,26 @@ class CursorAgentProvider(ProviderContext):
                 if isinstance(flag, str) and flag.strip():
                     command.append(flag.strip())
 
-        # Prompt is passed as positional argument (not --prompt flag in --print mode)
-        # Build full prompt with system context
+        # Build full prompt with system context (passed via stdin)
         full_prompt = request.prompt
         if request.system_prompt:
             full_prompt = f"{request.system_prompt.strip()}\n\n{SHELL_COMMAND_WARNING.strip()}\n\n{request.prompt}"
         else:
             full_prompt = f"{SHELL_COMMAND_WARNING.strip()}\n\n{request.prompt}"
 
-        command.append(full_prompt)
-        return command
+        return command, full_prompt
 
     def _run(
         self,
         command: Sequence[str],
         *,
         timeout: Optional[float],
+        input_data: Optional[str] = None,
     ) -> subprocess.CompletedProcess[str]:
         try:
-            return self._runner(command, timeout=int(timeout) if timeout else None, env=self._env)
+            return self._runner(
+                command, timeout=int(timeout) if timeout else None, env=self._env, input_data=input_data
+            )
         except FileNotFoundError as exc:
             raise ProviderUnavailableError(
                 f"Cursor Agent CLI '{self._binary}' is not available on PATH.",
@@ -408,11 +416,12 @@ class CursorAgentProvider(ProviderContext):
         self,
         command: Sequence[str],
         timeout: Optional[float],
+        input_data: Optional[str] = None,
     ) -> Tuple[subprocess.CompletedProcess[str], bool]:
         """
         Execute the command and retry without --output-format json when the CLI lacks support.
         """
-        completed = self._run(command, timeout=timeout)
+        completed = self._run(command, timeout=timeout, input_data=input_data)
         if completed.returncode == 0:
             return completed, True
 
@@ -432,7 +441,7 @@ class CursorAgentProvider(ProviderContext):
                     continue
                 retry_command.append(part)
 
-            retry_process = self._run(retry_command, timeout=timeout)
+            retry_process = self._run(retry_command, timeout=timeout, input_data=input_data)
             if retry_process.returncode == 0:
                 return retry_process, False
 
@@ -520,9 +529,10 @@ class CursorAgentProvider(ProviderContext):
 
         try:
             # Build command (config is read from ~/.cursor/cli-config.json)
-            command = self._build_command(request, model)
+            # Prompt is passed via stdin to avoid CLI argument length limits
+            command, prompt = self._build_command(request, model)
             timeout = request.timeout or self._timeout
-            completed, json_mode = self._run_with_retry(command, timeout)
+            completed, json_mode = self._run_with_retry(command, timeout, input_data=prompt)
         finally:
             # Always restore original config, even if command fails
             self._cleanup_config_file()

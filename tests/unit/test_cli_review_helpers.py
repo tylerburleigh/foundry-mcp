@@ -85,3 +85,67 @@ def test_build_implementation_artifacts_reads_phase_files(
 
     assert "src/task_one.py" in output
     assert "print('cli')" in output
+
+
+def test_build_implementation_artifacts_full_spec_review(
+    keyed_spec_data, tmp_path, monkeypatch
+):
+    """_build_implementation_artifacts should collect all task files for full spec review."""
+    project_root = tmp_path / "project"
+    (project_root / "src").mkdir(parents=True)
+    (project_root / "src" / "task_one.py").write_text("# task one", encoding="utf-8")
+    (project_root / "src" / "task_two.py").write_text("# task two", encoding="utf-8")
+
+    monkeypatch.chdir(project_root)
+
+    # Full spec review: no task_id, no phase_id, no files
+    output = review._build_implementation_artifacts(
+        keyed_spec_data,
+        task_id=None,
+        phase_id=None,
+        files=None,
+        incremental=False,
+        base_branch="main",
+    )
+
+    # Should include files from all tasks in the spec
+    assert "src/task_one.py" in output
+    assert "src/task_two.py" in output
+    assert "# task one" in output
+    assert "# task two" in output
+
+
+def test_build_implementation_artifacts_full_spec_review_no_artifacts():
+    """_build_implementation_artifacts returns placeholder when spec has no file_path metadata."""
+    spec_data = {
+        "spec_id": "spec-empty",
+        "title": "Empty Spec",
+        "hierarchy": {
+            "spec-root": {
+                "type": "spec",
+                "title": "Empty Spec",
+                "status": "pending",
+                "parent": None,
+                "children": ["task-1"],
+            },
+            "task-1": {
+                "type": "task",
+                "title": "Task without file_path",
+                "status": "pending",
+                "parent": "spec-root",
+                "children": [],
+                "metadata": {},  # No file_path
+            },
+        },
+    }
+
+    output = review._build_implementation_artifacts(
+        spec_data,
+        task_id=None,
+        phase_id=None,
+        files=None,
+        incremental=False,
+        base_branch="main",
+    )
+
+    assert "*No implementation artifacts available*" in output

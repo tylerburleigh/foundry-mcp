@@ -115,6 +115,7 @@ class RunnerProtocol(Protocol):
         *,
         timeout: Optional[int] = None,
         env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
     ) -> subprocess.CompletedProcess[str]:
         raise NotImplementedError
 
@@ -124,12 +125,14 @@ def _default_runner(
     *,
     timeout: Optional[int] = None,
     env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
 ) -> subprocess.CompletedProcess[str]:
     """Invoke the Gemini CLI via subprocess."""
     return subprocess.run(  # noqa: S603,S607 - intentional CLI invocation
         list(command),
         capture_output=True,
         text=True,
+        input=input_data,
         timeout=timeout,
         env=env,
         check=False,
@@ -194,15 +197,17 @@ class GeminiProvider(ProviderContext):
             return f"{chr(10).join(system_parts)}\n\n{request.prompt}"
         return request.prompt
 
-    def _build_command(self, model: str, prompt: str) -> List[str]:
+    def _build_command(self, model: str) -> List[str]:
+        """
+        Build Gemini CLI command with read-only tool restrictions.
+
+        Prompt is passed via stdin to avoid CLI argument length limits.
+        """
         command = [self._binary, "--output-format", "json"]
 
         # Add allowed tools for read-only enforcement
         for tool in ALLOWED_TOOLS:
             command.extend(["--allowed-tools", tool])
-
-        # Add prompt at the end
-        command.extend(["-p", prompt])
 
         # Insert model if specified
         if model:
@@ -210,9 +215,13 @@ class GeminiProvider(ProviderContext):
 
         return command
 
-    def _run(self, command: Sequence[str], timeout: Optional[float]) -> subprocess.CompletedProcess[str]:
+    def _run(
+        self, command: Sequence[str], timeout: Optional[float], input_data: Optional[str] = None
+    ) -> subprocess.CompletedProcess[str]:
         try:
-            return self._runner(command, timeout=int(timeout) if timeout else None, env=self._env)
+            return self._runner(
+                command, timeout=int(timeout) if timeout else None, env=self._env, input_data=input_data
+            )
         except FileNotFoundError as exc:
             raise ProviderUnavailableError(
                 f"Gemini CLI '{self._binary}' is not available on PATH.",
@@ -319,9 +328,10 @@ class GeminiProvider(ProviderContext):
         self._validate_request(request)
         model = self._resolve_model(request)
         prompt = self._build_prompt(request)
-        command = self._build_command(model, prompt)
+        command = self._build_command(model)
         timeout = request.timeout or self._timeout
-        completed = self._run(command, timeout=timeout)
+        # Pass prompt via stdin to avoid CLI argument length limits
+        completed = self._run(command, timeout=timeout, input_data=prompt)
 
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()

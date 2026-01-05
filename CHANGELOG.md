@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.13] - 2026-01-05
+
+### Fixed
+
+- **All CLI providers use stdin for prompts**: ClaudeProvider, GeminiProvider, and CursorAgentProvider now pass prompts via stdin
+  - Avoids CLI argument length limits for long prompts
+  - Updated `RunnerProtocol`, `_build_command()`, and `_run()` signatures to support `input_data`
+  - Consistent pattern across all CLI-based providers (Claude, Gemini, Cursor, Codex)
+
+- **Full spec review collects all task files**: `_build_implementation_artifacts()` now collects `file_path` from all task/subtask/verify nodes
+  - Previously only worked when task_id or phase_id was specified
+  - Full spec reviews now include implementation artifacts from entire spec hierarchy
+
+### Changed
+
+- **Provider tests updated**: Test assertions updated to reflect stdin-based prompt handling
+  - `_build_command()` no longer includes prompt in returned command
+  - Tests verify prompt is passed separately for stdin input
+
 ## [0.8.12] - 2026-01-04
 
 ### Fixed

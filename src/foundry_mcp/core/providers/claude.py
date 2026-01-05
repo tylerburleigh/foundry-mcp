@@ -159,6 +159,7 @@ class RunnerProtocol(Protocol):
         *,
         timeout: Optional[int] = None,
         env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
     ) -> subprocess.CompletedProcess[str]:
         raise NotImplementedError
 
@@ -168,12 +169,14 @@ def _default_runner(
     *,
     timeout: Optional[int] = None,
     env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
 ) -> subprocess.CompletedProcess[str]:
     """Invoke the Claude CLI via subprocess."""
     return subprocess.run(  # noqa: S603,S607 - intentional CLI invocation
         list(command),
         capture_output=True,
         text=True,
+        input=input_data,
         timeout=timeout,
         env=env,
         check=False,
@@ -234,15 +237,16 @@ class ClaudeProvider(ProviderContext):
             )
 
     def _build_command(
-        self, model: str, prompt: str, system_prompt: Optional[str] = None
+        self, model: str, system_prompt: Optional[str] = None
     ) -> List[str]:
         """
         Build Claude CLI command with read-only tool restrictions.
 
         Command structure:
-            claude --print [prompt] --output-format json --allowed-tools Read Grep ... --disallowed-tools Write Edit Bash
+            claude --print --output-format json --allowed-tools Read Grep ... --disallowed-tools Write Edit Bash
+            (prompt is passed via stdin to avoid CLI argument length limits)
         """
-        command = [self._binary, "--print", prompt, "--output-format", "json"]
+        command = [self._binary, "--print", "--output-format", "json"]
 
         # Add read-only tool restrictions
         command.extend(["--allowed-tools"] + ALLOWED_TOOLS)
@@ -264,9 +268,13 @@ class ClaudeProvider(ProviderContext):
 
         return command
 
-    def _run(self, command: Sequence[str], timeout: Optional[float]) -> subprocess.CompletedProcess[str]:
+    def _run(
+        self, command: Sequence[str], timeout: Optional[float], input_data: Optional[str] = None
+    ) -> subprocess.CompletedProcess[str]:
         try:
-            return self._runner(command, timeout=int(timeout) if timeout else None, env=self._env)
+            return self._runner(
+                command, timeout=int(timeout) if timeout else None, env=self._env, input_data=input_data
+            )
         except FileNotFoundError as exc:
             raise ProviderUnavailableError(
                 f"Claude CLI '{self._binary}' is not available on PATH.",
@@ -362,9 +370,10 @@ class ClaudeProvider(ProviderContext):
     def _execute(self, request: ProviderRequest) -> ProviderResult:
         self._validate_request(request)
         model = self._resolve_model(request)
-        command = self._build_command(model, request.prompt, system_prompt=request.system_prompt)
+        command = self._build_command(model, system_prompt=request.system_prompt)
         timeout = request.timeout or self._timeout
-        completed = self._run(command, timeout=timeout)
+        # Pass prompt via stdin to avoid CLI argument length limits
+        completed = self._run(command, timeout=timeout, input_data=request.prompt)
 
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
