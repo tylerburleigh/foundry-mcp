@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.17] - 2026-01-06
+
+### Fixed
+
+- **MCP task tool missing `task_ids` parameter**: Added `task_ids: Optional[List[str]]` parameter to the task tool schema
+  - The `start-batch`, `complete-batch`, and `reset-batch` actions require a list of task IDs
+  - Previously, only `task_id` (singular string) was exposed in the MCP schema
+  - Now both `task_id` and `task_ids` are available for single vs batch operations
+
 ## [0.8.16] - 2026-01-06
 
 ### Changed

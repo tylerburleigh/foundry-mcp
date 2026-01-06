@@ -3731,6 +3731,7 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         action: str,
         spec_id: Optional[str] = None,
         task_id: Optional[str] = None,
+        task_ids: Optional[List[str]] = None,
         workspace: Optional[str] = None,
         status_filter: Optional[str] = None,
         include_completed: bool = True,
@@ -3780,6 +3781,7 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         payload = {
             "spec_id": spec_id,
             "task_id": task_id,
+            "task_ids": task_ids,
             "workspace": workspace,
             "status_filter": status_filter,
             "include_completed": include_completed,
