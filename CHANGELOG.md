@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.20] - 2026-01-06
+
+### Added
+
+- **Hours hierarchy recalculation actions**: New spec actions to aggregate hours from tasks up through hierarchy
+  - `spec(action="recalculate-hours")`: Sums `estimated_hours` from task/subtask/verify nodes to phases, then to spec total
+  - `spec(action="recalculate-actual-hours")`: Sums `actual_hours` from task/subtask/verify nodes to phases, then to spec total
+  - Both support `dry_run` mode to preview changes without saving
+  - Returns detailed breakdown per phase with previous/calculated/delta values
+
+- **Auto-calculate actual_hours on task completion**: When completing tasks with `started_at` but no manual `actual_hours`
+  - Calculates elapsed time from `started_at` to `completed_at` in hours
+  - Applies to both single task completion via `update_task_status()` and batch completion via `complete_batch()`
+  - Preserves manually set values - only auto-calculates if `actual_hours` not already present
+
 ## [0.8.19] - 2026-01-06
 
 ### Fixed
