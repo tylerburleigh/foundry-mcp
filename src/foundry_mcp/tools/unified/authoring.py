@@ -24,7 +24,6 @@ from foundry_mcp.core.responses import (
     success_response,
 )
 from foundry_mcp.core.spec import (
-    ASSUMPTION_TYPES,
     CATEGORIES,
     PHASE_TEMPLATES,
     TEMPLATES,
@@ -2336,14 +2335,7 @@ def _handle_assumption_add(*, config: ServerConfig, **payload: Any) -> dict:
         )
     text = text.strip()
 
-    assumption_type = payload.get("assumption_type") or "constraint"
-    if assumption_type not in ASSUMPTION_TYPES:
-        return _validation_error(
-            field="assumption_type",
-            action=action,
-            message=f"Must be one of: {', '.join(ASSUMPTION_TYPES)}",
-            request_id=request_id,
-        )
+    assumption_type = payload.get("assumption_type")  # Optional, any string accepted
 
     author = payload.get("author")
     if author is not None and not isinstance(author, str):
@@ -2496,14 +2488,7 @@ def _handle_assumption_list(*, config: ServerConfig, **payload: Any) -> dict:
         )
     spec_id = spec_id.strip()
 
-    assumption_type = payload.get("assumption_type")
-    if assumption_type is not None and assumption_type not in ASSUMPTION_TYPES:
-        return _validation_error(
-            field="assumption_type",
-            action=action,
-            message=f"Must be one of: {', '.join(ASSUMPTION_TYPES)}",
-            request_id=request_id,
-        )
+    assumption_type = payload.get("assumption_type")  # Optional filter, any string accepted
 
     path = payload.get("path")
     if path is not None and not isinstance(path, str):

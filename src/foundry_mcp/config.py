@@ -579,7 +579,7 @@ class ResearchConfig:
             consensus_providers=consensus_providers,
             thinkdeep_max_depth=int(data.get("thinkdeep_max_depth", 5)),
             ideate_perspectives=ideate_perspectives,
-            default_timeout=float(data.get("default_timeout", 60.0)),
+            default_timeout=float(data.get("default_timeout", 360.0)),
             # Deep research configuration
             deep_research_max_iterations=int(data.get("deep_research_max_iterations", 3)),
             deep_research_max_sub_queries=int(data.get("deep_research_max_sub_queries", 5)),

@@ -3203,14 +3203,10 @@ def create_spec(
     }, None
 
 
-# Valid assumption types
-ASSUMPTION_TYPES = ("constraint", "requirement")
-
-
 def add_assumption(
     spec_id: str,
     text: str,
-    assumption_type: str = "constraint",
+    assumption_type: Optional[str] = None,
     author: Optional[str] = None,
     specs_dir: Optional[Path] = None,
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
@@ -3224,7 +3220,8 @@ def add_assumption(
     Args:
         spec_id: Specification ID to add assumption to.
         text: Assumption text/description.
-        assumption_type: Type of assumption (constraint, requirement). For API compatibility.
+        assumption_type: Optional type/category (any string accepted, e.g. "constraint",
+            "architectural", "security"). For API compatibility only.
         author: Optional author. For API compatibility.
         specs_dir: Path to specs directory (auto-detected if not provided).
 
@@ -3233,12 +3230,6 @@ def add_assumption(
         On success: ({"spec_id": ..., "text": ..., ...}, None)
         On failure: (None, "error message")
     """
-    # Validate assumption_type (for API compatibility)
-    if assumption_type not in ASSUMPTION_TYPES:
-        return (
-            None,
-            f"Invalid assumption_type '{assumption_type}'. Must be one of: {', '.join(ASSUMPTION_TYPES)}",
-        )
 
     # Validate text
     if not text or not text.strip():
@@ -3413,7 +3404,7 @@ def list_assumptions(
 
     Args:
         spec_id: Specification ID to list assumptions from.
-        assumption_type: Optional filter by type (constraint, requirement).
+        assumption_type: Optional filter parameter (any string accepted).
             Note: Since assumptions are stored as strings, this filter is
             provided for API compatibility but has no effect.
         specs_dir: Path to specs directory (auto-detected if not provided).
@@ -3423,13 +3414,6 @@ def list_assumptions(
         On success: ({"spec_id": ..., "assumptions": [...], ...}, None)
         On failure: (None, "error message")
     """
-    # Validate assumption_type if provided
-    if assumption_type and assumption_type not in ASSUMPTION_TYPES:
-        return (
-            None,
-            f"Invalid assumption_type '{assumption_type}'. Must be one of: {', '.join(ASSUMPTION_TYPES)}",
-        )
-
     # Find specs directory
     if specs_dir is None:
         specs_dir = find_specs_directory()
