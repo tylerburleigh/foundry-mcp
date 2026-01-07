@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.21] - 2026-01-07
+
+### Added
+
+- **Review tool "spec-review" alias**: Added `"spec-review"` as an alias for the `"spec"` action in the review tool
+  - Users can now call `review(action="spec-review", ...)` or `review(action="spec", ...)` interchangeably
+
+- **MCP task tool batch parameters**: Added missing parameters to task tool MCP schema
+  - `completions: List[Dict]` for `complete-batch` action with per-task completion notes
+  - `threshold_hours: float` for `reset-batch` action to filter tasks by estimated hours
+
 ## [0.8.20] - 2026-01-06
 
 ### Added

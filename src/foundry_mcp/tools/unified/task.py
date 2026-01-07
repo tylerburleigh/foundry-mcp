@@ -3777,6 +3777,10 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         # session-config specific parameters
         get: bool = False,
         auto_mode: Optional[bool] = None,
+        # complete-batch specific parameters
+        completions: Optional[List[Dict[str, Any]]] = None,
+        # reset-batch specific parameters
+        threshold_hours: Optional[float] = None,
     ) -> dict:
         payload = {
             "spec_id": spec_id,
@@ -3827,6 +3831,10 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
             # session-config specific
             "get": get,
             "auto_mode": auto_mode,
+            # complete-batch specific
+            "completions": completions,
+            # reset-batch specific
+            "threshold_hours": threshold_hours,
         }
         return _dispatch_task_action(action=action, payload=payload, config=config)
 
