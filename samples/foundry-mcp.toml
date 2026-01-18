@@ -64,8 +64,8 @@ structured = true
 #   test        - Test runner integration
 #   research    - Research workflows (chat, consensus, thinkdeep, ideate, deep)
 #
-# Default: disable tools only used during setup
-disabled_tools = ["error", "health", "environment"]
+# Example: disable tools only used during setup (default is empty list - all tools enabled)
+# disabled_tools = ["error", "health", "environment"]
 
 # Environment variable alternative: FOUNDRY_MCP_DISABLED_TOOLS (comma-separated)
 # Example: FOUNDRY_MCP_DISABLED_TOOLS=error,research
@@ -80,184 +80,6 @@ require_auth = false
 
 # Valid API keys (rotate regularly, recommended: every 90 days)
 # api_keys = ["key1", "key2"]
-
-# =============================================================================
-# Server Configuration
-# =============================================================================
-
-[server]
-name = "foundry-mcp"
-version = "0.5.0"
-
-# =============================================================================
-# LLM Provider Configuration (Legacy - see [consultation] for new priority system)
-# =============================================================================
-
-[llm]
-# NOTE: The [llm] section is being deprecated in favor of [consultation].priority
-# which provides unified API/CLI provider configuration with model selection.
-# See the [consultation] section below for the recommended configuration.
-
-# Provider type: "openai", "anthropic", or "local"
-provider = "openai"
-
-# API key (optional - falls back to environment variable)
-# Priority: config api_key > FOUNDRY_MCP_LLM_API_KEY > provider-specific env var
-# api_key = "sk-..."
-
-# Model identifier (uses provider default if not set)
-# OpenAI default: "gpt-4"
-# Anthropic default: "claude-sonnet-4-20250514"
-# Local default: "llama3.2"
-# model = "gpt-4"
-
-# Request timeout in seconds
-timeout = 30
-
-# Custom API base URL (for proxies, Azure OpenAI, or local servers)
-# base_url = "https://api.openai.com/v1"
-
-# Organization ID (OpenAI only)
-# organization = "org-..."
-
-# Default max tokens for responses
-max_tokens = 1024
-
-# Default temperature for generation (0.0 - 2.0)
-# Lower = more deterministic, Higher = more creative
-temperature = 0.7
-
-# =============================================================================
-# Workflow Configuration
-# =============================================================================
-
-[workflow]
-# Execution mode:
-#   "single"     - One task at a time with user approval
-#   "autonomous" - Complete all phase tasks automatically
-#   "batch"      - Execute batch_size tasks, then pause
-mode = "single"
-
-# Automatically run validation after task completion
-auto_validate = true
-
-# Enable journaling of task completions
-journal_enabled = true
-
-# Number of tasks to execute in batch mode
-batch_size = 5
-
-# Context usage threshold (%) to trigger automatic pause
-# When context reaches this threshold, autonomous/batch mode pauses
-context_threshold = 85
-
-# =============================================================================
-# AI Consultation Configuration
-# =============================================================================
-#
-# Timeout Standards:
-#   - Per-provider/per-operation minimum: 360s (6 minutes)
-#   - Whole workflow timeout: 600s (10 minutes)
-#   - Search APIs (Tavily, Perplexity, etc.): 30s (unchanged)
-#
-# These timeouts apply to AI CLI providers (Claude, Codex, Gemini, CursorAgent,
-# OpenCode) which may take longer to respond than direct API calls.
-
-[consultation]
-# =============================================================================
-# Provider Priority Configuration (NEW - Unified API/CLI providers)
-# =============================================================================
-#
-# Provider priority list - first available provider wins.
-# Supports both API providers and CLI tools with model selection.
-#
-# Format: "[api]provider/model" or "[cli]transport[:backend/model|:model]"
-#
-# Examples:
-#   [api]openai/gpt-4.1              - Direct OpenAI API with gpt-4.1
-#   [api]anthropic/claude-sonnet-4   - Direct Anthropic API with Claude
-#   [cli]gemini:auto                  - Gemini CLI with pro model
-#   [cli]claude:opus                 - Claude CLI with opus model
-#   [cli]opencode:openai/gpt-5.2     - opencode CLI routing to OpenAI backend
-#   [cli]opencode:gemini/gemini-2.5  - opencode CLI routing to Gemini backend
-#   [cli]codex                       - Codex CLI with default model
-#
-# priority = [
-#     "[cli]gemini:auto",
-#     "[cli]claude:opus",
-#     "[cli]opencode:openai/gpt-5.2",
-#     "[api]openai/gpt-4.1",
-#     "[api]anthropic/claude-sonnet-4",
-# ]
-
-# Per-provider overrides (optional)
-# Override timeout, temperature, or other settings for specific providers
-# [consultation.overrides]
-# "[cli]opencode:openai/gpt-5.2" = { timeout = 600 }
-# "[api]openai/gpt-4.1" = { temperature = 0.3 }
-
-# =============================================================================
-# Operational Settings
-# =============================================================================
-
-# Default timeout for AI CLI provider calls in seconds
-# Minimum recommended: 360s for per-provider operations
-# This applies to consultations, reviews, and research workflows
-default_timeout = 360
-
-# Number of retry attempts per provider for transient failures
-# (timeouts, rate limits, 5xx errors)
-max_retries = 2
-
-# Delay between retry attempts in seconds
-retry_delay = 5.0
-
-# Enable fallback to next available provider when one fails
-# Set to false to only use the requested/first provider
-fallback_enabled = true
-
-# Cache time-to-live in seconds for consultation results
-cache_ttl = 3600
-
-# =============================================================================
-# Per-Workflow Consultation Configuration
-# =============================================================================
-#
-# Override consultation settings for specific workflows.
-# Each workflow can specify minimum model requirements for consensus,
-# timeout overrides, and default review type.
-#
-# Available settings:
-#   min_models          - Minimum models required for consensus (default: 1)
-#   timeout_override    - Override default_timeout for this workflow (optional)
-#   default_review_type - Default review type: "quick", "full", "security", "feasibility"
-#                         (default: "full")
-
-# --- Fidelity Review Workflow ---
-# Requires 2 models for consensus to catch implementation deviations
-[consultation.workflows.fidelity_review]
-min_models = 2
-timeout_override = 600.0  # Longer timeout for comprehensive code analysis
-default_review_type = "full"
-
-# --- Plan Review Workflow ---
-# Requires 3 models for consensus on architectural decisions
-[consultation.workflows.plan_review]
-min_models = 3
-default_review_type = "full"
-# Uses default_timeout (no override)
-
-# --- Markdown Plan Review Workflow ---
-# Reviews markdown plans before conversion to JSON specs
-[consultation.workflows.markdown_plan_review]
-min_models = 2
-timeout_override = 600.0  # Whole workflow timeout
-default_review_type = "full"
-
-# --- Quick Check Workflow (example of minimal config) ---
-# [consultation.workflows.quick_check]
-# min_models = 1  # Single model is sufficient for quick validation
-# default_review_type = "quick"
 
 # =============================================================================
 # Observability Configuration
@@ -289,32 +111,6 @@ prometheus_host = "0.0.0.0"          # HTTP server bind address
 prometheus_namespace = "foundry_mcp" # Metric name prefix
 
 # =============================================================================
-# Observability Examples
-# =============================================================================
-
-# --- Enable OpenTelemetry only ---
-# [observability]
-# enabled = true
-# otel_enabled = true
-# otel_endpoint = "localhost:4317"
-# otel_service_name = "my-foundry-mcp"
-# otel_sample_rate = 0.1  # Sample 10% of traces in production
-
-# --- Enable Prometheus metrics with HTTP server ---
-# [observability]
-# enabled = true
-# prometheus_enabled = true
-# prometheus_port = 9090  # Expose /metrics on port 9090
-
-# --- Enable both for full observability stack ---
-# [observability]
-# enabled = true
-# otel_enabled = true
-# otel_endpoint = "otel-collector:4317"
-# prometheus_enabled = true
-# prometheus_port = 9090
-
-# =============================================================================
 # Implement Command Configuration
 # =============================================================================
 #
@@ -330,9 +126,6 @@ delegate = true
 
 # Run subagents concurrently for independent tasks (implies delegate=true)
 parallel = false
-
-# Model for delegated tasks: "haiku" (fast), "sonnet" (balanced), "opus" (complex)
-model = "haiku"
 
 # =============================================================================
 # Git Workflow Configuration
@@ -354,40 +147,74 @@ auto_pr = false
 show_before_commit = true
 
 # =============================================================================
-# Provider Priority Examples
+# Workflow Configuration
 # =============================================================================
 
-# --- Example 1: Prefer CLI tools, fallback to API ---
-# [consultation]
+[workflow]
+# Execution mode:
+#   "single"     - One task at a time with user approval
+#   "autonomous" - Complete all phase tasks automatically
+#   "batch"      - Execute batch_size tasks, then pause
+mode = "single"
+
+# Automatically run validation after task completion
+auto_validate = true
+
+# Enable journaling of task completions
+journal_enabled = true
+
+# Number of tasks to execute in batch mode
+batch_size = 5
+
+# Context usage threshold (%) to trigger automatic pause
+# When context reaches this threshold, autonomous/batch mode pauses
+context_threshold = 85
+
+# =============================================================================
+# AI Consultation Configuration
+# =============================================================================
+
+[consultation]
+# Default timeout for AI CLI provider calls in seconds
+# Minimum recommended: 360s for per-provider operations
+default_timeout = 360
+
+# Number of retry attempts per provider for transient failures
+max_retries = 2
+
+# Delay between retry attempts in seconds
+retry_delay = 5.0
+
+# Enable fallback to next available provider when one fails
+fallback_enabled = true
+
+# Cache time-to-live in seconds for consultation results
+cache_ttl = 3600
+
+# Provider priority list - first available provider wins
+# Uncomment and customize:
 # priority = [
-#     "[cli]gemini:auto",                       # First choice: Gemini CLI
-#     "[cli]claude:opus",                      # Second: Claude CLI
-#     "[cli]opencode:openai/gpt-5.2",          # Third: opencode with OpenAI
-#     "[api]openai/gpt-4.1",                   # Fallback: direct API
+#   "[cli]gemini:pro",
+#   "[cli]codex:gpt-5.2-codex",
+#   "[cli]cursor-agent:gpt-5.1-codex",
+#   "[cli]opencode:openai/gpt-5.2-codex",
+#   "[cli]claude:opus",
 # ]
 
-# --- Example 2: API-only configuration ---
-# [consultation]
-# priority = [
-#     "[api]anthropic/claude-sonnet-4",        # Prefer Anthropic
-#     "[api]openai/gpt-4.1",                   # Fallback to OpenAI
-# ]
+# Per-workflow overrides
+[consultation.workflows.fidelity_review]
+min_models = 2
+timeout_override = 600.0
+default_review_type = "full"
 
-# --- Example 3: Single CLI provider with backend routing ---
-# [consultation]
-# priority = [
-#     "[cli]opencode:gemini/gemini-2.5-pro",   # Use opencode with Gemini backend
-# ]
+[consultation.workflows.plan_review]
+min_models = 3
+default_review_type = "full"
 
-# --- Example 4: Mixed with per-provider overrides ---
-# [consultation]
-# priority = [
-#     "[cli]opencode:openai/gpt-5.2",
-#     "[api]openai/gpt-4.1",
-# ]
-# [consultation.overrides]
-# "[cli]opencode:openai/gpt-5.2" = { timeout = 600, temperature = 0.3 }
-# "[api]openai/gpt-4.1" = { timeout = 120, max_tokens = 4096 }
+[consultation.workflows.markdown_plan_review]
+min_models = 2
+timeout_override = 600.0
+default_review_type = "full"
 
 # =============================================================================
 # Error Collection Configuration
@@ -408,75 +235,13 @@ enabled = true
 retention_days = 30
 
 # Maximum number of error records to keep
-max_records = 10000
+max_errors = 10000
 
 # Include stack traces in error records (useful for debugging)
 include_stack_traces = true
 
 # Redact sensitive data from input parameters
 redact_inputs = true
-
-# =============================================================================
-# Metrics Persistence Configuration
-# =============================================================================
-#
-# Stores metrics for historical analysis.
-# Metrics are aggregated into time buckets before storage.
-
-[metrics_persistence]
-# Enable metrics persistence
-enabled = true
-
-# Storage path (default: ~/.foundry-mcp/metrics)
-# Uncomment to customize:
-# storage_path = "~/.foundry-mcp/metrics"
-
-# Delete records older than this many days
-retention_days = 7
-
-# Maximum number of metric data points to keep
-max_records = 100000
-
-# Aggregation bucket interval in seconds (default: 1 minute)
-bucket_interval_seconds = 60
-
-# How often to flush buffer to disk in seconds
-flush_interval_seconds = 30
-
-# Metrics to persist (empty = persist all tracked metrics)
-# persist_metrics = ["tool_invocations_total", "tool_duration_seconds", "tool_errors_total", "health_status"]
-
-# =============================================================================
-# Legacy [llm] Examples (deprecated - use [consultation].priority instead)
-# =============================================================================
-
-# --- OpenAI Configuration ---
-# [llm]
-# provider = "openai"
-# model = "gpt-4-turbo"
-# timeout = 60
-# max_tokens = 2048
-# temperature = 0.5
-# # API key via OPENAI_API_KEY environment variable
-
-# --- Anthropic Configuration ---
-# [llm]
-# provider = "anthropic"
-# model = "claude-3-opus-20240229"
-# timeout = 90
-# max_tokens = 4096
-# temperature = 0.7
-# # API key via ANTHROPIC_API_KEY environment variable
-
-# --- Local (Ollama) Configuration ---
-# [llm]
-# provider = "local"
-# model = "llama3.2"
-# base_url = "http://localhost:11434/v1"
-# timeout = 120
-# max_tokens = 2048
-# temperature = 0.8
-# # No API key required for local providers
 
 # =============================================================================
 # Research Workflow Configuration
@@ -498,6 +263,32 @@ ttl_hours = 24
 
 # Maximum messages per conversation thread
 max_messages_per_thread = 100
+
+# Default timeout for AI CLI provider calls in seconds
+# Minimum recommended: 360s for per-provider operations
+default_timeout = 360
+
+# Per-provider timeout for consensus workflow (seconds)
+timeout_per_provider = 360
+
+# Per-operation timeout for deep research workflow (seconds)
+timeout_per_operation = 360
+
+# Providers for CONSENSUS workflow (multi-model consultation)
+# Supports mixed notation - simple IDs and ProviderSpec both work
+consensus_providers = [
+    "[cli]gemini:pro",
+    "[cli]codex:gpt-5.2-codex",
+    "[cli]cursor-agent:gpt-5.1-codex",
+    "[cli]opencode:openai/gpt-5.2-codex",
+    "[cli]claude:opus",
+]
+
+# Maximum investigation depth for THINKDEEP workflow
+thinkdeep_max_depth = 5
+
+# Perspectives for IDEATE brainstorming
+ideate_perspectives = ["technical", "creative", "practical", "visionary"]
 
 # -----------------------------------------------------------------------------
 # Deep Research Settings
@@ -528,11 +319,11 @@ deep_research_audit_artifacts = true
 # - "general"   : No domain preferences (default)
 # - "academic"  : Prioritizes journals, publishers, preprints
 # - "technical" : Prioritizes official docs, arxiv, Stack Overflow
-deep_research_mode = "technical"
+deep_research_mode = "general"
 
 # Search providers (in priority order)
-# Available: tavily, perplexity, google, semantic_scholar
-deep_research_providers = ["tavily", "perplexity", "google", "semantic_scholar"]
+# Available: tavily, perplexity, semantic_scholar
+deep_research_providers = ["tavily", "perplexity", "semantic_scholar"]
 
 # -----------------------------------------------------------------------------
 # Per-Phase Timeouts (override deep_research_timeout)
@@ -568,7 +359,6 @@ max_concurrent_searches = 3         # Concurrent search requests
 [research.per_provider_rate_limits]
 tavily = 60
 perplexity = 60
-google = 100
 semantic_scholar = 100
 
 # =============================================================================
@@ -585,136 +375,3 @@ semantic_scholar = 100
 # Default runner to use when running tests
 # Valid values: pytest, go, npm, jest, make, or any custom runner name
 default_runner = "pytest"
-
-# =============================================================================
-# Runner Configuration Examples
-# =============================================================================
-#
-# Each runner has default settings. Override only what you need to change.
-# If you don't define [test.runners.*], built-in defaults are used.
-#
-# Built-in defaults:
-#   pytest: python -m pytest -v --tb=short (pattern: test_*.py, timeout: 300s)
-#   go:     go test -v (pattern: *_test.go, timeout: 300s)
-#   npm:    npm test -- (pattern: *.test.js, timeout: 300s)
-#   jest:   npx jest --verbose (pattern: *.test.{js,ts,jsx,tsx}, timeout: 300s)
-#   make:   make test (pattern: *, timeout: 300s)
-
-# --- Customize pytest runner ---
-# [test.runners.pytest]
-# command = ["python", "-m", "pytest"]    # Command to execute
-# run_args = ["-v", "--tb=short"]         # Arguments for test runs
-# discover_args = ["--collect-only", "-q"] # Arguments for test discovery
-# pattern = "test_*.py"                    # File pattern for test files
-# timeout = 300                            # Timeout in seconds
-
-# --- Customize npm runner ---
-# [test.runners.npm]
-# command = ["npm", "test"]
-# run_args = ["--"]
-# discover_args = []
-# pattern = "*.test.js"
-# timeout = 300
-
-# --- Customize go runner ---
-# [test.runners.go]
-# command = ["go", "test"]
-# run_args = ["-v"]
-# discover_args = ["-list", ".*"]
-# pattern = "*_test.go"
-# timeout = 300
-
-# --- Define a custom runner ---
-# [test.runners.custom_runner]
-# command = ["./scripts/run-tests.sh"]
-# run_args = ["--verbose"]
-# discover_args = ["--list"]
-# pattern = "test_*.py"
-# timeout = 600
-
-# =============================================================================
-# Research Workflows Configuration
-# =============================================================================
-#
-# Multi-model research capabilities: CHAT, CONSENSUS, THINKDEEP, and IDEATE.
-# Requires feature flag: research_tools = true in [features]
-#
-# Provider Spec Notation:
-#   Both simple provider IDs and full ProviderSpec notation are supported:
-#   - Simple: "gemini" (uses provider's default model)
-#   - Full: "[cli]gemini:gemini-2.5-flash" (explicit model selection)
-#
-# This allows the same rich notation as [consultation].priority
-
-[research]
-# Master switch for research tools
-enabled = true
-
-# Storage path for research state (threads, investigations, ideations)
-# storage_path = "~/.foundry-mcp/research"
-
-# Storage backend type (currently only 'file' supported)
-# storage_backend = "file"
-
-# Time-to-live for stored states in hours
-ttl_hours = 24
-
-# Maximum messages retained per conversation thread
-max_messages_per_thread = 100
-
-# Default timeout for AI CLI provider calls in seconds
-# Minimum recommended: 360s for per-provider operations
-default_timeout = 360
-
-# Per-provider timeout for consensus workflow (seconds)
-# Minimum recommended: 360s for AI CLI providers
-timeout_per_provider = 360
-
-# Per-operation timeout for deep research workflow (seconds)
-# Minimum recommended: 360s for AI CLI providers
-timeout_per_operation = 360
-
-# Default provider for single-model workflows (CHAT, THINKDEEP, IDEATE)
-# Supports both simple IDs and ProviderSpec notation:
-#   default_provider = "gemini"                      # Simple - uses provider default
-#   default_provider = "[cli]gemini:gemini-2.5-flash"  # Full - explicit model
-default_provider = "[cli]gemini:gemini-2.5-flash"
-
-# Providers for CONSENSUS workflow (multi-model consultation)
-# Supports mixed notation - simple IDs and ProviderSpec both work:
-consensus_providers = [
-    "[cli]gemini:gemini-2.5-flash",
-    "[cli]claude:claude-sonnet-4",
-]
-
-# Maximum investigation depth for THINKDEEP workflow
-thinkdeep_max_depth = 5
-
-# Perspectives for IDEATE brainstorming
-ideate_perspectives = ["technical", "creative", "practical", "visionary"]
-
-# =============================================================================
-# Research Examples
-# =============================================================================
-
-# --- Example 1: Simple provider IDs (backward compatible) ---
-# [research]
-# default_provider = "gemini"
-# consensus_providers = ["gemini", "claude", "codex"]
-
-# --- Example 2: Full ProviderSpec notation with model selection ---
-# [research]
-# default_provider = "[cli]gemini:gemini-2.5-pro"
-# consensus_providers = [
-#     "[cli]gemini:gemini-2.5-flash",
-#     "[cli]claude:claude-sonnet-4",
-#     "[cli]codex:gpt-5.2-codex",
-# ]
-
-# --- Example 3: Mixed notation ---
-# [research]
-# default_provider = "[cli]codex:gpt-5.2-codex"
-# consensus_providers = [
-#     "gemini",                          # Simple - uses default model
-#     "[cli]claude:claude-opus-4",       # Full - explicit model
-# ]
