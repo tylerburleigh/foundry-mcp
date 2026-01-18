@@ -2,6 +2,9 @@
 
 A guide to using the bikelane intake system for rapid idea capture and triage.
 
+See [MCP Tool Reference](../05-mcp-tool-reference.md) for the full tool/action list.
+For the end-to-end flow, read the [Workflow Guide](../03-workflow-guide.md).
+
 ## Table of Contents
 
 - [Overview](#overview)

@@ -1,6 +1,6 @@
 # MCP Response Schema Guide
 
-This document captures the canonical response contract that every Foundry MCP operation must follow. It complements the completed specification [`specs/completed/response-schema-standardization-2025-11-26-001.json`](../../specs/completed/response-schema-standardization-2025-11-26-001.json), the shared helpers in [`src/foundry_mcp/core/responses.py`](../../src/foundry_mcp/core/responses.py), and the best-practice guidance in [docs/mcp_best_practices](../mcp_best_practices/README.md).
+This document captures the canonical response contract that every Foundry MCP operation must follow. It complements the completed specification [`specs/completed/response-schema-standardization-2025-11-26-001.json`](../../specs/completed/response-schema-standardization-2025-11-26-001.json), the shared helpers in [`src/foundry_mcp/core/responses.py`](../../src/foundry_mcp/core/responses.py), and the best-practice guidance in [dev_docs/mcp_best_practices](../mcp_best_practices/README.md).
 
 ## Standard Envelope
 
@@ -223,12 +223,12 @@ These helpers guarantee `meta.version` is present and prevent ad-hoc response sh
 ## Compatibility & Rollout Notes
 
 - The `response_contract_v2` feature flag governs client opt-in. During migrations, continue returning v1 only when explicitly required and document timelines in the spec.
-- Feature-flag lifecycles must follow [docs/mcp_best_practices/14-feature-flags.md](../mcp_best_practices/14-feature-flags.md), and metadata such as rate limits should align with [docs/mcp_best_practices/02-envelopes-metadata.md](../mcp_best_practices/02-envelopes-metadata.md).
+- Feature-flag lifecycles must follow [dev_docs/mcp_best_practices/14-feature-flags.md](../mcp_best_practices/14-feature-flags.md), and metadata such as rate limits should align with [dev_docs/mcp_best_practices/02-envelopes-metadata.md](../mcp_best_practices/02-envelopes-metadata.md).
 - Telemetry counters in `foundry_mcp/server.py` rely on consistent envelopes; avoid bypassing the helpers or mutating the serialized dict afterward.
 
 ## Related References
 
 - Spec: [`response-schema-standardization-2025-11-26-001`](../../specs/completed/response-schema-standardization-2025-11-26-001.json)
 - Helpers: [`src/foundry_mcp/core/responses.py`](../../src/foundry_mcp/core/responses.py)
-- Testing/fixtures: [docs/mcp_best_practices/10-testing-fixtures.md](../mcp_best_practices/10-testing-fixtures.md)
-- Envelopes & metadata guidance: [docs/mcp_best_practices/02-envelopes-metadata.md](../mcp_best_practices/02-envelopes-metadata.md)
+- Testing/fixtures: [dev_docs/mcp_best_practices/10-testing-fixtures.md](../mcp_best_practices/10-testing-fixtures.md)
+- Envelopes & metadata guidance: [dev_docs/mcp_best_practices/02-envelopes-metadata.md](../mcp_best_practices/02-envelopes-metadata.md)

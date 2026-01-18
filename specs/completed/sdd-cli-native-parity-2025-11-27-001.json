@@ -14,7 +14,7 @@
     "estimated_hours": 180,
     "assumptions": [
       "Option A selected: native CLI package lives under src/foundry_mcp/sdd_cli and is the source of truth for both CLI and MCP tool behavior",
-      "Best-practices consulted prior to authoring: docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, 03-serialization-helpers.md, 04-validation-input-hygiene.md, 05-observability-telemetry.md, 06-pagination-streaming.md, 07-error-semantics.md, 08-security-trust-boundaries.md, 09-spec-driven-development.md, 10-testing-fixtures.md, 11-ai-llm-integration.md, 12-timeout-resilience.md, 13-tool-discovery.md, 14-feature-flags.md, 15-concurrency-patterns.md",
+      "Best-practices consulted prior to authoring: dev_docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, 03-serialization-helpers.md, 04-validation-input-hygiene.md, 05-observability-telemetry.md, 06-pagination-streaming.md, 07-error-semantics.md, 08-security-trust-boundaries.md, 09-spec-driven-development.md, 10-testing-fixtures.md, 11-ai-llm-integration.md, 12-timeout-resilience.md, 13-tool-discovery.md, 14-feature-flags.md, 15-concurrency-patterns.md",
       "User-facing output consolidates on JSON (with optional plain-text/markdown summaries) \u2014 no bespoke rich UI or pretty-print layers",
       "New CLI must expose readiness/status via mcp/capabilities_manifest.json and discovery helpers before rollout"
     ],
@@ -198,7 +198,7 @@
       "completed_tasks": 2,
       "metadata": {
         "task_category": "decision",
-        "file_path": "docs/architecture/sdd_cli_runtime.md",
+        "file_path": "dev_docs/architecture/sdd_cli_runtime.md",
         "details": "Document module layout, dependency graph, and CLI vs MCP execution model",
         "completed_at": "2025-11-28T18:18:12.759886Z",
         "needs_journaling": false,
@@ -344,7 +344,7 @@
       "metadata": {
         "verification_type": "manual",
         "expected": "Pariry matrix + ADR reviewed by maintainers",
-        "command": "review docs/command_parity_matrix.md and docs/architecture/sdd_cli_runtime.md",
+        "command": "review docs/command_parity_matrix.md and dev_docs/architecture/sdd_cli_runtime.md",
         "started_at": "2025-11-28T18:26:17.952352Z",
         "status_note": "Presenting architecture documents for maintainer review",
         "completed_at": "2025-11-28T19:34:25.301952Z",
@@ -368,7 +368,7 @@
         "purpose": "Create native CLI runtime, printers, config loading, and entry points",
         "risk_level": "medium",
         "estimated_hours": 35,
-        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase so runtime implementation follows the approved ADR and rollout controls.",
+        "details": "Re-read dev_docs/architecture/sdd_cli_runtime.md and dev_docs/architecture/cli_release_readiness.md before starting this phase so runtime implementation follows the approved ADR and rollout controls.",
         "needs_journaling": true,
         "completed_at": "2025-11-28T20:11:57.036012Z"
       },
@@ -423,7 +423,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/runtime/__init__.py",
         "details": [
           "Create argparse scaffolding, shared options, and CLI context objects",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -493,7 +493,7 @@
         "file_path": "pyproject.toml",
         "details": [
           "Add console script (sdd-native) referencing foundry_mcp.sdd_cli.__main__",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -549,7 +549,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/runtime/resilience.py",
         "details": [
           "Integrate core/resilience, observability, concurrency, and tracing helpers",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -583,7 +583,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "details": "Emit context IDs + metrics per docs/mcp_best_practices/05",
+        "details": "Emit context IDs + metrics per dev_docs/mcp_best_practices/05",
         "started_at": "2025-11-28T20:03:41.145720Z",
         "completed_at": "2025-11-28T20:05:46.679282Z"
       }
@@ -672,7 +672,7 @@
         "purpose": "Port planning, next-task, update/progress, context, and validation commands",
         "risk_level": "high",
         "estimated_hours": 45,
-        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase so every migrated command aligns with the runtime ADR and rollout requirements.",
+        "details": "Re-read dev_docs/architecture/sdd_cli_runtime.md and dev_docs/architecture/cli_release_readiness.md before starting this phase so every migrated command aligns with the runtime ADR and rollout requirements.",
         "needs_journaling": true,
         "completed_at": "2025-11-28T20:40:25.651189Z"
       },
@@ -728,7 +728,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/plan.py",
         "details": [
           "Port create/analyze/template commands leveraging existing MCP planning helpers",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -795,7 +795,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/next.py",
         "details": [
           "Implement next-task, prepare-task, task-info, dependency checks",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -848,7 +848,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/update.py",
         "details": [
           "Implement status updates, journaling, context tracker",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -902,7 +902,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/validate.py",
         "details": [
           "sdd validate, fix, report, stats, analyze-deps",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -1023,7 +1023,7 @@
         "purpose": "Port AI-assisted workflows (render, plan review, PR, spec modifications, doc-query, run-tests)",
         "risk_level": "high",
         "estimated_hours": 45,
-        "details": "Re-read docs/architecture/sdd_cli_runtime.md and docs/architecture/cli_release_readiness.md before starting this phase to ensure advanced workflows keep parity with the runtime ADR and gating strategy.",
+        "details": "Re-read dev_docs/architecture/sdd_cli_runtime.md and dev_docs/architecture/cli_release_readiness.md before starting this phase to ensure advanced workflows keep parity with the runtime ADR and gating strategy.",
         "needs_journaling": true,
         "completed_at": "2025-11-28T21:11:15.360146Z"
       },
@@ -1078,7 +1078,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/render.py",
         "details": [
           "Integrate AI rendering with observability + concurrency guards",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       },
       "dependencies": {
@@ -1131,7 +1131,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/plan_review.py",
         "details": [
           "sdd plan-review, sdd pr commands with AI prompts",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       }
     },
@@ -1180,7 +1180,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/spec_mod.py",
         "details": [
           "Port spec modifications, doc-query workflows, and tooling",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       }
     },
@@ -1242,7 +1242,7 @@
         "file_path": "src/foundry_mcp/sdd_cli/commands/doc_cli.py",
         "details": [
           "Bring over llm doc gen commands and skills-dev helpers for completeness",
-          "Before starting this work, re-read docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
+          "Before starting this work, re-read dev_docs/architecture/sdd_cli_runtime.md for package boundaries and helper strategy plus dev_docs/architecture/cli_release_readiness.md for feature-flag and rollout guardrails."
         ]
       }
     },
@@ -1346,7 +1346,7 @@
         "purpose": "Validate parity vs legacy CLI, update manifest/docs, plan rollout",
         "risk_level": "medium",
         "estimated_hours": 30,
-        "details": "Re-read docs/architecture/cli_release_readiness.md and docs/architecture/sdd_cli_runtime.md before executing this phase so validation and rollout steps follow the approved architecture.",
+        "details": "Re-read dev_docs/architecture/cli_release_readiness.md and dev_docs/architecture/sdd_cli_runtime.md before executing this phase so validation and rollout steps follow the approved architecture.",
         "needs_journaling": true,
         "completed_at": "2025-11-28T21:25:54.811440Z"
       },
@@ -1398,7 +1398,7 @@
         "file_path": "tests/integration/test_sdd_cli_parity.py",
         "details": [
           "Compare native CLI output to claude_skills reference via fixtures",
-          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+          "Before starting this work, re-read dev_docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus dev_docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
         ]
       }
     },
@@ -1443,10 +1443,10 @@
       "completed_tasks": 2,
       "metadata": {
         "task_category": "implementation",
-        "file_path": "docs/mcp_best_practices/README.md",
+        "file_path": "dev_docs/mcp_best_practices/README.md",
         "details": [
           "Update docs, changelog, half_baked_plans, and capabilities manifest",
-          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+          "Before starting this work, re-read dev_docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus dev_docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
         ]
       }
     },
@@ -1473,7 +1473,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "details": "Update docs/mcp_best_practices/README.md and half_baked_plans/OPERATIONS_TO_ADD.md",
+        "details": "Update dev_docs/mcp_best_practices/README.md and half_baked_plans/OPERATIONS_TO_ADD.md",
         "started_at": "2025-11-28T21:19:16.006108Z",
         "completed_at": "2025-11-28T21:19:59.435022Z"
       }
@@ -1493,7 +1493,7 @@
         "task_category": "implementation",
         "details": [
           "Stage rollout plans, feature flags, and launch communications",
-          "Before starting this work, re-read docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
+          "Before starting this work, re-read dev_docs/architecture/cli_release_readiness.md for feature-flag lifecycles and rollout checklists plus dev_docs/architecture/sdd_cli_runtime.md to keep parity with the runtime ADR."
         ],
         "file_path": "task-5-3.py"
       }
@@ -1642,7 +1642,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Define package boundaries",
       "author": "claude-code",
-      "content": "Created docs/architecture/sdd_cli_runtime.md with comprehensive ADR defining package boundaries: (1) foundry_mcp.core - transport-agnostic business logic (unchanged); (2) foundry_mcp.tools - MCP tool implementations (unchanged); (3) foundry_mcp.cli - NEW CLI runtime with main.py entry point; (4) foundry_mcp.cli.commands - Click command groups (spec, task, journal, lifecycle, validation, docs, test, review). Key decisions: core has no transport knowledge, tools and CLI are siblings both depending on core, CLI-specific features (context, session-marker, work_mode) stay in CLI package. Included dependency graph, entry point examples, pyproject.toml script config, and alternatives analysis (rejected flat module, separate package, and MCP wrapper approaches).",
+      "content": "Created dev_docs/architecture/sdd_cli_runtime.md with comprehensive ADR defining package boundaries: (1) foundry_mcp.core - transport-agnostic business logic (unchanged); (2) foundry_mcp.tools - MCP tool implementations (unchanged); (3) foundry_mcp.cli - NEW CLI runtime with main.py entry point; (4) foundry_mcp.cli.commands - Click command groups (spec, task, journal, lifecycle, validation, docs, test, review). Key decisions: core has no transport knowledge, tools and CLI are siblings both depending on core, CLI-specific features (context, session-marker, work_mode) stay in CLI package. Included dependency graph, entry point examples, pyproject.toml script config, and alternatives analysis (rejected flat module, separate package, and MCP wrapper approaches).",
       "metadata": {},
       "task_id": "task-1-2-1"
     },
@@ -1651,7 +1651,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Describe shared helper strategy",
       "author": "claude-code",
-      "content": "Added comprehensive Shared Helper Strategy section to docs/architecture/sdd_cli_runtime.md documenting: (1) Core Helper Modules table mapping responses, validation, security, observability, resilience, and pagination to CLI usage patterns; (2) Response Adaptation Pattern showing how CLI adapts MCP response envelopes for JSON and human-readable modes; (3) Validation Helper Usage examples for sdd validate/fix commands; (4) Security Helpers showing shared limits (MAX_INPUT_SIZE, MAX_ARRAY_LENGTH, etc.) used by both MCP and CLI; (5) Pagination in CLI adapting core cursor-based pagination; (6) Resilience Patterns for file operations with retry logic; (7) CLI-Only Helpers table identifying cli/output.py, cli/config.py, cli/context.py, cli/progress.py as CLI-specific; (8) Helper Selection Criteria decision tree for choosing between core and CLI modules. This completes the shared helper documentation for the runtime ADR.",
+      "content": "Added comprehensive Shared Helper Strategy section to dev_docs/architecture/sdd_cli_runtime.md documenting: (1) Core Helper Modules table mapping responses, validation, security, observability, resilience, and pagination to CLI usage patterns; (2) Response Adaptation Pattern showing how CLI adapts MCP response envelopes for JSON and human-readable modes; (3) Validation Helper Usage examples for sdd validate/fix commands; (4) Security Helpers showing shared limits (MAX_INPUT_SIZE, MAX_ARRAY_LENGTH, etc.) used by both MCP and CLI; (5) Pagination in CLI adapting core cursor-based pagination; (6) Resilience Patterns for file operations with retry logic; (7) CLI-Only Helpers table identifying cli/output.py, cli/config.py, cli/context.py, cli/progress.py as CLI-specific; (8) Helper Selection Criteria decision tree for choosing between core and CLI modules. This completes the shared helper documentation for the runtime ADR.",
       "metadata": {},
       "task_id": "task-1-2-2"
     },
@@ -1660,7 +1660,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Author runtime ADR",
       "author": "claude-code",
-      "content": "Authored comprehensive runtime ADR in docs/architecture/sdd_cli_runtime.md with both subtasks completed: (1) task-1-2-1 defined package boundaries - foundry_mcp.core (transport-agnostic), foundry_mcp.tools (MCP), foundry_mcp.cli (CLI runtime), foundry_mcp.cli.commands (Click groups), with dependency graph and entry point examples; (2) task-1-2-2 described shared helper strategy - core modules (responses, validation, security, observability, resilience, pagination) usage patterns, response adaptation for CLI, security limits, pagination, resilience patterns, CLI-only helpers, and selection criteria. ADR includes context, decision rationale, alternatives considered (flat module, separate package, MCP wrapper - all rejected), and consequences analysis. This provides the architectural foundation for CLI implementation.",
+      "content": "Authored comprehensive runtime ADR in dev_docs/architecture/sdd_cli_runtime.md with both subtasks completed: (1) task-1-2-1 defined package boundaries - foundry_mcp.core (transport-agnostic), foundry_mcp.tools (MCP), foundry_mcp.cli (CLI runtime), foundry_mcp.cli.commands (Click groups), with dependency graph and entry point examples; (2) task-1-2-2 described shared helper strategy - core modules (responses, validation, security, observability, resilience, pagination) usage patterns, response adaptation for CLI, security limits, pagination, resilience patterns, CLI-only helpers, and selection criteria. ADR includes context, decision rationale, alternatives considered (flat module, separate package, MCP wrapper - all rejected), and consequences analysis. This provides the architectural foundation for CLI implementation.",
       "metadata": {},
       "task_id": "task-1-2"
     },
@@ -1669,7 +1669,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Draft feature-flag controls",
       "author": "claude-code",
-      "content": "Created docs/architecture/cli_release_readiness.md with comprehensive feature-flag controls: (1) CLI Discovery Flag (native_cli) with EXPERIMENTAL\u2192BETA\u2192STABLE lifecycle stages; (2) CLI Command Group Flags for granular rollout (cli_spec_commands, cli_task_commands, cli_journal_commands, cli_lifecycle_commands, cli_doc_commands, cli_test_commands, cli_review_commands) with depends_on relationships; (3) Capabilities Manifest Switches via get_cli_capabilities() function; (4) Configuration Override support via environment variables (FOUNDRY_CLI_ENABLED) and config file (.foundry/config.json); (5) CLI Entry Point Guard checking feature flag before command execution. Also documented rollout strategy with 4 phases (Internal Testing, Alpha, Beta, GA) and metrics/monitoring including success metrics, rollback triggers, and telemetry events.",
+      "content": "Created dev_docs/architecture/cli_release_readiness.md with comprehensive feature-flag controls: (1) CLI Discovery Flag (native_cli) with EXPERIMENTAL\u2192BETA\u2192STABLE lifecycle stages; (2) CLI Command Group Flags for granular rollout (cli_spec_commands, cli_task_commands, cli_journal_commands, cli_lifecycle_commands, cli_doc_commands, cli_test_commands, cli_review_commands) with depends_on relationships; (3) Capabilities Manifest Switches via get_cli_capabilities() function; (4) Configuration Override support via environment variables (FOUNDRY_CLI_ENABLED) and config file (.foundry/config.json); (5) CLI Entry Point Guard checking feature flag before command execution. Also documented rollout strategy with 4 phases (Internal Testing, Alpha, Beta, GA) and metrics/monitoring including success metrics, rollback triggers, and telemetry events.",
       "metadata": {},
       "task_id": "task-1-3-1"
     },
@@ -1678,7 +1678,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Document release checklist",
       "author": "claude-code",
-      "content": "Added comprehensive Release Checklist section to docs/architecture/cli_release_readiness.md including: (1) Pre-Release Enablement Checklist with Code Quality (6 items), Documentation (5 items), Performance (4 items), and Compatibility (4 items) sections; (2) Communication Plan with Internal Communication table (Alpha, Beta, GA, Deprecation milestones) and External Communication checklist (blog, social, Discord, docs); (3) Readiness Signals with Go/No-Go Criteria (6 GO signals, 5 NO-GO signals) and Readiness Review Meeting process; (4) Post-Release Checklist covering Immediate (Day 1), Short-term (Week 1), and Medium-term (Month 1) activities; (5) Rollback Procedure with immediate actions, communication steps, investigation process, and recovery plan; (6) Version History table tracking alpha/beta/GA milestones. This completes the release readiness documentation.",
+      "content": "Added comprehensive Release Checklist section to dev_docs/architecture/cli_release_readiness.md including: (1) Pre-Release Enablement Checklist with Code Quality (6 items), Documentation (5 items), Performance (4 items), and Compatibility (4 items) sections; (2) Communication Plan with Internal Communication table (Alpha, Beta, GA, Deprecation milestones) and External Communication checklist (blog, social, Discord, docs); (3) Readiness Signals with Go/No-Go Criteria (6 GO signals, 5 NO-GO signals) and Readiness Review Meeting process; (4) Post-Release Checklist covering Immediate (Day 1), Short-term (Week 1), and Medium-term (Month 1) activities; (5) Rollback Procedure with immediate actions, communication steps, investigation process, and recovery plan; (6) Version History table tracking alpha/beta/GA milestones. This completes the release readiness documentation.",
       "metadata": {},
       "task_id": "task-1-3-2"
     },
@@ -1696,7 +1696,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Define release readiness plan",
       "author": "claude-code",
-      "content": "Completed release readiness plan with both subtasks: (1) task-1-3-1 drafted feature-flag controls including native_cli discovery flag with EXPERIMENTAL\u2192BETA\u2192STABLE lifecycle, 7 command group flags with depends_on relationships, capabilities manifest switches, configuration overrides (env vars and config file), and CLI entry point guard; (2) task-1-3-2 documented release checklist with pre-release enablement (19 items across code quality, documentation, performance, compatibility), communication plan (internal/external), readiness signals (go/no-go criteria, review meeting process), post-release checklist (day 1/week 1/month 1), rollback procedure, and version history. Full documentation in docs/architecture/cli_release_readiness.md provides complete blueprint for CLI release process.",
+      "content": "Completed release readiness plan with both subtasks: (1) task-1-3-1 drafted feature-flag controls including native_cli discovery flag with EXPERIMENTAL\u2192BETA\u2192STABLE lifecycle, 7 command group flags with depends_on relationships, capabilities manifest switches, configuration overrides (env vars and config file), and CLI entry point guard; (2) task-1-3-2 documented release checklist with pre-release enablement (19 items across code quality, documentation, performance, compatibility), communication plan (internal/external), readiness signals (go/no-go criteria, review meeting process), post-release checklist (day 1/week 1/month 1), rollback procedure, and version history. Full documentation in dev_docs/architecture/cli_release_readiness.md provides complete blueprint for CLI release process.",
       "metadata": {},
       "task_id": "task-1-3"
     },
@@ -1705,7 +1705,7 @@
       "entry_type": "status_change",
       "title": "Architecture Review Sign-Off Completed",
       "author": "claude-code",
-      "content": "Architecture review completed with Model Chorus multi-model consensus review.\n\nReview Verdicts:\n- Package Boundaries: SOUND - Clean separation, correct async/sync decision, sibling relationship prevents circular deps\n- Shared Helper Strategy: SOUND - DRY applied well, security centralized\n- Migration Priority Tiers: MOSTLY SOUND - 2 commands needed clarification\n- Feature Flag Strategy: SOUND - Mature rollout plan, aligns with best practices\n\nClarifications Added:\n1. Added Tier 1 Command Specifications to docs/cli_parity_matrix.md:\n   - check-complete: Validates all tasks completed, no blocked/in_progress, journal entries exist\n   - create-task-commit: Creates atomic commits with task context, follows configured format\n2. Updated docs/architecture/sdd_cli_runtime.md:\n   - Changed observability from 'Optional' to 'Required' for CLI parity with MCP\n\nOverall Assessment: Design decisions are architecturally sound with no fundamental flaws. Phase 1 Discovery & Architecture is now complete and ready for Phase 2 implementation.",
+      "content": "Architecture review completed with Model Chorus multi-model consensus review.\n\nReview Verdicts:\n- Package Boundaries: SOUND - Clean separation, correct async/sync decision, sibling relationship prevents circular deps\n- Shared Helper Strategy: SOUND - DRY applied well, security centralized\n- Migration Priority Tiers: MOSTLY SOUND - 2 commands needed clarification\n- Feature Flag Strategy: SOUND - Mature rollout plan, aligns with best practices\n\nClarifications Added:\n1. Added Tier 1 Command Specifications to docs/cli_parity_matrix.md:\n   - check-complete: Validates all tasks completed, no blocked/in_progress, journal entries exist\n   - create-task-commit: Creates atomic commits with task context, follows configured format\n2. Updated dev_docs/architecture/sdd_cli_runtime.md:\n   - Changed observability from 'Optional' to 'Required' for CLI parity with MCP\n\nOverall Assessment: Design decisions are architecturally sound with no fundamental flaws. Phase 1 Discovery & Architecture is now complete and ready for Phase 2 implementation.",
       "metadata": {},
       "task_id": "verify-1-1"
     },
@@ -1732,7 +1732,7 @@
       "task_id": "task-2-1-1",
       "entry_type": "status_change",
       "title": "Task Completed: Implement argument parser + registry",
-      "content": "Implemented CLI argument parser + registry scaffold with JSON-only output (combined with task-2-1-2). Created src/foundry_mcp/cli/ package with main.py (Click entry point with --specs-dir option), registry.py (command registration pattern), output.py (emit/emit_error/emit_success for JSON output), and __init__.py. Updated pyproject.toml with sdd entry point and click dependency. Updated docs/architecture/sdd_cli_runtime.md with JSON-only design decision - no --json flag, no verbosity options, all output is structured JSON for AI coding assistants. Verified with sdd --help and sdd version commands.",
+      "content": "Implemented CLI argument parser + registry scaffold with JSON-only output (combined with task-2-1-2). Created src/foundry_mcp/cli/ package with main.py (Click entry point with --specs-dir option), registry.py (command registration pattern), output.py (emit/emit_error/emit_success for JSON output), and __init__.py. Updated pyproject.toml with sdd entry point and click dependency. Updated dev_docs/architecture/sdd_cli_runtime.md with JSON-only design decision - no --json flag, no verbosity options, all output is structured JSON for AI coding assistants. Verified with sdd --help and sdd version commands.",
       "author": "foundry-mcp"
     },
     {
@@ -1740,7 +1740,7 @@
       "task_id": "task-2-1-2",
       "entry_type": "status_change",
       "title": "Task Completed: Create printer/json output helpers",
-      "content": "Combined with task-2-1-1 as JSON-only design made output helpers trivial. Implemented emit(), emit_error(), and emit_success() in src/foundry_mcp/cli/output.py - always emits JSON, no mode switching needed. Design rationale documented in docs/architecture/sdd_cli_runtime.md.",
+      "content": "Combined with task-2-1-1 as JSON-only design made output helpers trivial. Implemented emit(), emit_error(), and emit_success() in src/foundry_mcp/cli/output.py - always emits JSON, no mode switching needed. Design rationale documented in dev_docs/architecture/sdd_cli_runtime.md.",
       "author": "foundry-mcp"
     },
     {

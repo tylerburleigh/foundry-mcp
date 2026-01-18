@@ -35,7 +35,7 @@ def load_golden_fixture(name: str) -> dict:
 def validate_envelope_structure(response: dict, is_error: bool = False) -> list[str]:
     """Validate response envelope structure and return any violations.
 
-    Per docs/codebase_standards/mcp_response_schema.md, the envelope is:
+    Per dev_docs/codebase_standards/mcp_response_schema.md, the envelope is:
     - success (bool): required
     - data (object): required - contains payload on success, error context on failure
     - error (string|null): required - null on success, message string on failure

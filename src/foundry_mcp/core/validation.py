@@ -4,7 +4,7 @@ Provides spec validation, auto-fix capabilities, and statistics.
 
 Security Note:
     This module uses size limits from foundry_mcp.core.security to protect
-    against resource exhaustion attacks. See docs/mcp_best_practices/04-validation-input-hygiene.md
+    against resource exhaustion attacks. See dev_docs/mcp_best_practices/04-validation-input-hygiene.md
 """
 
 from dataclasses import dataclass, field

@@ -2,6 +2,9 @@
 
 A comprehensive guide for configuring and using LLM-powered features in foundry-mcp.
 
+Quick setup and environment variable summaries live in [Configuration](../06-configuration.md).
+For tool/action listings, see [MCP Tool Reference](../05-mcp-tool-reference.md).
+
 ## Table of Contents
 
 - [Overview](#overview)

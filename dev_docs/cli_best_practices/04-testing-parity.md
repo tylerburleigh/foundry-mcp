@@ -9,7 +9,7 @@
 
 ## 4.2 Integration & Golden Tests
 
-- Use integration tests to exercise real filesystem/spec fixtures (see [docs/mcp_best_practices/10-testing-fixtures.md](../mcp_best_practices/10-testing-fixtures.md)).
+- Use integration tests to exercise real filesystem/spec fixtures (see [dev_docs/mcp_best_practices/10-testing-fixtures.md](../mcp_best_practices/10-testing-fixtures.md)).
 - Capture golden outputs for complex commands and compare against expected results to catch regressions.
 
 ## 4.3 Parity Gates

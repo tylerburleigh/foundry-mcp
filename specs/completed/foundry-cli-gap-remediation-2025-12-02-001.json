@@ -18,7 +18,7 @@
     "assumptions": [
       "Core modules (journal.py, progress.py, modifications.py) already implement required business logic",
       "CLI commands will wrap existing core modules rather than re-implementing logic",
-      "JSON-first output per docs/codebase_standards/cli-output.md",
+      "JSON-first output per dev_docs/codebase_standards/cli-output.md",
       "Follow patterns established in existing CLI commands (tasks.py)"
     ],
     "status": "completed",
@@ -60,7 +60,7 @@
         "purpose": "Implement missing commands that block core SDD workflows",
         "risk_level": "medium",
         "estimated_hours": 10,
-        "details": "Re-read docs/mcp_best_practices/README.md and docs/codebase_standards/cli-output.md before starting",
+        "details": "Re-read dev_docs/mcp_best_practices/README.md and dev_docs/codebase_standards/cli-output.md before starting",
         "needs_journaling": true,
         "completed_at": "2025-12-02T15:52:05.228114Z"
       },

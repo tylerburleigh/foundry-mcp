@@ -6,7 +6,7 @@ and manage batch state transitions.
 
 Security Note:
     This module validates file paths to ensure they are within the project root.
-    See docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
+    See dev_docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
 """
 
 import os

@@ -17,9 +17,9 @@
       "All operations use foundry_mcp.core.responses helpers (success_response/error_response)",
       "Input validation uses foundry_mcp.core.security patterns",
       "List operations use foundry_mcp.core.pagination helpers",
-      "Tool naming follows docs/codebase_standards/naming-conventions.md and registers via canonical_tool",
+      "Tool naming follows dev_docs/codebase_standards/naming-conventions.md and registers via canonical_tool",
       "Each tool suite updates src/foundry_mcp/core/discovery.py and mcp/capabilities_manifest.json to expose readiness and feature flags",
-      "Modules wire observability, resilience, security, and feature-flag helpers per docs/mcp_best_practices/04-05-08-12-14",
+      "Modules wire observability, resilience, security, and feature-flag helpers per dev_docs/mcp_best_practices/04-05-08-12-14",
       "Specs, docs, and backlog files are updated together"
     ],
     "progress_percentage": 100,
@@ -276,7 +276,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Document rename rollout and remove environment entries plus add callouts in docs/mcp_best_practices/README.md",
+        "details": "Document rename rollout and remove environment entries plus add callouts in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T19:47:40.178854Z",
         "completed_at": "2025-11-27T19:48:41.698964Z",
         "needs_journaling": false,
@@ -680,7 +680,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove helper operations from backlog and call out best-practice impact in docs/mcp_best_practices/README.md",
+        "details": "Remove helper operations from backlog and call out best-practice impact in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T20:33:35.145852Z",
         "status_note": "Updating backlog and best practices docs for spec helpers",
         "completed_at": "2025-11-27T20:34:25.550786Z",
@@ -1164,7 +1164,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove authoring operations from backlog and summarize changes in docs/mcp_best_practices/README.md",
+        "details": "Remove authoring operations from backlog and summarize changes in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T21:07:32.769824Z",
         "status_note": "Updating docs/backlog for authoring coverage",
         "completed_at": "2025-11-27T21:08:30.062409Z",
@@ -1687,7 +1687,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove lifecycle mutation commands from backlog and document safeguards in docs/mcp_best_practices/README.md",
+        "details": "Remove lifecycle mutation commands from backlog and document safeguards in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T21:55:54.814195Z",
         "status_note": "Updating backlog and documentation",
         "completed_at": "2025-11-27T21:56:49.812670Z",
@@ -2178,7 +2178,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove planning-related backlog items and summarize behavior in docs/mcp_best_practices/README.md",
+        "details": "Remove planning-related backlog items and summarize behavior in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T23:01:35.254592Z",
         "status_note": "Starting documentation update for planning utilities",
         "completed_at": "2025-11-27T23:02:41.917481Z",
@@ -2412,7 +2412,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "half_baked_plans/OPERATIONS_TO_ADD.md",
-        "details": "Remove spec-report backlog entries and add documentation references in docs/mcp_best_practices/README.md",
+        "details": "Remove spec-report backlog entries and add documentation references in dev_docs/mcp_best_practices/README.md",
         "started_at": "2025-11-27T23:26:46.738657Z",
         "status_note": "Updating backlog to mark reporting coverage",
         "completed_at": "2025-11-27T23:27:24.246896Z",
@@ -2821,7 +2821,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Update docs/backlog for environment tool parity",
       "author": "claude-code",
-      "content": "Updated documentation for environment tool parity. Changes: (1) half_baked_plans/OPERATIONS_TO_ADD.md - Added \"Recently Covered via SDD Core Operations\" section documenting the 4 environment tools, removed Environment & Project Setup from In-Scope Operations. (2) docs/mcp_best_practices/README.md - Added \"Environment & Setup Tools\" section with tool table and feature flag info, added capabilities manifest link, bumped version to 2.2.0.",
+      "content": "Updated documentation for environment tool parity. Changes: (1) half_baked_plans/OPERATIONS_TO_ADD.md - Added \"Recently Covered via SDD Core Operations\" section documenting the 4 environment tools, removed Environment & Project Setup from In-Scope Operations. (2) dev_docs/mcp_best_practices/README.md - Added \"Environment & Setup Tools\" section with tool table and feature flag info, added capabilities manifest link, bumped version to 2.2.0.",
       "metadata": {},
       "task_id": "task-1-2-2"
     },
@@ -2965,7 +2965,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Update docs/backlog to reflect spec helper coverage",
       "author": "claude-code",
-      "content": "Updated docs/backlog (half_baked_plans/OPERATIONS_TO_ADD.md) to move spec helper operations from In-Scope to Recently Covered section. Added new \"Recently Covered via SDD Core Operations (Phase 2)\" section documenting spec_find_related_files, spec_find_patterns, spec_detect_cycles, and spec_validate_paths tools with spec_helpers feature flag. Also updated docs/mcp_best_practices/README.md with new \"Spec Discovery & Validation Helpers\" section including tool table and cross-references to validation/discovery docs. Bumped version to 2.3.0 in the README.",
+      "content": "Updated docs/backlog (half_baked_plans/OPERATIONS_TO_ADD.md) to move spec helper operations from In-Scope to Recently Covered section. Added new \"Recently Covered via SDD Core Operations (Phase 2)\" section documenting spec_find_related_files, spec_find_patterns, spec_detect_cycles, and spec_validate_paths tools with spec_helpers feature flag. Also updated dev_docs/mcp_best_practices/README.md with new \"Spec Discovery & Validation Helpers\" section including tool table and cross-references to validation/discovery docs. Bumped version to 2.3.0 in the README.",
       "metadata": {},
       "task_id": "task-2-2-2"
     },
@@ -3541,7 +3541,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Update docs/backlog for planning utilities",
       "author": "claude-code",
-      "content": "Updated documentation for planning utilities - added \"Task Planning & Execution Utilities\" section to docs/mcp_best_practices/README.md documenting 7 planning tools (plan_format, phase_list, phase_check_complete, phase_report_time, spec_reconcile_state, plan_report_time, spec_audit) with feature flag planning_tools. Updated half_baked_plans/OPERATIONS_TO_ADD.md to add Phase 5 coverage summary and strike through all 7 planning utility items as covered. Updated README version to 2.4.0.",
+      "content": "Updated documentation for planning utilities - added \"Task Planning & Execution Utilities\" section to dev_docs/mcp_best_practices/README.md documenting 7 planning tools (plan_format, phase_list, phase_check_complete, phase_report_time, spec_reconcile_state, plan_report_time, spec_audit) with feature flag planning_tools. Updated half_baked_plans/OPERATIONS_TO_ADD.md to add Phase 5 coverage summary and strike through all 7 planning utility items as covered. Updated README version to 2.4.0.",
       "metadata": {},
       "task_id": "task-5-2-2"
     },
@@ -3586,7 +3586,7 @@
       "entry_type": "status_change",
       "title": "Fidelity Review Completed: PARTIAL (66.7%)",
       "author": "claude-code",
-      "content": "Fidelity review completed with BLOCKING ISSUES identified. Consensus verdict: PARTIAL (66.7% agreement).\n\nKey findings:\n\n(1) BLOCKING - Planning tools not registered in server.py\n    - register_planning_tools() function exists in codebase but is never imported/called in src/foundry_mcp/server.py\n    - Task task-5-2 explicitly required this registration\n    - This prevents Phase 5 completion and breaks the planning tools feature set\n\n(2) MAJOR - phase_list lacks pagination metadata\n    - The list operation contract (per docs/mcp_best_practices/06-pagination-streaming.md) requires pagination metadata on all list operations\n    - phase_list response missing required pagination fields per MCP response schema\n\nDeviations documented in specs/.fidelity-reviews/ directory with full analysis.\n\nRecommendation: Reopen task-5-2 (parent task) to add missing server.py registration before Phase 5 can be considered complete. This is a blocker for spec closure.",
+      "content": "Fidelity review completed with BLOCKING ISSUES identified. Consensus verdict: PARTIAL (66.7% agreement).\n\nKey findings:\n\n(1) BLOCKING - Planning tools not registered in server.py\n    - register_planning_tools() function exists in codebase but is never imported/called in src/foundry_mcp/server.py\n    - Task task-5-2 explicitly required this registration\n    - This prevents Phase 5 completion and breaks the planning tools feature set\n\n(2) MAJOR - phase_list lacks pagination metadata\n    - The list operation contract (per dev_docs/mcp_best_practices/06-pagination-streaming.md) requires pagination metadata on all list operations\n    - phase_list response missing required pagination fields per MCP response schema\n\nDeviations documented in specs/.fidelity-reviews/ directory with full analysis.\n\nRecommendation: Reopen task-5-2 (parent task) to add missing server.py registration before Phase 5 can be considered complete. This is a blocker for spec closure.",
       "metadata": {},
       "task_id": "verify-5-3"
     },

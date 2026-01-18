@@ -15,18 +15,18 @@
       "Establish feature flag infrastructure for safe rollouts"
     ],
     "doc_references": [
-      "docs/mcp_best_practices/README.md#L24-L77",
-      "docs/codebase_standards/mcp_response_schema.md",
-      "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
-      "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
-      "docs/mcp_best_practices/07-error-semantics.md#L11-L274",
-      "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
-      "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
-      "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
-      "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
-      "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
-      "docs/mcp_best_practices/14-feature-flags.md#L10-L330",
-      "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
+      "dev_docs/mcp_best_practices/README.md#L24-L77",
+      "dev_docs/codebase_standards/mcp_response_schema.md",
+      "dev_docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+      "dev_docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
+      "dev_docs/mcp_best_practices/07-error-semantics.md#L11-L274",
+      "dev_docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
+      "dev_docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
+      "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
+      "dev_docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
+      "dev_docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+      "dev_docs/mcp_best_practices/14-feature-flags.md#L10-L330",
+      "dev_docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
     ],
     "status_notes": "Pending remediation spec tracking security, pagination, discovery, and tooling upgrades.",
     "status": "completed",
@@ -63,18 +63,18 @@
           "Establish feature flag infrastructure for safe rollouts"
         ],
         "doc_references": [
-          "docs/mcp_best_practices/README.md#L24-L77",
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
-          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
-          "docs/mcp_best_practices/07-error-semantics.md#L11-L274",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
-          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
-          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
-          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
-          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
-          "docs/mcp_best_practices/14-feature-flags.md#L10-L330",
-          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
+          "dev_docs/mcp_best_practices/README.md#L24-L77",
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "dev_docs/mcp_best_practices/06-pagination-streaming.md#L32-L332",
+          "dev_docs/mcp_best_practices/07-error-semantics.md#L11-L274",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md#L10-L335",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md#L12-L398",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "dev_docs/mcp_best_practices/14-feature-flags.md#L10-L330",
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420"
         ]
       }
     },
@@ -94,8 +94,8 @@
         "purpose": "Address critical security gaps that could expose the system to attacks or data leaks",
         "risk_level": "high",
         "doc_references": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T12:52:31.903582Z",
@@ -537,7 +537,7 @@
         "purpose": "Enable safe gradual rollouts and quick feature disables for all new functionality",
         "risk_level": "low",
         "doc_references": [
-          "docs/mcp_best_practices/14-feature-flags.md#L10-L330"
+          "dev_docs/mcp_best_practices/14-feature-flags.md#L10-L330"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:14:44.474564Z",
@@ -865,8 +865,8 @@
         "purpose": "Make errors machine-readable and actionable for clients and LLMs",
         "risk_level": "low",
         "doc_references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/07-error-semantics.md#L11-L274"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md#L11-L274"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:31:46.877804Z",
@@ -1155,8 +1155,8 @@
         "purpose": "Prevent hung operations and handle external dependency failures gracefully",
         "risk_level": "medium",
         "doc_references": [
-          "docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
-          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:52:20.528157Z",
@@ -1474,7 +1474,7 @@
         "purpose": "Handle large datasets without overwhelming responses",
         "risk_level": "medium",
         "doc_references": [
-          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
+          "dev_docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T14:17:56.313499Z",
@@ -1881,8 +1881,8 @@
         "purpose": "Enable clients to discover tools and negotiate capabilities",
         "risk_level": "low",
         "doc_references": [
-          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
-          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+          "dev_docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T14:48:26.036132Z",
@@ -2250,8 +2250,8 @@
         "purpose": "Enable safe parallelism and LLM-optimized responses",
         "risk_level": "low",
         "doc_references": [
-          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
-          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T15:11:54.760466Z",
@@ -2586,7 +2586,7 @@
         "purpose": "Improve test coverage and add property-based testing",
         "risk_level": "low",
         "doc_references": [
-          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T15:47:42.751944Z",
@@ -2895,8 +2895,8 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md#L10-L223",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md#L10-L345"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T12:25:05.179546Z",
@@ -2905,7 +2905,7 @@
     },
     "phase-1-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/04-validation-input-hygiene.md",
+      "title": "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
       "status": "completed",
       "parent": "phase-1-docs",
       "children": [
@@ -2919,7 +2919,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/04-validation-input-hygiene.md",
+        "file_path": "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
         "task_category": "implementation",
         "details": "Document new security helpers, MAX_* limits, and link to 08-security guidance."
       }
@@ -3001,7 +3001,7 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/14-feature-flags.md#L10-L330"
+          "dev_docs/mcp_best_practices/14-feature-flags.md#L10-L330"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T12:54:31.549243Z",
@@ -3010,7 +3010,7 @@
     },
     "phase-2-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/14-feature-flags.md",
+      "title": "dev_docs/mcp_best_practices/14-feature-flags.md",
       "status": "completed",
       "parent": "phase-2-docs",
       "children": [
@@ -3024,7 +3024,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/14-feature-flags.md",
+        "file_path": "dev_docs/mcp_best_practices/14-feature-flags.md",
         "task_category": "implementation",
         "details": "Describe feature flag lifecycle, registry contracts, and override tooling."
       }
@@ -3106,8 +3106,8 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/07-error-semantics.md#L11-L274"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md#L11-L274"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:19:41.449735Z",
@@ -3116,7 +3116,7 @@
     },
     "phase-3-docs-1": {
       "type": "task",
-      "title": "docs/codebase_standards/mcp_response_schema.md",
+      "title": "dev_docs/codebase_standards/mcp_response_schema.md",
       "status": "completed",
       "parent": "phase-3-docs",
       "children": [
@@ -3130,7 +3130,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/codebase_standards/mcp_response_schema.md",
+        "file_path": "dev_docs/codebase_standards/mcp_response_schema.md",
         "task_category": "implementation",
         "details": "Extend response schema docs with error_code/error_type fields and helpers."
       }
@@ -3212,8 +3212,8 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
-          "docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md#L12-L333",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md#L12-L398"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:33:45.744811Z",
@@ -3222,7 +3222,7 @@
     },
     "phase-4-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/12-timeout-resilience.md",
+      "title": "dev_docs/mcp_best_practices/12-timeout-resilience.md",
       "status": "completed",
       "parent": "phase-4-docs",
       "children": [
@@ -3236,7 +3236,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/12-timeout-resilience.md",
+        "file_path": "dev_docs/mcp_best_practices/12-timeout-resilience.md",
         "task_category": "implementation",
         "details": "Document timeout budgets, retries, and circuit breaker usage for MCP tools."
       }
@@ -3318,7 +3318,7 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
+          "dev_docs/mcp_best_practices/06-pagination-streaming.md#L32-L332"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T13:54:31.520705Z",
@@ -3327,7 +3327,7 @@
     },
     "phase-5-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/06-pagination-streaming.md",
+      "title": "dev_docs/mcp_best_practices/06-pagination-streaming.md",
       "status": "completed",
       "parent": "phase-5-docs",
       "children": [
@@ -3341,7 +3341,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/06-pagination-streaming.md",
+        "file_path": "dev_docs/mcp_best_practices/06-pagination-streaming.md",
         "task_category": "implementation",
         "details": "Describe pagination defaults, cursor format, and meta.pagination contract."
       }
@@ -3423,8 +3423,8 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
-          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+          "dev_docs/mcp_best_practices/13-tool-discovery.md#L12-L505",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T14:25:07.777672Z",
@@ -3433,7 +3433,7 @@
     },
     "phase-6-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/13-tool-discovery.md",
+      "title": "dev_docs/mcp_best_practices/13-tool-discovery.md",
       "status": "completed",
       "parent": "phase-6-docs",
       "children": [
@@ -3447,7 +3447,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/13-tool-discovery.md",
+        "file_path": "dev_docs/mcp_best_practices/13-tool-discovery.md",
         "task_category": "implementation",
         "details": "Explain discovery endpoints, capability negotiation, and deprecation markers."
       }
@@ -3529,8 +3529,8 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
-          "docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md#L10-L420",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md#L11-L352"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T14:50:45.987833Z",
@@ -3539,7 +3539,7 @@
     },
     "phase-7-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/15-concurrency-patterns.md",
+      "title": "dev_docs/mcp_best_practices/15-concurrency-patterns.md",
       "status": "completed",
       "parent": "phase-7-docs",
       "children": [
@@ -3553,7 +3553,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/15-concurrency-patterns.md",
+        "file_path": "dev_docs/mcp_best_practices/15-concurrency-patterns.md",
         "task_category": "implementation",
         "details": "Detail concurrency limits, cancellation propagation, and LLM response ergonomics."
       }
@@ -3635,7 +3635,7 @@
       "completed_tasks": 2,
       "metadata": {
         "doc_references": [
-          "docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md#L10-L335"
         ],
         "needs_journaling": false,
         "completed_at": "2025-11-27T15:14:35.620940Z",
@@ -3644,7 +3644,7 @@
     },
     "phase-8-docs-1": {
       "type": "task",
-      "title": "docs/mcp_best_practices/10-testing-fixtures.md",
+      "title": "dev_docs/mcp_best_practices/10-testing-fixtures.md",
       "status": "completed",
       "parent": "phase-8-docs",
       "children": [
@@ -3658,7 +3658,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/mcp_best_practices/10-testing-fixtures.md",
+        "file_path": "dev_docs/mcp_best_practices/10-testing-fixtures.md",
         "task_category": "implementation",
         "details": "Update fixture guidance with property testing and schema validation coverage."
       }
@@ -3885,7 +3885,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Document new security helpers, MAX_* limits, and link to 08-security guidance.",
       "author": "claude-code",
-      "content": "Updated docs/mcp_best_practices/04-validation-input-hygiene.md with:\n1. Added \"Recommended Limits\" table documenting MAX_* constants (MAX_INPUT_SIZE, MAX_ARRAY_LENGTH, MAX_STRING_LENGTH, MAX_NESTED_DEPTH, MAX_FIELD_COUNT) with recommended values and purposes\n2. Added \"Rate Limiting Integration\" section documenting foundry_mcp.core.rate_limit helpers (check_rate_limit, RateLimitConfig, get_rate_limit_manager) with code examples and environment variable configuration\n3. Added \"Audit Logging for Validation Failures\" section documenting foundry_mcp.core.observability helpers (audit_log, get_audit_logger) for security monitoring of validation failures\n4. Strengthened Related Documents section with specific subsection links to 08-security-trust-boundaries.md (Prompt Injection Defense, Authorization Patterns, Rate Limiting, Audit Logging)\n5. Added cross-reference to 05-observability-telemetry.md\n\nNo tests to run - this is a documentation-only task. Verification: Reviewed the updated file to ensure all sections render correctly and links are properly formatted.",
+      "content": "Updated dev_docs/mcp_best_practices/04-validation-input-hygiene.md with:\n1. Added \"Recommended Limits\" table documenting MAX_* constants (MAX_INPUT_SIZE, MAX_ARRAY_LENGTH, MAX_STRING_LENGTH, MAX_NESTED_DEPTH, MAX_FIELD_COUNT) with recommended values and purposes\n2. Added \"Rate Limiting Integration\" section documenting foundry_mcp.core.rate_limit helpers (check_rate_limit, RateLimitConfig, get_rate_limit_manager) with code examples and environment variable configuration\n3. Added \"Audit Logging for Validation Failures\" section documenting foundry_mcp.core.observability helpers (audit_log, get_audit_logger) for security monitoring of validation failures\n4. Strengthened Related Documents section with specific subsection links to 08-security-trust-boundaries.md (Prompt Injection Defense, Authorization Patterns, Rate Limiting, Audit Logging)\n5. Added cross-reference to 05-observability-telemetry.md\n\nNo tests to run - this is a documentation-only task. Verification: Reviewed the updated file to ensure all sections render correctly and links are properly formatted.",
       "metadata": {},
       "task_id": "phase-1-docs-1-1"
     },
@@ -4056,7 +4056,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Describe feature flag lifecycle, registry contracts, and override tooling.",
       "author": "claude-code",
-      "content": "Reviewed docs/mcp_best_practices/14-feature-flags.md and confirmed the documentation already comprehensively covers the required content: (1) Feature Flag Lifecycle - detailed diagram showing EXPERIMENTAL\u2192BETA\u2192STABLE\u2192DEPRECATED progression with descriptions for each state (opt-in, default behavior, SLA levels), (2) Registry Contracts - FlagState enum and FeatureFlag dataclass with all required fields (name, description, state, default_enabled, created_at, expires_at, owner, allowed/blocked_clients, percentage_rollout, dependencies, metadata), plus FLAGS dict registry pattern, (3) Override Tooling - FeatureFlagService class with set_override() and clear_override() methods, plus flag_override() context manager for testing. No additional documentation needed - existing content exceeds requirements.",
+      "content": "Reviewed dev_docs/mcp_best_practices/14-feature-flags.md and confirmed the documentation already comprehensively covers the required content: (1) Feature Flag Lifecycle - detailed diagram showing EXPERIMENTAL\u2192BETA\u2192STABLE\u2192DEPRECATED progression with descriptions for each state (opt-in, default behavior, SLA levels), (2) Registry Contracts - FlagState enum and FeatureFlag dataclass with all required fields (name, description, state, default_enabled, created_at, expires_at, owner, allowed/blocked_clients, percentage_rollout, dependencies, metadata), plus FLAGS dict registry pattern, (3) Override Tooling - FeatureFlagService class with set_override() and clear_override() methods, plus flag_override() context manager for testing. No additional documentation needed - existing content exceeds requirements.",
       "metadata": {},
       "task_id": "phase-2-docs-1-1"
     },
@@ -4083,7 +4083,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Define FlagState enum (EXPERIMENTAL, BETA, STABLE, DEPRECATED)",
       "author": "claude-code",
-      "content": "Created src/foundry_mcp/core/feature_flags.py module with FlagState enum. Enum inherits from str and Enum for JSON serialization compatibility. Four states defined: EXPERIMENTAL (opt-in, no SLA), BETA (opt-in, some SLA), STABLE (default on, full SLA), DEPRECATED (warns on use, to be removed). Module docstring includes usage examples and references docs/mcp_best_practices/14-feature-flags.md. Import verified working.",
+      "content": "Created src/foundry_mcp/core/feature_flags.py module with FlagState enum. Enum inherits from str and Enum for JSON serialization compatibility. Four states defined: EXPERIMENTAL (opt-in, no SLA), BETA (opt-in, some SLA), STABLE (default on, full SLA), DEPRECATED (warns on use, to be removed). Module docstring includes usage examples and references dev_docs/mcp_best_practices/14-feature-flags.md. Import verified working.",
       "metadata": {},
       "task_id": "task-2-1-1"
     },
@@ -4209,7 +4209,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Extend response schema docs with error_code/error_type fields and helpers.",
       "author": "claude-code",
-      "content": "Extended docs/codebase_standards/mcp_response_schema.md with comprehensive error_code/error_type documentation. Added: Error Response Fields section with standard error fields table (error_code, error_type, remediation, details), Error Type Categories table (9 categories with HTTP analogs and retry guidance), Error Response Example JSON, Common Error Codes table (12 codes), and expanded Error Response Helper section with parameter table and 3 practical examples (Not Found, Feature Flag Disabled, Rate Limit Exceeded).",
+      "content": "Extended dev_docs/codebase_standards/mcp_response_schema.md with comprehensive error_code/error_type documentation. Added: Error Response Fields section with standard error fields table (error_code, error_type, remediation, details), Error Type Categories table (9 categories with HTTP analogs and retry guidance), Error Response Example JSON, Common Error Codes table (12 codes), and expanded Error Response Helper section with parameter table and 3 practical examples (Not Found, Feature Flag Disabled, Rate Limit Exceeded).",
       "metadata": {},
       "task_id": "phase-3-docs-1-1"
     },
@@ -4218,7 +4218,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Summarize machine-readable error semantics for client integrators.",
       "author": "claude-code",
-      "content": "Added CHANGELOG.md entry under [Unreleased] / Added section documenting machine-readable error semantics for client integrators. Entry covers: error_response() helper with error_code, error_type, remediation, and details fields; standard error codes registry (validation, resources, access, system categories); and documentation reference to docs/codebase_standards/mcp_response_schema.md.",
+      "content": "Added CHANGELOG.md entry under [Unreleased] / Added section documenting machine-readable error semantics for client integrators. Entry covers: error_response() helper with error_code, error_type, remediation, and details fields; standard error codes registry (validation, resources, access, system categories); and documentation reference to dev_docs/codebase_standards/mcp_response_schema.md.",
       "metadata": {},
       "task_id": "phase-3-docs-2-1"
     },
@@ -4308,7 +4308,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Phase 3 fidelity review",
       "author": "claude-code",
-      "content": "Fidelity review completed with 3-model consensus. Core implementation verified correct. Fixed documentation alignment issues: (1) Updated docs/codebase_standards/mcp_response_schema.md error codes table - replaced STATE_CONFLICT\u2192CONFLICT, SERVICE_UNAVAILABLE\u2192UNAVAILABLE, added UNAUTHORIZED and FORBIDDEN; (2) Updated CHANGELOG.md error codes registry - same corrections. Test file location deviation (tests/test_responses.py vs tests/unit/test_core/test_responses.py) accepted - tests comprehensive and passing. Implementation matches spec requirements.",
+      "content": "Fidelity review completed with 3-model consensus. Core implementation verified correct. Fixed documentation alignment issues: (1) Updated dev_docs/codebase_standards/mcp_response_schema.md error codes table - replaced STATE_CONFLICT\u2192CONFLICT, SERVICE_UNAVAILABLE\u2192UNAVAILABLE, added UNAUTHORIZED and FORBIDDEN; (2) Updated CHANGELOG.md error codes registry - same corrections. Test file location deviation (tests/test_responses.py vs tests/unit/test_core/test_responses.py) accepted - tests comprehensive and passing. Implementation matches spec requirements.",
       "metadata": {},
       "task_id": "verify-3-2"
     },
@@ -4335,7 +4335,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Document timeout budgets, retries, and circuit breaker usage for MCP tools.",
       "author": "claude-code",
-      "content": "Verified existing documentation in docs/mcp_best_practices/12-timeout-resilience.md (553 lines) comprehensively covers all required topics: (1) Timeout Budgets - categories table with Fast/Medium/Slow/Background defaults, async and sync timeout implementations with decorators; (2) Retry Patterns - exponential backoff with jitter, retryable decorator, configurable exceptions; (3) Circuit Breaker - full CircuitState enum, CircuitBreaker dataclass with failure threshold/recovery timeout, with_circuit_breaker decorator, global breakers registry. Also includes partial results handling, resource cleanup patterns, health checks, and anti-patterns guidance. No additional documentation needed.",
+      "content": "Verified existing documentation in dev_docs/mcp_best_practices/12-timeout-resilience.md (553 lines) comprehensively covers all required topics: (1) Timeout Budgets - categories table with Fast/Medium/Slow/Background defaults, async and sync timeout implementations with decorators; (2) Retry Patterns - exponential backoff with jitter, retryable decorator, configurable exceptions; (3) Circuit Breaker - full CircuitState enum, CircuitBreaker dataclass with failure threshold/recovery timeout, with_circuit_breaker decorator, global breakers registry. Also includes partial results handling, resource cleanup patterns, health checks, and anti-patterns guidance. No additional documentation needed.",
       "metadata": {},
       "task_id": "phase-4-docs-1-1"
     },
@@ -4452,7 +4452,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Phase 4 fidelity review",
       "author": "claude-code",
-      "content": "Phase 4 fidelity review completed. Issues addressed: (1) Circuit breaker half_open_calls double-increment bug fixed - removed duplicate increment from record_success(), count now only incremented in can_execute(). (2) Exception-based approach for decorators accepted as valid architectural design over spec's mention of error helpers. Tests updated and all 51 tests pass. Implementation verified against docs/mcp_best_practices/12-timeout-resilience.md patterns.",
+      "content": "Phase 4 fidelity review completed. Issues addressed: (1) Circuit breaker half_open_calls double-increment bug fixed - removed duplicate increment from record_success(), count now only incremented in can_execute(). (2) Exception-based approach for decorators accepted as valid architectural design over spec's mention of error helpers. Tests updated and all 51 tests pass. Implementation verified against dev_docs/mcp_best_practices/12-timeout-resilience.md patterns.",
       "metadata": {},
       "task_id": "verify-4-2"
     },
@@ -4479,7 +4479,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Describe pagination defaults, cursor format, and meta.pagination contract.",
       "author": "claude-code",
-      "content": "Documentation already complete in docs/mcp_best_practices/06-pagination-streaming.md. Covers: (1) Pagination defaults - DEFAULT_PAGE_SIZE=100, MAX_PAGE_SIZE=1000 (lines 77-78). (2) Cursor format - Base64-encoded JSON with last_id, last_ts, version fields (lines 47-69). (3) meta.pagination contract - cursor, has_more, page_size, total_count fields (lines 143-152). Also verified alignment with mcp_response_schema.md which documents pagination as optional meta field.",
+      "content": "Documentation already complete in dev_docs/mcp_best_practices/06-pagination-streaming.md. Covers: (1) Pagination defaults - DEFAULT_PAGE_SIZE=100, MAX_PAGE_SIZE=1000 (lines 77-78). (2) Cursor format - Base64-encoded JSON with last_id, last_ts, version fields (lines 47-69). (3) meta.pagination contract - cursor, has_more, page_size, total_count fields (lines 143-152). Also verified alignment with mcp_response_schema.md which documents pagination as optional meta field.",
       "metadata": {},
       "task_id": "phase-5-docs-1-1"
     },
@@ -4650,7 +4650,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Explain discovery endpoints, capability negotiation, and deprecation markers.",
       "author": "claude-code",
-      "content": "Verified docs/mcp_best_practices/13-tool-discovery.md already contains comprehensive documentation for: (1) Discovery endpoints - list_tools() and get_tool_schema() functions (lines 178-243); (2) Capability negotiation - ServerCapabilities dataclass, get_capabilities(), and negotiate_capabilities() with version/feature negotiation (lines 245-330); (3) Deprecation markers - deprecated_tool decorator with replacement and removal_version parameters (lines 417-454). No additional changes needed - documentation is complete and comprehensive.",
+      "content": "Verified dev_docs/mcp_best_practices/13-tool-discovery.md already contains comprehensive documentation for: (1) Discovery endpoints - list_tools() and get_tool_schema() functions (lines 178-243); (2) Capability negotiation - ServerCapabilities dataclass, get_capabilities(), and negotiate_capabilities() with version/feature negotiation (lines 245-330); (3) Deprecation markers - deprecated_tool decorator with replacement and removal_version parameters (lines 417-454). No additional changes needed - documentation is complete and comprehensive.",
       "metadata": {},
       "task_id": "phase-6-docs-1-1"
     },
@@ -4830,7 +4830,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Detail concurrency limits, cancellation propagation, and LLM response ergonomics.",
       "author": "claude-code",
-      "content": "Added comprehensive \"LLM Response Ergonomics for Concurrent Operations\" section to docs/mcp_best_practices/15-concurrency-patterns.md. New section covers: (1) Progress and Status Reporting with structured counts and summary-first responses, (2) Timeout Context for LLMs with timing metadata and headroom warnings, (3) Cancellation Feedback with clear cancellation state objects, (4) Concurrency State Exposure tool for LLMs to understand system capacity, (5) Response Chunking for Large Results with pagination warnings. Document now comprehensively covers concurrency limits (semaphore, token bucket patterns), cancellation propagation (graceful cleanup, checkpoints), and LLM response ergonomics as required.",
+      "content": "Added comprehensive \"LLM Response Ergonomics for Concurrent Operations\" section to dev_docs/mcp_best_practices/15-concurrency-patterns.md. New section covers: (1) Progress and Status Reporting with structured counts and summary-first responses, (2) Timeout Context for LLMs with timing metadata and headroom warnings, (3) Cancellation Feedback with clear cancellation state objects, (4) Concurrency State Exposure tool for LLMs to understand system capacity, (5) Response Chunking for Large Results with pagination warnings. Document now comprehensively covers concurrency limits (semaphore, token bucket patterns), cancellation propagation (graceful cleanup, checkpoints), and LLM response ergonomics as required.",
       "metadata": {},
       "task_id": "phase-7-docs-1-1"
     },
@@ -4938,7 +4938,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Phase 7 fidelity review",
       "author": "claude-code",
-      "content": "Phase 7 fidelity review completed with PARTIAL verdict (66.7% AI consensus - 2/3 models passed, 1 tool failure). All three tasks implemented and verified: (1) Concurrency module with ConcurrencyLimiter, CancellationToken, cancellable_scope, request_context - 484 lines of tests passing; (2) LLM Patterns module with progressive_disclosure(), batch_response() (minor naming deviation from spec's batch_operation()), DetailLevel enum - 434 lines of tests passing; (3) Comprehensive test coverage totaling 918 test lines. Code quality rated excellent with proper SCHEMA_VERSION constants, comprehensive docstrings, type hints, and async/await patterns. Documentation complete in docs/mcp_best_practices/15-concurrency-patterns.md (752 lines). Phase 7 is READY FOR PHASE 8.",
+      "content": "Phase 7 fidelity review completed with PARTIAL verdict (66.7% AI consensus - 2/3 models passed, 1 tool failure). All three tasks implemented and verified: (1) Concurrency module with ConcurrencyLimiter, CancellationToken, cancellable_scope, request_context - 484 lines of tests passing; (2) LLM Patterns module with progressive_disclosure(), batch_response() (minor naming deviation from spec's batch_operation()), DetailLevel enum - 434 lines of tests passing; (3) Comprehensive test coverage totaling 918 test lines. Code quality rated excellent with proper SCHEMA_VERSION constants, comprehensive docstrings, type hints, and async/await patterns. Documentation complete in dev_docs/mcp_best_practices/15-concurrency-patterns.md (752 lines). Phase 7 is READY FOR PHASE 8.",
       "metadata": {},
       "task_id": "verify-7-2"
     },
@@ -4965,7 +4965,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Update fixture guidance with property testing and schema validation coverage.",
       "author": "claude-code",
-      "content": "Updated docs/mcp_best_practices/10-testing-fixtures.md with comprehensive property testing and schema validation guidance. Added: (1) Enhanced Section 4 with Hypothesis intro and TestSchemaCompliance class showing property-based schema validation; (2) New Section 5 \"Schema Validation Testing\" with Draft7Validator pattern, TestSchemaStructure, TestResponseValidation, TestInvalidResponses, and TestToolResponseValidation classes; (3) New Section 6 \"Combined Property + Schema Testing\" with custom Hypothesis strategies (valid_user_data, valid_pagination) and TestCombinedValidation class. Total +310 lines added. Committed as d3a26c3.",
+      "content": "Updated dev_docs/mcp_best_practices/10-testing-fixtures.md with comprehensive property testing and schema validation guidance. Added: (1) Enhanced Section 4 with Hypothesis intro and TestSchemaCompliance class showing property-based schema validation; (2) New Section 5 \"Schema Validation Testing\" with Draft7Validator pattern, TestSchemaStructure, TestResponseValidation, TestInvalidResponses, and TestToolResponseValidation classes; (3) New Section 6 \"Combined Property + Schema Testing\" with custom Hypothesis strategies (valid_user_data, valid_pagination) and TestCombinedValidation class. Total +310 lines added. Committed as d3a26c3.",
       "metadata": {},
       "task_id": "phase-8-docs-1-1"
     },
@@ -5010,7 +5010,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Create response schema JSON for contract testing",
       "author": "claude-code",
-      "content": "Created response schema JSON for contract testing at tests/contract/response_schema.json. The JSON Schema (draft-07) includes: (1) Top-level envelope validation for success, data, error, meta fields; (2) Conditional validation ensuring error is null when success=true and non-empty string when success=false; (3) Metadata schema with required version field and optional request_id, warnings, pagination, rate_limit, telemetry; (4) Pagination definition with cursor, has_more, total_count, page_size, page fields; (5) Rate limit definition with limit, remaining, reset_at, period, retry_after fields; (6) Telemetry definition with duration_ms, downstream_calls, cache_hit fields; (7) Error data definition with error_code enum (all ErrorCode values), error_type enum (all ErrorType values), remediation, and details. Schema aligns with docs/codebase_standards/mcp_response_schema.md and src/foundry_mcp/core/responses.py.",
+      "content": "Created response schema JSON for contract testing at tests/contract/response_schema.json. The JSON Schema (draft-07) includes: (1) Top-level envelope validation for success, data, error, meta fields; (2) Conditional validation ensuring error is null when success=true and non-empty string when success=false; (3) Metadata schema with required version field and optional request_id, warnings, pagination, rate_limit, telemetry; (4) Pagination definition with cursor, has_more, total_count, page_size, page fields; (5) Rate limit definition with limit, remaining, reset_at, period, retry_after fields; (6) Telemetry definition with duration_ms, downstream_calls, cache_hit fields; (7) Error data definition with error_code enum (all ErrorCode values), error_type enum (all ErrorType values), remediation, and details. Schema aligns with dev_docs/codebase_standards/mcp_response_schema.md and src/foundry_mcp/core/responses.py.",
       "metadata": {},
       "task_id": "task-8-2-1"
     },

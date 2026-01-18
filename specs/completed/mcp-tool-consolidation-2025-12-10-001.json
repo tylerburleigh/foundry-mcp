@@ -8,7 +8,7 @@
     "objectives": [
       "Publish unified MCP tools that accept an explicit action parameter for every existing tool family without breaking CLI or integration harnesses.",
       "Reduce the Claude manifest from 117 tools to 17 so token consumption drops from ~86k to the ~16k target while keeping backward-compatible delegates until cleanup.",
-      "Apply response-v2 envelopes, shared serialization helpers, and validation/security guardrails (docs/mcp_best_practices \u00a7\u00a701-04 & 08) to every consolidated handler before rollout."
+      "Apply response-v2 envelopes, shared serialization helpers, and validation/security guardrails (dev_docs/mcp_best_practices \u00a7\u00a701-04 & 08) to every consolidated handler before rollout."
     ],
     "complexity": "medium",
     "estimated_hours": 37.0,
@@ -24,7 +24,7 @@
         "unified_manifest"
       ],
       "migration_steps": [
-        "Maintain legacy tool delegates and CLI feature flags until phase-4 verification gates pass per docs/mcp_best_practices/14-feature-flags.md.",
+        "Maintain legacy tool delegates and CLI feature flags until phase-4 verification gates pass per dev_docs/mcp_best_practices/14-feature-flags.md.",
         "Expose the trimmed manifest via server(action=tools) + capabilities_manifest.json behind unified_manifest flag before flipping defaults.",
         "Remove legacy registrations only after telemetry shows unified routes delivering >=99% success over 7 consecutive days and rollback plan is documented."
       ],
@@ -65,43 +65,43 @@
     "template": "complex",
     "title": "MCP Tool Consolidation - Reduce 117 tools to 17",
     "consulted_best_practices": [
-      "docs/codebase_standards/mcp_response_schema.md",
-      "docs/mcp_best_practices/01-versioned-contracts.md",
-      "docs/mcp_best_practices/02-envelopes-metadata.md",
-      "docs/mcp_best_practices/03-serialization-helpers.md",
-      "docs/mcp_best_practices/04-validation-input-hygiene.md",
-      "docs/mcp_best_practices/05-observability-telemetry.md",
-      "docs/mcp_best_practices/08-security-trust-boundaries.md",
-      "docs/mcp_best_practices/10-testing-fixtures.md",
-      "docs/guides/testing.md"
+      "dev_docs/codebase_standards/mcp_response_schema.md",
+      "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+      "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+      "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+      "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+      "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+      "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+      "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+      "dev_docs/guides/testing.md"
     ],
     "notes": [
       "2025-12-10: journal + metrics routers recorded with validation and envelope guards.",
       "2025-12-11: scoped remaining phase-2 routers (authoring/provider/environment/verification) before implementation.",
       "2025-12-11: kicked off authoring router implementation with ActionRouter skeleton + CLI best-practice review.",
-      "2025-12-11: fleshed out authoring validation schemas + pagination warnings per docs/mcp_best_practices/04-08 before wiring legacy delegates.",
+      "2025-12-11: fleshed out authoring validation schemas + pagination warnings per dev_docs/mcp_best_practices/04-08 before wiring legacy delegates.",
       "2025-12-11: shipped authoring router with legacy delegations plus warnings + request_id propagation.",
       "2025-12-11: ran tests/unit/test_authoring.py to confirm envelope + validation parity after consolidation.",
       "2025-12-11: delivered provider/environment/verification routers with feature-flag guardrails and telemetry enforcement.",
       "2025-12-11: documented phase-3 action-router requirements after reviewing response schema, validation, serialization, security, and CLI output guides.",
       "2025-12-11: logged phase-3 planning progress after enriching task metadata and action criteria for the large tool families.",
-      "2025-12-11: formalized phase-4 rollout plan, risk register, and telemetry gates after re-reading docs/mcp_best_practices/09-spec-driven-development.md, docs/mcp_best_practices/14-feature-flags.md, docs/cli_best_practices/README.md, and docs/codebase_standards/cli-output.md.",
+      "2025-12-11: formalized phase-4 rollout plan, risk register, and telemetry gates after re-reading dev_docs/mcp_best_practices/09-spec-driven-development.md, dev_docs/mcp_best_practices/14-feature-flags.md, dev_docs/cli_best_practices/README.md, and dev_docs/codebase_standards/cli-output.md.",
       "2025-12-11: increased spec progress to 45% after capturing manifest, CLI, and dashboards cleanup tasks plus success metrics wiring for phase-4.",
-      "2025-12-11: kicked off verify-2-1 run-tests matrix per docs/guides/testing.md + docs/mcp_best_practices/10-testing-fixtures.md and outlined fidelity evidence expectations before transitioning to phase-3.",
+      "2025-12-11: kicked off verify-2-1 run-tests matrix per dev_docs/guides/testing.md + dev_docs/mcp_best_practices/10-testing-fixtures.md and outlined fidelity evidence expectations before transitioning to phase-3.",
       "2025-12-11: documented verify-2 command/env/artifact matrix plus reviewer checklist so the run-tests and fidelity gates have a single source of truth before execution.",
-      "2025-12-11: wired lifecycle(action=move|activate|complete|archive|state) router into register_unified_tools and validated envelopes per docs/codebase_standards/mcp_response_schema.md + docs/mcp_best_practices/04-validation-input-hygiene.md.",
+      "2025-12-11: wired lifecycle(action=move|activate|complete|archive|state) router into register_unified_tools and validated envelopes per dev_docs/codebase_standards/mcp_response_schema.md + dev_docs/mcp_best_practices/04-validation-input-hygiene.md.",
       "2025-12-11: raised overall progress to 60% and flipped phase-3 to in_progress after delegating legacy spec-lifecycle-* MCP tools to the unified dispatcher.",
       "2025-12-11: added fixture_version markers to fidelity and plan review AI fixtures so lifecycle smoke tests run without freshness warnings.",
       "2025-12-11: reran targeted lifecycle smoke tests to verify warnings are clear while unified lifecycle router remains healthy.",
-      "2025-12-11: kicked off task(action=...) router design by re-reading docs/mcp_best_practices/04-validation-input-hygiene.md, docs/mcp_best_practices/08-security-trust-boundaries.md, docs/cli_best_practices/README.md, and docs/codebase_standards/cli-output.md so validation and envelopes stay aligned.",
-      "2025-12-11: documented verify-3 run-tests + fidelity runbooks referencing docs/guides/testing.md and docs/mcp_best_practices/10-testing-fixtures.md to unblock the next verification gate.",
+      "2025-12-11: kicked off task(action=...) router design by re-reading dev_docs/mcp_best_practices/04-validation-input-hygiene.md, dev_docs/mcp_best_practices/08-security-trust-boundaries.md, dev_docs/cli_best_practices/README.md, and dev_docs/codebase_standards/cli-output.md so validation and envelopes stay aligned.",
+      "2025-12-11: documented verify-3 run-tests + fidelity runbooks referencing dev_docs/guides/testing.md and dev_docs/mcp_best_practices/10-testing-fixtures.md to unblock the next verification gate.",
       "2025-12-11: mapped TaskActionInput typed dict coverage, pagination warnings, and telemetry budgets so task router implementation can proceed without re-triage.",
-      "2025-12-11: finalized verify-3 artifact/observability matrices by cross-referencing docs/guides/testing.md, docs/mcp_best_practices/05-observability-telemetry.md, and docs/mcp_best_practices/10-testing-fixtures.md before execution.",
-      "2025-12-12: detailed task/spec/test router action matrices plus pagination and telemetry budgets after re-reading docs/codebase_standards/mcp_response_schema.md, docs/mcp_best_practices/01-versioned-contracts.md, docs/mcp_best_practices/02-envelopes-metadata.md, docs/mcp_best_practices/03-serialization-helpers.md, docs/mcp_best_practices/04-validation-input-hygiene.md, docs/mcp_best_practices/08-security-trust-boundaries.md, and docs/cli_best_practices/README.md.",
-      "2025-12-12: captured server/test discovery manifest telemetry and CLI envelope guardrails referencing docs/codebase_standards/cli-output.md plus docs/mcp_best_practices/02-envelopes-metadata.md and docs/mcp_best_practices/03-serialization-helpers.md to prep verify-3 evidence.",
-      "2025-12-12: mapped code/review/server/test action matrices + preset manifests into the spec after re-reading docs/mcp_best_practices/06-pagination-streaming.md and docs/codebase_standards/mcp_response_schema.md so pagination warnings and envelopes stay aligned.",
-      "2025-12-12: recorded manifest/test preset budget decisions plus llm_requirements in the spec to unblock verify-3 reviewers referencing docs/mcp_best_practices/11-ai-llm-integration.md and docs/cli_best_practices/04-testing-parity.md.",
-      "2025-12-12: raised overall progress to 72% after locking code/review/server/test matrices and journaling the updates per docs/mcp_best_practices/06-pagination-streaming.md and docs/codebase_standards/mcp_response_schema.md.",
+      "2025-12-11: finalized verify-3 artifact/observability matrices by cross-referencing dev_docs/guides/testing.md, dev_docs/mcp_best_practices/05-observability-telemetry.md, and dev_docs/mcp_best_practices/10-testing-fixtures.md before execution.",
+      "2025-12-12: detailed task/spec/test router action matrices plus pagination and telemetry budgets after re-reading dev_docs/codebase_standards/mcp_response_schema.md, dev_docs/mcp_best_practices/01-versioned-contracts.md, dev_docs/mcp_best_practices/02-envelopes-metadata.md, dev_docs/mcp_best_practices/03-serialization-helpers.md, dev_docs/mcp_best_practices/04-validation-input-hygiene.md, dev_docs/mcp_best_practices/08-security-trust-boundaries.md, and dev_docs/cli_best_practices/README.md.",
+      "2025-12-12: captured server/test discovery manifest telemetry and CLI envelope guardrails referencing dev_docs/codebase_standards/cli-output.md plus dev_docs/mcp_best_practices/02-envelopes-metadata.md and dev_docs/mcp_best_practices/03-serialization-helpers.md to prep verify-3 evidence.",
+      "2025-12-12: mapped code/review/server/test action matrices + preset manifests into the spec after re-reading dev_docs/mcp_best_practices/06-pagination-streaming.md and dev_docs/codebase_standards/mcp_response_schema.md so pagination warnings and envelopes stay aligned.",
+      "2025-12-12: recorded manifest/test preset budget decisions plus llm_requirements in the spec to unblock verify-3 reviewers referencing dev_docs/mcp_best_practices/11-ai-llm-integration.md and dev_docs/cli_best_practices/04-testing-parity.md.",
+      "2025-12-12: raised overall progress to 72% after locking code/review/server/test matrices and journaling the updates per dev_docs/mcp_best_practices/06-pagination-streaming.md and dev_docs/codebase_standards/mcp_response_schema.md.",
       "2025-12-12: shipped task(action=...) router with full mutation + query actions, validation, pagination warnings, and legacy task-* delegates.",
       "2025-12-12: shipped spec(action=find|list|validate|fix|stats|validate-fix|analyze|analyze-deps) router and wired legacy spec-* delegates.",
       "2025-12-12: shipped review(action=spec|fidelity|parse-feedback|list-tools|list-plan-tools) router and wired legacy review tools.",
@@ -201,15 +201,15 @@
         "risk_level": "medium",
         "needs_journaling": true,
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/guides/testing.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/guides/testing.md"
         ],
         "current_focus": "Lock verify-2-1 test evidence and prep verify-2-2 fidelity review so phase-2 can close cleanly."
       },
@@ -248,14 +248,14 @@
         "risk_level": "high",
         "needs_journaling": true,
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "current_focus": "All phase-3 routers shipped; now collect verify-3 run-tests + fidelity artifacts for phase-3 sign-off."
       },
@@ -344,7 +344,7 @@
           "Capture smoke-mcp markdown summary and update journal",
           "Flip status to completed once artifacts uploaded"
         ],
-        "status_notes": "Following docs/guides/testing.md and docs/mcp_best_practices/10-testing-fixtures.md to lock run order and artifacts before opening fidelity review.",
+        "status_notes": "Following dev_docs/guides/testing.md and dev_docs/mcp_best_practices/10-testing-fixtures.md to lock run order and artifacts before opening fidelity review.",
         "completed_at": "2025-12-12T22:09:23Z"
       },
       "dependencies": {
@@ -376,7 +376,7 @@
         ],
         "checklist": [
           "Confirm response-v2 envelopes on error/metrics/journal/authoring/provider/environment/verification routers",
-          "Ensure validation + security guardrails from docs/mcp_best_practices/04-validation-input-hygiene.md and docs/mcp_best_practices/08-security-trust-boundaries.md stay intact after consolidation",
+          "Ensure validation + security guardrails from dev_docs/mcp_best_practices/04-validation-input-hygiene.md and dev_docs/mcp_best_practices/08-security-trust-boundaries.md stay intact after consolidation",
           "Verify CLI + MCP parity by reviewing annotated action payload examples",
           "Capture remediation steps for any gaps before opening phase-3"
         ],
@@ -394,7 +394,7 @@
           "Draft fidelity report + transcript for tool submission",
           "Request spec-review-fidelity MCP tool execution"
         ],
-        "status_notes": "Blocked on verify-2-1 green runs; prepping prompts and evidence per docs/guides/testing.md and docs/mcp_best_practices/05-observability-telemetry.md.",
+        "status_notes": "Blocked on verify-2-1 green runs; prepping prompts and evidence per dev_docs/guides/testing.md and dev_docs/mcp_best_practices/05-observability-telemetry.md.",
         "completed_at": "2025-12-12T22:09:23Z"
       },
       "dependencies": {
@@ -563,9 +563,9 @@
           "specs/active/mcp-tool-consolidation-2025-12-10-001.json"
         ],
         "checklist": [
-          "Confirm task/spec/code/review/server/test routers emit response-v2 envelopes with meta.telemetry + pagination matching docs/codebase_standards/mcp_response_schema.md.",
-          "Ensure validation and security guardrails from docs/mcp_best_practices/04-validation-input-hygiene.md and 08-security-trust-boundaries.md stay intact across every action.",
-          "Review CLI vs MCP payload parity for task/spec/test flows per docs/cli_best_practices/README.md and docs/codebase_standards/cli-output.md.",
+          "Confirm task/spec/code/review/server/test routers emit response-v2 envelopes with meta.telemetry + pagination matching dev_docs/codebase_standards/mcp_response_schema.md.",
+          "Ensure validation and security guardrails from dev_docs/mcp_best_practices/04-validation-input-hygiene.md and 08-security-trust-boundaries.md stay intact across every action.",
+          "Review CLI vs MCP payload parity for task/spec/test flows per dev_docs/cli_best_practices/README.md and dev_docs/codebase_standards/cli-output.md.",
           "Capture remediation steps plus feature-flag rollback plans for any drift before closing the gate."
         ],
         "artifact_requirements": [
@@ -582,7 +582,7 @@
           "Compare task/spec/test router outputs against fixtures and transcripts for parity evidence.",
           "Draft fidelity report + transcript, then request spec-review-fidelity tool execution with unified flags enabled."
         ],
-        "status_notes": "Prepping fidelity review per docs/guides/testing.md, docs/mcp_best_practices/10-testing-fixtures.md, and docs/mcp_best_practices/11-ai-llm-integration.md so reviewers have consistent artifacts.",
+        "status_notes": "Prepping fidelity review per dev_docs/guides/testing.md, dev_docs/mcp_best_practices/10-testing-fixtures.md, and dev_docs/mcp_best_practices/11-ai-llm-integration.md so reviewers have consistent artifacts.",
         "completed_at": "2025-12-12T22:09:23Z"
       },
       "dependencies": {
@@ -820,7 +820,7 @@
         "acceptance_criteria": [
           "metrics(action=query|list|summary|stats|cleanup) mirrors the schemas and side effects of the existing metrics-* tools.",
           "Legacy metrics-* MCP definitions delegate to the unified router while preserving response-v2 envelopes and request_id propagation.",
-          "Validation failures return error_response payloads with MISSING_REQUIRED/INVALID_FORMAT codes per docs/mcp_best_practices/04-validation-input-hygiene.md."
+          "Validation failures return error_response payloads with MISSING_REQUIRED/INVALID_FORMAT codes per dev_docs/mcp_best_practices/04-validation-input-hygiene.md."
         ],
         "owner": "foundry-mcp core",
         "actual_hours": 1.6,
@@ -856,7 +856,7 @@
         ],
         "changes": "New unified journal router plus registration updates and backwards-compatible delegates for journal-add/list/list-unjournaled.",
         "acceptance_criteria": [
-          "Every action enforces validation/security guardrails from docs/mcp_best_practices/04-validation-input-hygiene.md and 08-security-trust-boundaries.md.",
+          "Every action enforces validation/security guardrails from dev_docs/mcp_best_practices/04-validation-input-hygiene.md and 08-security-trust-boundaries.md.",
           "journal(action=list) supports pagination cursors identical to the legacy implementation and includes warnings when entries are truncated.",
           "Delegated journal-* MCP tools return unchanged payloads compared to pre-consolidation responses."
         ],
@@ -891,20 +891,20 @@
         "changes": "Create authoring(action=...) router, wire it into register_unified_tools, and stub legacy authoring MCP entries to delegate.",
         "acceptance_criteria": [
           "All authoring actions emit success_response envelopes with request_id + warnings when assumptions/phases already exist.",
-          "Input hygiene rejects prompt-injection attempts when writing assumptions/revisions per docs/mcp_best_practices/08-security-trust-boundaries.md.",
+          "Input hygiene rejects prompt-injection attempts when writing assumptions/revisions per dev_docs/mcp_best_practices/08-security-trust-boundaries.md.",
           "Spec metadata updates are journaled so phase/lifecycle history stays intact."
         ],
         "owner": "foundry-mcp core",
         "started_at": "2025-12-11T00:12:00Z",
         "consulted_best_practices": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "notes": "Completed ActionRouter + legacy delegation wiring with validation warnings and request_id propagation.",
         "progress_notes": "Ported phase/assumption/revision handlers onto authoring(action=...) with validation, warnings, and CLI-compatible envelopes, then flipped legacy tools to delegate."
@@ -966,7 +966,7 @@
         "details": [
           "Consolidate sdd-init-workspace, sdd-verify-environment, sdd-verify-toolchain, sdd-setup, and sdd-detect-topology actions with a single validator.",
           "Respect the environment_tools feature flag and add explicit remediation messaging when commands are disabled.",
-          "Ensure filesystem/network access remains sandboxed per docs/mcp_best_practices/08-security-trust-boundaries.md and 12-timeout-resilience.md."
+          "Ensure filesystem/network access remains sandboxed per dev_docs/mcp_best_practices/08-security-trust-boundaries.md and 12-timeout-resilience.md."
         ],
         "changes": "New environment(action=init|verify-env|verify-toolchain|setup|detect) router plus CLI/manifest registration updates.",
         "acceptance_criteria": [
@@ -1046,14 +1046,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1185,14 +1185,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1276,14 +1276,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "actual_hours": 1.5,
         "completed_at": "2025-12-11T22:05:00Z",
@@ -1321,14 +1321,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1425,7 +1425,7 @@
         "next_steps": [
           "Align impact analysis payload structure with existing tests/unit/test_documentation.py expectations.",
           "Document path allowlists and language filters for the code index adapters.",
-          "Finalize traversal pagination + warning copy referencing docs/mcp_best_practices/06-pagination-streaming.md."
+          "Finalize traversal pagination + warning copy referencing dev_docs/mcp_best_practices/06-pagination-streaming.md."
         ],
         "observability_hooks": [
           "metrics.unified_tools.code.duration_ms",
@@ -1469,14 +1469,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1608,14 +1608,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1723,14 +1723,14 @@
         ],
         "owner": "foundry-mcp core",
         "references": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "feature_flags": [
           "unified_tools_phase3",
@@ -1787,7 +1787,7 @@
           "Define preset -> pytest command map plus overridable selectors and env vars.",
           "Model discover(action=...) pagination and truncation warnings for large suites.",
           "Document stdout/stderr summarization strategy so meta.warnings stays concise.",
-          "Add preset_matrix coverage expectations to docs/guides/testing.md references for verify-3-1."
+          "Add preset_matrix coverage expectations to dev_docs/guides/testing.md references for verify-3-1."
         ],
         "observability_hooks": [
           "metrics.unified_tools.test.duration_ms",
@@ -1836,11 +1836,11 @@
           "server(action=tools) output matches capabilities_manifest.json contents and includes feature flag status in meta.warnings."
         ],
         "references": [
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/14-feature-flags.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/14-feature-flags.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -1869,19 +1869,19 @@
         "details": [
           "Switch integration and smoke suites (tests/integration/*.py, tests/mcp_smoke.py, tests/sdd_cli_*.py) to invoke unified tool names with explicit action payloads.",
           "Refresh fixtures in tests/fixtures/golden and context tracker transcripts so recorded tool identifiers reflect the action router.",
-          "Update CLI parity tests per docs/cli_best_practices/04-testing-parity.md to assert JSON-first envelopes emitted by the new action pattern."
+          "Update CLI parity tests per dev_docs/cli_best_practices/04-testing-parity.md to assert JSON-first envelopes emitted by the new action pattern."
         ],
         "changes": "Repoint every test harness, fixture, and CLI helper to the action router API surface.",
         "acceptance_criteria": [
-          "All pytest suites documented in docs/guides/testing.md pass with unified_tools_phase3 + unified_manifest enabled.",
+          "All pytest suites documented in dev_docs/guides/testing.md pass with unified_tools_phase3 + unified_manifest enabled.",
           "Golden fixtures and transcripts no longer reference deprecated tool identifiers or envelopes.",
           "CI covers both unified + fallback paths until legacy delegates retire, ensuring regressions are caught early."
         ],
         "references": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/cli_best_practices/04-testing-parity.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/cli_best_practices/04-testing-parity.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -1919,9 +1919,9 @@
           "A documented rollback trigger exists if token counts regress beyond the budget."
         ],
         "references": [
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/14-feature-flags.md"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/14-feature-flags.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -1948,9 +1948,9 @@
         "file_path": "README.md",
         "task_category": "documentation",
         "details": [
-          "Refresh README.md, docs/mcp_best_practices references, and docs/mcp_best_practices/13-tool-discovery.md to describe the 17 action-based tools.",
+          "Refresh README.md, dev_docs/mcp_best_practices references, and dev_docs/mcp_best_practices/13-tool-discovery.md to describe the 17 action-based tools.",
           "Author a migration table mapping legacy tool names -> unified action payloads, including CLI flag examples and MCP envelope snippets.",
-          "Document feature flag usage (unified_tools_phase3, unified_manifest) plus rollback instructions per docs/cli_best_practices/02-command-shaping.md."
+          "Document feature flag usage (unified_tools_phase3, unified_manifest) plus rollback instructions per dev_docs/cli_best_practices/02-command-shaping.md."
         ],
         "changes": "Align all user-facing docs with the consolidated manifest and action parameters.",
         "acceptance_criteria": [
@@ -1959,10 +1959,10 @@
           "Feature flag and rollback guidance is documented alongside telemetry expectations."
         ],
         "references": [
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -2000,10 +2000,10 @@
           "Tool discovery/spec helper tests pass without referencing deprecated tool identifiers."
         ],
         "references": [
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/codebase_standards/naming-conventions.md",
-          "docs/cli_best_practices/02-command-shaping.md"
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/codebase_standards/naming-conventions.md",
+          "dev_docs/cli_best_practices/02-command-shaping.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -2041,9 +2041,9 @@
           "docs/dashboards/README.md explains the new panels plus alert thresholds."
         ],
         "references": [
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "owner": "foundry-mcp core"
       },
@@ -2220,7 +2220,7 @@
       "task_id": "phase-4",
       "entry_type": "worklog",
       "title": "Planning Update: Extended phase-4 integration scope",
-      "content": "Captured rollout plan, risk register, and the new manifest + dashboards cleanup tasks after re-reading docs/mcp_best_practices/09-spec-driven-development.md, docs/mcp_best_practices/14-feature-flags.md, docs/cli_best_practices/README.md, and docs/codebase_standards/cli-output.md to keep CLI/MCP parity intact.",
+      "content": "Captured rollout plan, risk register, and the new manifest + dashboards cleanup tasks after re-reading dev_docs/mcp_best_practices/09-spec-driven-development.md, dev_docs/mcp_best_practices/14-feature-flags.md, dev_docs/cli_best_practices/README.md, and dev_docs/codebase_standards/cli-output.md to keep CLI/MCP parity intact.",
       "author": "foundry-mcp"
     },
     {
@@ -2236,7 +2236,7 @@
       "task_id": "verify-2-1",
       "entry_type": "status_change",
       "title": "Task In Progress: Run tests",
-      "content": "Kicked off verify-2-1 by scheduling unit-core, integration-tools, and smoke-mcp pytest matrices with unified_tools_phase2/unified_manifest flags so evidence is ready for the upcoming fidelity gate per docs/guides/testing.md.",
+      "content": "Kicked off verify-2-1 by scheduling unit-core, integration-tools, and smoke-mcp pytest matrices with unified_tools_phase2/unified_manifest flags so evidence is ready for the upcoming fidelity gate per dev_docs/guides/testing.md.",
       "author": "foundry-mcp"
     },
     {
@@ -2244,7 +2244,7 @@
       "task_id": "verify-2-2",
       "entry_type": "worklog",
       "title": "Prep: Fidelity evidence staging",
-      "content": "Outlined reviewer checklist, fixture inputs, and artifact requirements for verify-2-2 referencing docs/mcp_best_practices/05-observability-telemetry.md and docs/mcp_best_practices/10-testing-fixtures.md so we can request the fidelity tool immediately after tests are green.",
+      "content": "Outlined reviewer checklist, fixture inputs, and artifact requirements for verify-2-2 referencing dev_docs/mcp_best_practices/05-observability-telemetry.md and dev_docs/mcp_best_practices/10-testing-fixtures.md so we can request the fidelity tool immediately after tests are green.",
       "author": "foundry-mcp"
     },
     {
@@ -2292,7 +2292,7 @@
       "task_id": "task-3-1",
       "entry_type": "status_change",
       "title": "Task In Progress: Implement unified task tool",
-      "content": "Activated task(action=...) router implementation after re-reading docs/mcp_best_practices/04-validation-input-hygiene.md, docs/mcp_best_practices/08-security-trust-boundaries.md, docs/cli_best_practices/README.md, and docs/codebase_standards/cli-output.md to lock down validation and envelope patterns.",
+      "content": "Activated task(action=...) router implementation after re-reading dev_docs/mcp_best_practices/04-validation-input-hygiene.md, dev_docs/mcp_best_practices/08-security-trust-boundaries.md, dev_docs/cli_best_practices/README.md, and dev_docs/codebase_standards/cli-output.md to lock down validation and envelope patterns.",
       "author": "foundry-mcp"
     },
     {
@@ -2300,7 +2300,7 @@
       "task_id": "verify-3-1",
       "entry_type": "worklog",
       "title": "Runbook: Phase-3 run-tests matrix captured",
-      "content": "Documented unit-task-spec, integration-large-tools, and cli-parity pytest matrices with artifacts, feature flags, and observability hooks per docs/guides/testing.md and docs/mcp_best_practices/10-testing-fixtures.md so the large router gate has auditable evidence.",
+      "content": "Documented unit-task-spec, integration-large-tools, and cli-parity pytest matrices with artifacts, feature flags, and observability hooks per dev_docs/guides/testing.md and dev_docs/mcp_best_practices/10-testing-fixtures.md so the large router gate has auditable evidence.",
       "author": "foundry-mcp"
     },
     {
@@ -2308,7 +2308,7 @@
       "task_id": "verify-3-2",
       "entry_type": "worklog",
       "title": "Prep: Fidelity evidence plan",
-      "content": "Outlined inputs, checklist, reviewers, and artifact requirements for verify-3-2 referencing docs/mcp_best_practices/11-ai-llm-integration.md and docs/codebase_standards/cli-output.md so the large tool routers can clear the fidelity review without surprises.",
+      "content": "Outlined inputs, checklist, reviewers, and artifact requirements for verify-3-2 referencing dev_docs/mcp_best_practices/11-ai-llm-integration.md and dev_docs/codebase_standards/cli-output.md so the large tool routers can clear the fidelity review without surprises.",
       "author": "foundry-mcp"
     },
     {
@@ -2316,7 +2316,7 @@
       "task_id": "task-3-1",
       "entry_type": "worklog",
       "title": "Design Update: TaskActionInput coverage",
-      "content": "Mapped typed dict unions, field guards, and pagination warning shapes for task(action=...) while pulling CLI parity examples from docs/cli_best_practices/README.md so implementation can start immediately.",
+      "content": "Mapped typed dict unions, field guards, and pagination warning shapes for task(action=...) while pulling CLI parity examples from dev_docs/cli_best_practices/README.md so implementation can start immediately.",
       "author": "foundry-mcp"
     },
     {
@@ -2324,7 +2324,7 @@
       "task_id": "spec-root",
       "entry_type": "worklog",
       "title": "Progress Update: Verify-3 readiness logged",
-      "content": "Raised spec progress to 65% after finishing TaskActionInput mapping and documenting the phase-3 run-tests/fidelity artifact + observability matrices per docs/guides/testing.md and docs/mcp_best_practices/05-observability-telemetry.md.",
+      "content": "Raised spec progress to 65% after finishing TaskActionInput mapping and documenting the phase-3 run-tests/fidelity artifact + observability matrices per dev_docs/guides/testing.md and dev_docs/mcp_best_practices/05-observability-telemetry.md.",
       "author": "foundry-mcp"
     },
     {
@@ -2332,7 +2332,7 @@
       "task_id": "task-3-1",
       "entry_type": "worklog",
       "title": "Design Update: Task action matrix + telemetry baselined",
-      "content": "Captured the task(action=...) action matrix, pagination budget, and telemetry hooks after re-reading docs/codebase_standards/mcp_response_schema.md plus docs/mcp_best_practices/01-04 & 08 and docs/cli_best_practices/README.md so implementation can move straight to coding.",
+      "content": "Captured the task(action=...) action matrix, pagination budget, and telemetry hooks after re-reading dev_docs/codebase_standards/mcp_response_schema.md plus dev_docs/mcp_best_practices/01-04 & 08 and dev_docs/cli_best_practices/README.md so implementation can move straight to coding.",
       "author": "foundry-mcp"
     },
     {
@@ -2340,7 +2340,7 @@
       "task_id": "spec-root",
       "entry_type": "worklog",
       "title": "Progress Update: Large router planning extended",
-      "content": "Raised spec progress to 70% after expanding task/spec/code/review/server/test metadata with action matrices, feature-flag hooks, and telemetry requirements referencing docs/codebase_standards/cli-output.md plus docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md.",
+      "content": "Raised spec progress to 70% after expanding task/spec/code/review/server/test metadata with action matrices, feature-flag hooks, and telemetry requirements referencing dev_docs/codebase_standards/cli-output.md plus dev_docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md.",
       "author": "foundry-mcp"
     },
     {
@@ -2348,7 +2348,7 @@
       "task_id": "task-3-4",
       "entry_type": "worklog",
       "title": "Design Update: Code router action matrix locked",
-      "content": "Captured code(action=find-class|find-function|callers|callees|trace|impact) action definitions, pagination budget, and sanitization rules after re-reading docs/mcp_best_practices/06-pagination-streaming.md and docs/codebase_standards/mcp_response_schema.md so traversal warnings stay consistent.",
+      "content": "Captured code(action=find-class|find-function|callers|callees|trace|impact) action definitions, pagination budget, and sanitization rules after re-reading dev_docs/mcp_best_practices/06-pagination-streaming.md and dev_docs/codebase_standards/mcp_response_schema.md so traversal warnings stay consistent.",
       "author": "foundry-mcp"
     },
     {
@@ -2356,7 +2356,7 @@
       "task_id": "task-3-5",
       "entry_type": "worklog",
       "title": "Design Update: Review router LLM requirements recorded",
-      "content": "Documented review(action=spec|fidelity|parse-feedback) action matrix, provider failover policy, and artifact plan referencing docs/mcp_best_practices/11-ai-llm-integration.md plus docs/codebase_standards/cli-output.md to unblock verify-3 reviewers.",
+      "content": "Documented review(action=spec|fidelity|parse-feedback) action matrix, provider failover policy, and artifact plan referencing dev_docs/mcp_best_practices/11-ai-llm-integration.md plus dev_docs/codebase_standards/cli-output.md to unblock verify-3 reviewers.",
       "author": "foundry-mcp"
     },
     {
@@ -2364,7 +2364,7 @@
       "task_id": "task-3-6",
       "entry_type": "worklog",
       "title": "Design Update: Server manifest budgets finalized",
-      "content": "Logged server(action=tools|schema|capabilities|context|llm-status) action matrix and manifest token budgets referencing docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, and docs/cli_best_practices/README.md so discovery + telemetry stay aligned.",
+      "content": "Logged server(action=tools|schema|capabilities|context|llm-status) action matrix and manifest token budgets referencing dev_docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, and dev_docs/cli_best_practices/README.md so discovery + telemetry stay aligned.",
       "author": "foundry-mcp"
     },
     {
@@ -2372,7 +2372,7 @@
       "task_id": "task-3-7",
       "entry_type": "worklog",
       "title": "Design Update: Test preset matrix captured",
-      "content": "Added test(action=run|discover) action matrix plus preset -> pytest maps referencing docs/guides/testing.md and docs/cli_best_practices/04-testing-parity.md to prep verify-3-1 evidence.",
+      "content": "Added test(action=run|discover) action matrix plus preset -> pytest maps referencing dev_docs/guides/testing.md and dev_docs/cli_best_practices/04-testing-parity.md to prep verify-3-1 evidence.",
       "author": "foundry-mcp"
     },
     {
@@ -2380,7 +2380,7 @@
       "task_id": "spec-root",
       "entry_type": "worklog",
       "title": "Progress Update: Action matrices logged",
-      "content": "Raised spec progress to 72% after capturing code/review/server/test action matrices, pagination budgets, and preset manifests referencing docs/mcp_best_practices/06-pagination-streaming.md and docs/codebase_standards/mcp_response_schema.md.",
+      "content": "Raised spec progress to 72% after capturing code/review/server/test action matrices, pagination budgets, and preset manifests referencing dev_docs/mcp_best_practices/06-pagination-streaming.md and dev_docs/codebase_standards/mcp_response_schema.md.",
       "author": "foundry-mcp"
     },
     {
@@ -2388,7 +2388,7 @@
       "task_id": "task-3-1",
       "entry_type": "worklog",
       "title": "Implementation Update: Task router read-only actions",
-      "content": "Implemented task(action=prepare|next|info|check-deps|list|query|progress|hierarchy) with validation, pagination warnings, and telemetry after re-reading docs/mcp_best_practices/04-validation-input-hygiene.md, docs/mcp_best_practices/06-pagination-streaming.md, and docs/codebase_standards/mcp_response_schema.md to unblock verify-3 planning.",
+      "content": "Implemented task(action=prepare|next|info|check-deps|list|query|progress|hierarchy) with validation, pagination warnings, and telemetry after re-reading dev_docs/mcp_best_practices/04-validation-input-hygiene.md, dev_docs/mcp_best_practices/06-pagination-streaming.md, and dev_docs/codebase_standards/mcp_response_schema.md to unblock verify-3 planning.",
       "author": "foundry-mcp"
     },
     {

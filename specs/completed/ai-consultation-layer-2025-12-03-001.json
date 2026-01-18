@@ -956,14 +956,14 @@
     },
     "task-5-3": {
       "type": "task",
-      "title": "docs/guides/ai-consultation.md",
+      "title": "dev_docs/guides/ai-consultation.md",
       "status": "completed",
       "parent": "phase-5-files",
       "children": [],
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/guides/ai-consultation.md",
+        "file_path": "dev_docs/guides/ai-consultation.md",
         "task_category": "implementation",
         "estimated_hours": 2,
         "details": [
@@ -1300,8 +1300,8 @@
       "timestamp": "2025-12-03T16:48:43.924131Z",
       "task_id": "task-5-3",
       "entry_type": "status_change",
-      "title": "Task Completed: docs/guides/ai-consultation.md",
-      "content": "Created docs/guides/ai-consultation.md with comprehensive documentation covering: architecture overview, core components (ConsultationOrchestrator, ConsultationWorkflow, ConsultationRequest, ConsultationResult), workflow examples (DOC_GENERATION, PLAN_REVIEW, FIDELITY_REVIEW), CLI integration, MCP tool integration, provider configuration, error handling, caching, and testing fixtures.",
+      "title": "Task Completed: dev_docs/guides/ai-consultation.md",
+      "content": "Created dev_docs/guides/ai-consultation.md with comprehensive documentation covering: architecture overview, core components (ConsultationOrchestrator, ConsultationWorkflow, ConsultationRequest, ConsultationResult), workflow examples (DOC_GENERATION, PLAN_REVIEW, FIDELITY_REVIEW), CLI integration, MCP tool integration, provider configuration, error handling, caching, and testing fixtures.",
       "author": "foundry-mcp"
     }
   ]

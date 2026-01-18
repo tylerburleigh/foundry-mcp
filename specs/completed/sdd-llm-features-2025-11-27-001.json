@@ -19,7 +19,7 @@
       "Response envelopes use success_response/error_response helpers",
       "LLM timeouts and retries use foundry_mcp.core.resilience patterns",
       "Tool identifiers follow canonical hyphenated names and register via canonical_tool/discovery helpers",
-      "LLM tools enforce input hygiene, prompt shielding, observability, and feature-flag gating per docs/mcp_best_practices/04-05-08-11-12-14",
+      "LLM tools enforce input hygiene, prompt shielding, observability, and feature-flag gating per dev_docs/mcp_best_practices/04-05-08-11-12-14",
       "Docs plus half_baked_plans/OPERATIONS_TO_ADD.md are updated alongside implementation"
     ],
     "status": "completed",

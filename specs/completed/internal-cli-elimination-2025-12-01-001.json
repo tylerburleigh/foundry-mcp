@@ -24,27 +24,27 @@
           "Maintain backward compatibility and test coverage"
         ],
         "best_practice_refs": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/codebase_standards/cli-output.md",
-          "docs/cli_best_practices/README.md",
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/codebase_standards/cli-output.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "assumptions": [
-          "CLI and MCP outputs stay JSON-first per docs/codebase_standards/cli-output.md.",
-          "Specs, docs, and tests must ship together as described in docs/mcp_best_practices/09-spec-driven-development.md.",
-          "All new APIs enforce validation and security boundaries up front per docs/mcp_best_practices/04-validation-input-hygiene.md and docs/mcp_best_practices/08-security-trust-boundaries.md."
+          "CLI and MCP outputs stay JSON-first per dev_docs/codebase_standards/cli-output.md.",
+          "Specs, docs, and tests must ship together as described in dev_docs/mcp_best_practices/09-spec-driven-development.md.",
+          "All new APIs enforce validation and security boundaries up front per dev_docs/mcp_best_practices/04-validation-input-hygiene.md and dev_docs/mcp_best_practices/08-security-trust-boundaries.md."
         ],
         "revision_history": [
           {
@@ -71,13 +71,13 @@
         "purpose": "Extend existing core modules to support operations currently only available in CLI",
         "risk_level": "medium",
         "best_practice_refs": [
-          "docs/codebase_standards/mcp_response_schema.md",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md"
+          "dev_docs/codebase_standards/mcp_response_schema.md",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T17:33:24.385397Z"
@@ -136,10 +136,10 @@
         "estimated_hours": 2,
         "description": "Add spec authoring APIs for create_spec, assumptions, revisions, and frontmatter",
         "best_practice_refs": [
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md"
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md"
         ]
       },
       "dependencies": {
@@ -256,9 +256,9 @@
         "estimated_hours": 2,
         "description": "Add task manipulation APIs for add, remove, and metadata updates",
         "best_practice_refs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md"
         ]
       },
       "dependencies": {
@@ -359,9 +359,9 @@
         "estimated_hours": 2,
         "description": "Add verification management APIs",
         "best_practice_refs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md"
         ]
       },
       "dependencies": {
@@ -438,8 +438,8 @@
         "estimated_hours": 0.5,
         "description": "Add bulk_journal() function if not already present",
         "best_practice_refs": [
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md"
         ],
         "started_at": "2025-12-01T17:28:33.612547Z",
         "status_note": "Starting implementation of bulk_journal() function",
@@ -468,8 +468,8 @@
         "estimated_hours": 0.5,
         "description": "Verify render_spec() is complete for documentation.py needs",
         "best_practice_refs": [
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/cli_best_practices/README.md"
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/cli_best_practices/README.md"
         ],
         "started_at": "2025-12-01T17:31:15.251529Z",
         "completed_at": "2025-12-01T17:32:37.297163Z"
@@ -493,8 +493,8 @@
       "completed_tasks": 2,
       "metadata": {
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T17:33:24.385381Z"
@@ -520,7 +520,7 @@
         "command": "PYTHONPATH=src python -c \"from foundry_mcp.core.spec import create_spec, add_assumption, list_assumptions, add_revision, update_frontmatter; from foundry_mcp.core.task import add_task, remove_task, update_estimate, update_task_metadata; print('All imports successful')\"",
         "expected": "All imports successful",
         "best_practice_refs": [
-          "docs/mcp_best_practices/03-serialization-helpers.md"
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md"
         ],
         "started_at": "2025-12-01T17:32:48.697092Z",
         "completed_at": "2025-12-01T17:33:01.599579Z"
@@ -539,7 +539,7 @@
         "command": "PYTHONPATH=src pytest tests/unit/test_spec.py tests/unit/test_task.py tests/unit/test_validation.py -v --tb=short",
         "expected": "All tests pass",
         "best_practice_refs": [
-          "docs/guides/testing.md"
+          "dev_docs/guides/testing.md"
         ],
         "started_at": "2025-12-01T17:33:07.448726Z",
         "completed_at": "2025-12-01T17:33:24.385364Z"
@@ -560,12 +560,12 @@
         "purpose": "Replace subprocess calls with direct API calls in all 7 tool files",
         "risk_level": "medium",
         "best_practice_refs": [
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T18:21:03.504508Z"
@@ -622,10 +622,10 @@
         "estimated_hours": 3,
         "description": "Replace 8 subprocess calls: create, template, add-task, remove-task, add-assumption, list-assumptions, add-revision, update-frontmatter",
         "best_practice_refs": [
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "started_at": "2025-12-01T17:33:31.378997Z",
         "completed_at": "2025-12-01T17:37:15.515097Z"
@@ -650,9 +650,9 @@
         "estimated_hours": 2.5,
         "description": "Replace 6 subprocess calls: add-verification, execute-verify, format-verification-summary, update-estimate, update-task-metadata, sync-metadata",
         "best_practice_refs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md"
         ],
         "started_at": "2025-12-01T17:43:35.032383Z",
         "status_note": "Starting refactor to replace subprocess calls with direct core API calls",
@@ -678,9 +678,9 @@
         "estimated_hours": 2,
         "description": "Replace 4 subprocess calls: doc, render, llm-doc-gen, fidelity-review",
         "best_practice_refs": [
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/cli_best_practices/README.md"
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/cli_best_practices/README.md"
         ],
         "started_at": "2025-12-01T17:50:38.073590Z",
         "completed_at": "2025-12-01T17:57:12.745662Z"
@@ -705,9 +705,9 @@
         "estimated_hours": 1.5,
         "description": "Replace 3 subprocess calls: create-pr, progress, get-journal",
         "best_practice_refs": [
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "started_at": "2025-12-01T17:57:48.094655Z",
         "completed_at": "2025-12-01T17:59:28.160622Z"
@@ -732,9 +732,9 @@
         "estimated_hours": 1.5,
         "description": "Replace 3 subprocess calls: analyze, parse-review, analyze-deps",
         "best_practice_refs": [
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/13-tool-discovery.md"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md"
         ],
         "started_at": "2025-12-01T17:59:43.831228Z",
         "completed_at": "2025-12-01T18:02:16.001885Z"
@@ -759,9 +759,9 @@
         "estimated_hours": 1,
         "description": "Replace 2 subprocess calls: create-task-commit, bulk-journal",
         "best_practice_refs": [
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/cli_best_practices/README.md"
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/cli_best_practices/README.md"
         ],
         "started_at": "2025-12-01T18:02:48.193135Z",
         "completed_at": "2025-12-01T18:04:19.945665Z"
@@ -786,8 +786,8 @@
         "estimated_hours": 0.5,
         "description": "Replace 1 subprocess call: review",
         "best_practice_refs": [
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md"
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md"
         ],
         "started_at": "2025-12-01T18:04:55.748046Z",
         "completed_at": "2025-12-01T18:06:54.713844Z"
@@ -811,8 +811,8 @@
       "completed_tasks": 2,
       "metadata": {
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T18:21:03.504499Z"
@@ -838,8 +838,8 @@
         "command": "if rg -l 'foundry-cli' src/foundry_mcp/tools >/dev/null; then echo 'foundry-cli references remain'; exit 1; else echo 'no matches'; fi",
         "expected": "no matches",
         "best_practice_refs": [
-          "docs/cli_best_practices/README.md",
-          "docs/mcp_best_practices/07-error-semantics.md"
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md"
         ],
         "started_at": "2025-12-01T18:07:09.924548Z",
         "blocked_at": "2025-12-01T18:07:32.171466Z",
@@ -862,7 +862,7 @@
         "command": "PYTHONPATH=src pytest tests/unit/test_authoring.py tests/unit/test_mutations.py tests/unit/test_analysis.py tests/unit/test_review.py -v --tb=short",
         "expected": "All tests pass",
         "best_practice_refs": [
-          "docs/guides/testing.md"
+          "dev_docs/guides/testing.md"
         ],
         "started_at": "2025-12-01T18:19:53.142112Z",
         "resolved_blockers": [
@@ -893,11 +893,11 @@
         "purpose": "Remove dead code, ensure full test coverage, verify no regressions",
         "risk_level": "low",
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T19:22:32.112870Z"
@@ -949,8 +949,8 @@
         "description": "Remove subprocess imports and any dead code from refactored tool files",
         "file_path": "src/foundry_mcp/tools/",
         "best_practice_refs": [
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md"
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md"
         ],
         "started_at": "2025-12-01T18:21:11.528105Z",
         "completed_at": "2025-12-01T18:56:36.644481Z"
@@ -975,9 +975,9 @@
         "description": "Ensure all new core API functions have unit test coverage",
         "file_path": "tests/unit/",
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md"
         ],
         "started_at": "2025-12-01T18:56:48.519946Z",
         "completed_at": "2025-12-01T19:22:32.112813Z"
@@ -1002,9 +1002,9 @@
         "description": "Update CLI + MCP documentation, changelog entries, and spec notes to reflect subprocess removal.",
         "file_path": "docs/",
         "best_practice_refs": [
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "started_at": "2025-12-01T19:18:29.668128Z",
         "completed_at": "2025-12-01T19:19:30.855217Z"
@@ -1029,9 +1029,9 @@
         "description": "Regenerate golden fixtures, parity specs, and capability manifests to match direct API usage.",
         "file_path": "tests/fixtures/",
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md"
         ],
         "started_at": "2025-12-01T19:19:50.131830Z",
         "completed_at": "2025-12-01T19:21:00.606739Z"
@@ -1055,9 +1055,9 @@
       "completed_tasks": 2,
       "metadata": {
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T19:22:02.554110Z"
@@ -1083,8 +1083,8 @@
         "command": "PYTHONPATH=src pytest tests/ -v --tb=short --ignore=tests/parity",
         "expected": "All tests pass, no regressions",
         "best_practice_refs": [
-          "docs/guides/testing.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md"
+          "dev_docs/guides/testing.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md"
         ],
         "completed_at": "2025-12-01T19:18:14.698744Z"
       }
@@ -1102,8 +1102,8 @@
         "command": "if rg -l 'import subprocess' src/foundry_mcp/tools >/dev/null; then echo 'subprocess imports remain'; exit 1; else echo 'no imports'; fi",
         "expected": "no imports",
         "best_practice_refs": [
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ],
         "started_at": "2025-12-01T19:21:25.821777Z",
         "completed_at": "2025-12-01T19:22:02.554053Z"

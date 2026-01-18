@@ -1,6 +1,6 @@
 # Bikelane Intake Plan
 
-This document defines the fast-intake ("bikelane") capability for foundry-mcp, aligned with the docs/mcp_best_practices and codebase standards.
+This document defines the fast-intake ("bikelane") capability for foundry-mcp, aligned with the dev_docs/mcp_best_practices and codebase standards.
 
 ---
 

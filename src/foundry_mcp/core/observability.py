@@ -290,7 +290,7 @@ def get_observability_manager() -> ObservabilityManager:
 # Sensitive Data Patterns for Redaction
 # =============================================================================
 # These patterns identify sensitive data that should be redacted from logs,
-# error messages, and audit trails. See docs/mcp_best_practices/08-security-trust-boundaries.md
+# error messages, and audit trails. See dev_docs/mcp_best_practices/08-security-trust-boundaries.md
 
 SENSITIVE_PATTERNS: Final[List[Tuple[str, str]]] = [
     # API Keys and Tokens

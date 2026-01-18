@@ -5,7 +5,7 @@ Provides helpers for structuring tool responses to optimize LLM consumption,
 including progressive disclosure, batch operation formatting, and context-aware
 output sizing.
 
-See docs/mcp_best_practices/15-concurrency-patterns.md for guidance.
+See dev_docs/mcp_best_practices/15-concurrency-patterns.md for guidance.
 
 Example:
     from foundry_mcp.core.llm_patterns import (

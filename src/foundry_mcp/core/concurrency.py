@@ -4,7 +4,7 @@ Concurrency utilities for foundry-mcp.
 Provides concurrency limiting, cancellation handling, and request context
 management for async MCP tool operations.
 
-See docs/mcp_best_practices/15-concurrency-patterns.md for guidance.
+See dev_docs/mcp_best_practices/15-concurrency-patterns.md for guidance.
 
 Example:
     from foundry_mcp.core.concurrency import (

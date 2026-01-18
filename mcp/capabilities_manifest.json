@@ -1482,7 +1482,7 @@
     }
   ],
   "feature_flags": {
-    "_documentation": "Feature flags control gradual rollouts, A/B testing, and experimental features. See docs/mcp_best_practices/14-feature-flags.md for guidance.",
+    "_documentation": "Feature flags control gradual rollouts, A/B testing, and experimental features. See dev_docs/mcp_best_practices/14-feature-flags.md for guidance.",
     "schema_version": "1.0.0",
     "flags": {
       "environment_tools": {

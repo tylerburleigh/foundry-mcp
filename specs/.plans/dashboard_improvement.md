@@ -320,7 +320,7 @@ use_mtime_refresh = true  # false to revert to old behavior
 | Advanced metrics | Behind expander | Reduce cognitive load for common use cases |
 
 ## Best-Practices Consulted
-- docs/mcp_best_practices/README.md#L24-L77
-- docs/mcp_best_practices/05-observability-telemetry.md
-- docs/mcp_best_practices/12-timeout-resilience.md
-- docs/mcp_best_practices/10-testing-fixtures.md (for integration test)
+- dev_docs/mcp_best_practices/README.md#L24-L77
+- dev_docs/mcp_best_practices/05-observability-telemetry.md
+- dev_docs/mcp_best_practices/12-timeout-resilience.md
+- dev_docs/mcp_best_practices/10-testing-fixtures.md (for integration test)

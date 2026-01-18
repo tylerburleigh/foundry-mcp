@@ -31,24 +31,24 @@
           "Documented rollout plus discovery metadata across CLI + MCP"
         ],
         "best_practice_refs": [
-          "docs/mcp_best_practices/README.md#L24-L82",
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/mcp_best_practices/14-feature-flags.md",
-          "docs/mcp_best_practices/15-concurrency-patterns.md",
-          "docs/cli_best_practices/README.md",
-          "docs/codebase_standards/naming-conventions.md",
-          "docs/codebase_standards/cli-output.md"
+          "dev_docs/mcp_best_practices/README.md#L24-L82",
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/mcp_best_practices/14-feature-flags.md",
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md",
+          "dev_docs/cli_best_practices/README.md",
+          "dev_docs/codebase_standards/naming-conventions.md",
+          "dev_docs/codebase_standards/cli-output.md"
         ]
       }
     },
@@ -67,11 +67,11 @@
         "purpose": "Create foundational dataclasses, enums, and base ProviderContext ABC",
         "risk_level": "low",
         "reference_docs": [
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md"
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md"
         ],
         "needs_journaling": false,
         "completed_at": "2025-12-01T19:35:41.909240Z",
@@ -131,7 +131,7 @@
         "description": "Review sdd-toolkit's base.py to understand ProviderContext, GenerationRequest, GenerationResult, enums, and error hierarchy. Note adaptations needed for foundry-mcp conventions.",
         "reference_docs": [
           "claude-sdd-toolkit/common/providers/base.py (2025-11-25 tag)",
-          "docs/architecture/adr-001-cli-architecture.md"
+          "dev_docs/architecture/adr-001-cli-architecture.md"
         ],
         "started_at": "2025-12-01T19:25:04.908900Z",
         "status_note": "Starting analysis of sdd-toolkit provider base.py",
@@ -374,14 +374,14 @@
         "purpose": "Implement CLI availability detection and provider registration",
         "risk_level": "low",
         "reference_docs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/07-error-semantics.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/15-concurrency-patterns.md",
-          "docs/guides/testing.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/07-error-semantics.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md",
+          "dev_docs/guides/testing.md"
         ],
         "needs_journaling": false,
         "completed_at": "2025-12-01T20:56:13.052528Z",
@@ -532,7 +532,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Introduce FOUNDRY_PROVIDER_TEST_MODE to bypass real CLI probes via mocked subprocess responses for CI safety per docs/guides/testing.md",
+        "description": "Introduce FOUNDRY_PROVIDER_TEST_MODE to bypass real CLI probes via mocked subprocess responses for CI safety per dev_docs/guides/testing.md",
         "task_category": "implementation",
         "completed_at": "2025-12-01T20:23:57.102406Z",
         "needs_journaling": false,
@@ -716,12 +716,12 @@
         "purpose": "Implement the 5 concrete CLI providers",
         "risk_level": "medium",
         "reference_docs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/05-observability-telemetry.md",
-          "docs/mcp_best_practices/08-security-trust-boundaries.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/mcp_best_practices/15-concurrency-patterns.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/05-observability-telemetry.md",
+          "dev_docs/mcp_best_practices/08-security-trust-boundaries.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/mcp_best_practices/15-concurrency-patterns.md"
         ],
         "needs_journaling": true,
         "completed_at": "2025-12-01T21:17:26.908868Z"
@@ -1226,7 +1226,7 @@
       "metadata": {
         "task_category": "implementation",
         "estimated_hours": 1.5,
-        "description": "Centralize ProviderRequest validation, observability hooks, and rate limiting consistent with docs/mcp_best_practices/{04,05,12,15}.",
+        "description": "Centralize ProviderRequest validation, observability hooks, and rate limiting consistent with dev_docs/mcp_best_practices/{04,05,12,15}.",
         "file_path": "task-3-7.py",
         "started_at": "2025-12-01T21:10:52.633369Z",
         "status_note": "Cross-provider validation & resilience hooks implemented in src/foundry_mcp/core/providers/validation.py per best practices docs 04, 05, 12, 15",
@@ -1243,7 +1243,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Validate prompts/metadata, enforce UTF-8, strip ANSI, and block disallowed flags before subprocess exec per docs/mcp_best_practices/04-validation-input-hygiene.md.",
+        "description": "Validate prompts/metadata, enforce UTF-8, strip ANSI, and block disallowed flags before subprocess exec per dev_docs/mcp_best_practices/04-validation-input-hygiene.md.",
         "completed_at": "2025-12-01T21:13:27.775142Z",
         "needs_journaling": true,
         "status_note": "Input hygiene implemented in validation.py: strip_ansi, ensure_utf8, sanitize_prompt, validate_request, command allowlists"
@@ -1258,7 +1258,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Emit provider execution spans w/ correlation IDs, timings, and ProviderStatus mapping via shared telemetry helpers (docs/mcp_best_practices/05-observability-telemetry.md).",
+        "description": "Emit provider execution spans w/ correlation IDs, timings, and ProviderStatus mapping via shared telemetry helpers (dev_docs/mcp_best_practices/05-observability-telemetry.md).",
         "completed_at": "2025-12-01T21:13:28.716832Z",
         "needs_journaling": true,
         "status_note": "Structured logging implemented in validation.py: ExecutionSpan, create_execution_span, log_span with correlation IDs and telemetry"
@@ -1273,7 +1273,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Wire ProviderContext to CircuitBreaker + concurrency limits, configure retry matrix per ProviderStatus.is_retryable() with docs/mcp_best_practices/12-timeout-resilience.md and 15-concurrency-patterns.md.",
+        "description": "Wire ProviderContext to CircuitBreaker + concurrency limits, configure retry matrix per ProviderStatus.is_retryable() with dev_docs/mcp_best_practices/12-timeout-resilience.md and 15-concurrency-patterns.md.",
         "completed_at": "2025-12-01T21:13:29.566061Z",
         "needs_journaling": true,
         "status_note": "Timeout budgets & retries implemented in validation.py: CircuitBreaker, RateLimiter, is_retryable, with_validation_and_resilience decorator"
@@ -1363,14 +1363,14 @@
         "purpose": "Create MCP tools for provider access",
         "risk_level": "low",
         "reference_docs": [
-          "docs/mcp_best_practices/01-versioned-contracts.md",
-          "docs/mcp_best_practices/02-envelopes-metadata.md",
-          "docs/mcp_best_practices/03-serialization-helpers.md",
-          "docs/mcp_best_practices/11-ai-llm-integration.md",
-          "docs/mcp_best_practices/13-tool-discovery.md",
-          "docs/codebase_standards/cli-output.md",
-          "docs/codebase_standards/naming-conventions.md",
-          "docs/cli_best_practices/README.md"
+          "dev_docs/mcp_best_practices/01-versioned-contracts.md",
+          "dev_docs/mcp_best_practices/02-envelopes-metadata.md",
+          "dev_docs/mcp_best_practices/03-serialization-helpers.md",
+          "dev_docs/mcp_best_practices/11-ai-llm-integration.md",
+          "dev_docs/mcp_best_practices/13-tool-discovery.md",
+          "dev_docs/codebase_standards/cli-output.md",
+          "dev_docs/codebase_standards/naming-conventions.md",
+          "dev_docs/cli_best_practices/README.md"
         ],
         "needs_journaling": false,
         "completed_at": "2025-12-01T22:01:49.861805Z",
@@ -1457,7 +1457,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "List all CLI providers with availability status using success_response() per docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md",
+        "description": "List all CLI providers with availability status using success_response() per dev_docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md",
         "completed_at": "2025-12-01T21:26:35.092973Z",
         "needs_journaling": false,
         "journaled_at": "2025-12-01T21:26:35.096059Z"
@@ -1472,7 +1472,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Get detailed status for specific provider with error_response() for not found, following docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md",
+        "description": "Get detailed status for specific provider with error_response() for not found, following dev_docs/mcp_best_practices/02-envelopes-metadata.md and 03-serialization-helpers.md",
         "completed_at": "2025-12-01T21:26:35.544397Z",
         "needs_journaling": false,
         "journaled_at": "2025-12-01T21:26:35.547728Z"
@@ -1487,7 +1487,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Execute prompt against provider with CircuitBreaker integration, ProviderRequest validation, and trust-boundary enforcement (docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, 03-serialization-helpers.md, 04 & 08).",
+        "description": "Execute prompt against provider with CircuitBreaker integration, ProviderRequest validation, and trust-boundary enforcement (dev_docs/mcp_best_practices/01-versioned-contracts.md, 02-envelopes-metadata.md, 03-serialization-helpers.md, 04 & 08).",
         "completed_at": "2025-12-01T21:26:35.696629Z",
         "needs_journaling": false,
         "journaled_at": "2025-12-01T21:26:35.702005Z"
@@ -1502,7 +1502,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Annotate provider tools with discovery tags, rate limits, and usage examples aligned with docs/mcp_best_practices/13-tool-discovery.md and docs/codebase_standards/naming-conventions.md.",
+        "description": "Annotate provider tools with discovery tags, rate limits, and usage examples aligned with dev_docs/mcp_best_practices/13-tool-discovery.md and dev_docs/codebase_standards/naming-conventions.md.",
         "completed_at": "2025-12-01T21:26:37.292313Z",
         "needs_journaling": false,
         "journaled_at": "2025-12-01T21:26:37.295307Z"
@@ -1560,7 +1560,7 @@
       "metadata": {
         "task_category": "implementation",
         "estimated_hours": 1,
-        "description": "Keep docs, manifests, and discovery metadata in lockstep with new tools per docs/mcp_best_practices/09 and 13.",
+        "description": "Keep docs, manifests, and discovery metadata in lockstep with new tools per dev_docs/mcp_best_practices/09 and 13.",
         "file_path": "task-4-3.py"
       }
     },
@@ -1573,8 +1573,8 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "file_path": "docs/cli_best_practices/README.md",
-        "description": "Document provider-list/status/execute usage, JSON envelopes, and safety notes referencing docs/codebase_standards/cli-output.md and docs/codebase_standards/naming-conventions.md.",
+        "file_path": "dev_docs/cli_best_practices/README.md",
+        "description": "Document provider-list/status/execute usage, JSON envelopes, and safety notes referencing dev_docs/codebase_standards/cli-output.md and dev_docs/codebase_standards/naming-conventions.md.",
         "started_at": "2025-12-01T21:35:49.369476Z",
         "status_note": "Starting documentation update for provider tools",
         "completed_at": "2025-12-01T21:37:26.744958Z",
@@ -1612,7 +1612,7 @@
       "completed_tasks": 1,
       "metadata": {
         "file_path": "docs/generated/index.md",
-        "description": "Run doc-generation pipeline so architecture + inventory outputs describe provider abstraction changes (docs/mcp_best_practices/10-testing-fixtures.md).",
+        "description": "Run doc-generation pipeline so architecture + inventory outputs describe provider abstraction changes (dev_docs/mcp_best_practices/10-testing-fixtures.md).",
         "started_at": "2025-12-01T21:50:20.904332Z",
         "status_note": "Starting doc regeneration for provider abstraction changes",
         "completed_at": "2025-12-01T21:56:28.812957Z",
@@ -1656,7 +1656,7 @@
       "completed_tasks": 1,
       "metadata": {
         "verification_type": "manual",
-        "description": "Check server exposes provider-list, provider-status, provider-execute tools with discovery metadata per docs/mcp_best_practices/13-tool-discovery.md",
+        "description": "Check server exposes provider-list, provider-status, provider-execute tools with discovery metadata per dev_docs/mcp_best_practices/13-tool-discovery.md",
         "started_at": "2025-12-01T21:57:57.195519Z",
         "status_note": "Starting manual verification of MCP tool registration",
         "completed_at": "2025-12-01T21:59:30.617014Z",
@@ -1675,7 +1675,7 @@
       "completed_tasks": 1,
       "metadata": {
         "verification_type": "manual",
-        "description": "Verify all tool responses follow response-v2 envelope format with success/error/meta fields per docs/codebase_standards/mcp_response_schema.md",
+        "description": "Verify all tool responses follow response-v2 envelope format with success/error/meta fields per dev_docs/codebase_standards/mcp_response_schema.md",
         "started_at": "2025-12-01T22:00:24.235608Z",
         "status_note": "Starting manual verification of response envelope compliance",
         "completed_at": "2025-12-01T22:01:49.861615Z",
@@ -1708,11 +1708,11 @@
         "purpose": "Refactor review.py to use new provider abstraction",
         "risk_level": "medium",
         "reference_docs": [
-          "docs/mcp_best_practices/04-validation-input-hygiene.md",
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/14-feature-flags.md",
-          "docs/codebase_standards/mcp_response_schema.md"
+          "dev_docs/mcp_best_practices/04-validation-input-hygiene.md",
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/14-feature-flags.md",
+          "dev_docs/codebase_standards/mcp_response_schema.md"
         ],
         "needs_journaling": false,
         "completed_at": "2025-12-01T22:28:47.140004Z",
@@ -1829,7 +1829,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Add feature flag + rollout plan (docs/mcp_best_practices/14-feature-flags.md) with flag lifecycle notes and fallback path to legacy subprocess behavior.",
+        "description": "Add feature flag + rollout plan (dev_docs/mcp_best_practices/14-feature-flags.md) with flag lifecycle notes and fallback path to legacy subprocess behavior.",
         "started_at": "2025-12-01T22:09:46.388009Z",
         "status_note": "Adding review-provider feature flag",
         "completed_at": "2025-12-01T22:15:34.700804Z",
@@ -1923,10 +1923,10 @@
         "purpose": "Comprehensive testing for all new components",
         "risk_level": "low",
         "reference_docs": [
-          "docs/mcp_best_practices/09-spec-driven-development.md",
-          "docs/mcp_best_practices/10-testing-fixtures.md",
-          "docs/mcp_best_practices/12-timeout-resilience.md",
-          "docs/guides/testing.md"
+          "dev_docs/mcp_best_practices/09-spec-driven-development.md",
+          "dev_docs/mcp_best_practices/10-testing-fixtures.md",
+          "dev_docs/mcp_best_practices/12-timeout-resilience.md",
+          "dev_docs/guides/testing.md"
         ],
         "needs_journaling": false,
         "completed_at": "2025-12-02T01:02:36.375084Z",
@@ -2121,7 +2121,7 @@
         "file_path": "tests/fixtures/golden",
         "task_category": "implementation",
         "estimated_hours": 0.5,
-        "description": "Update golden fixtures + doc-generation state to reflect provider outputs per docs/mcp_best_practices/10-testing-fixtures.md",
+        "description": "Update golden fixtures + doc-generation state to reflect provider outputs per dev_docs/mcp_best_practices/10-testing-fixtures.md",
         "started_at": "2025-12-02T00:40:24.827405Z",
         "status_note": "Starting fixture regeneration for provider outputs",
         "completed_at": "2025-12-02T00:42:18.757400Z",
@@ -2595,7 +2595,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Update CLI + MCP docs",
       "author": "claude-code",
-      "content": "Updated CLI + MCP documentation for provider tools. Changes made: 1) docs/codebase_standards/naming-conventions.md - Added provider-* prefix to domain prefixes list, recommended mapping matrix, CLI namespace table, and implementation audit table documenting provider-list, provider-status, provider-execute tools. 2) docs/guides/llm-configuration.md - Added new 'Provider Management Tools' section documenting all three provider MCP tools (provider-list, provider-status, provider-execute) with parameters, return values, error handling, and safety notes. Updated table of contents to include new section.",
+      "content": "Updated CLI + MCP documentation for provider tools. Changes made: 1) dev_docs/codebase_standards/naming-conventions.md - Added provider-* prefix to domain prefixes list, recommended mapping matrix, CLI namespace table, and implementation audit table documenting provider-list, provider-status, provider-execute tools. 2) docs/guides/llm-configuration.md - Added new 'Provider Management Tools' section documenting all three provider MCP tools (provider-list, provider-status, provider-execute) with parameters, return values, error handling, and safety notes. Updated table of contents to include new section.",
       "metadata": {},
       "task_id": "task-4-3-1"
     },
@@ -2631,7 +2631,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: MCP tools are registered",
       "author": "claude-code",
-      "content": "Manual verification of MCP tool registration completed. Verified: 1) server.py imports and calls register_provider_tools (lines 65, 115), 2) All three tools registered: provider-list, provider-status, provider-execute, 3) capabilities_manifest.json contains full discovery metadata for all tools including descriptions, parameters with types/constraints, rate limits (20 req/min for execute), and feature flags (provider_tools). All requirements from docs/mcp_best_practices/13-tool-discovery.md satisfied.",
+      "content": "Manual verification of MCP tool registration completed. Verified: 1) server.py imports and calls register_provider_tools (lines 65, 115), 2) All three tools registered: provider-list, provider-status, provider-execute, 3) capabilities_manifest.json contains full discovery metadata for all tools including descriptions, parameters with types/constraints, rate limits (20 req/min for execute), and feature flags (provider_tools). All requirements from dev_docs/mcp_best_practices/13-tool-discovery.md satisfied.",
       "metadata": {},
       "task_id": "verify-4-1"
     },
@@ -2640,7 +2640,7 @@
       "entry_type": "status_change",
       "title": "Task Completed: Response envelope compliance",
       "author": "claude-code",
-      "content": "Manual verification of response envelope compliance completed. Verified: 1) providers.py imports success_response and error_response from foundry_mcp.core.responses (line 20), 2) All tool returns use asdict(success_response(...)) or asdict(error_response(...)), 3) ToolResponse produces envelope with {success, data, error, meta} where meta.version=\"response-v2\", 4) Error responses include error_code, error_type, remediation fields per docs/codebase_standards/mcp_response_schema.md (e.g., lines 150-155 show error with MISSING_REQUIRED code, validation type, and remediation guidance). All response-v2 envelope requirements satisfied.",
+      "content": "Manual verification of response envelope compliance completed. Verified: 1) providers.py imports success_response and error_response from foundry_mcp.core.responses (line 20), 2) All tool returns use asdict(success_response(...)) or asdict(error_response(...)), 3) ToolResponse produces envelope with {success, data, error, meta} where meta.version=\"response-v2\", 4) Error responses include error_code, error_type, remediation fields per dev_docs/codebase_standards/mcp_response_schema.md (e.g., lines 150-155 show error with MISSING_REQUIRED code, validation type, and remediation guidance). All response-v2 envelope requirements satisfied.",
       "metadata": {},
       "task_id": "verify-4-2"
     },

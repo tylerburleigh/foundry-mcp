@@ -2,7 +2,7 @@
 Contract tests for MCP response schema validation.
 
 Uses JSON Schema validation to ensure all tool responses conform to the
-response-v2 contract defined in docs/codebase_standards/mcp_response_schema.md.
+response-v2 contract defined in dev_docs/codebase_standards/mcp_response_schema.md.
 """
 
 import json

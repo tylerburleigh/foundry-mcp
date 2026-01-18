@@ -1006,7 +1006,7 @@
     },
     "task-6-2": {
       "type": "task",
-      "title": "Update docs/guides/development-guide.md",
+      "title": "Update dev_docs/guides/development-guide.md",
       "status": "completed",
       "parent": "phase-6",
       "children": [],
@@ -1026,7 +1026,7 @@
     },
     "task-6-3": {
       "type": "task",
-      "title": "Update docs/codebase_standards/naming-conventions.md",
+      "title": "Update dev_docs/codebase_standards/naming-conventions.md",
       "status": "completed",
       "parent": "phase-6",
       "children": [],
@@ -1366,16 +1366,16 @@
       "timestamp": "2025-12-10T15:43:25.206683Z",
       "task_id": "task-6-2",
       "entry_type": "status_change",
-      "title": "Task Completed: Update docs/guides/development-guide.md",
-      "content": "Updated docs/guides/development-guide.md: Removed spec-render from examples, removed 'Code docs' row with code-find-class and doc-stats references.",
+      "title": "Task Completed: Update dev_docs/guides/development-guide.md",
+      "content": "Updated dev_docs/guides/development-guide.md: Removed spec-render from examples, removed 'Code docs' row with code-find-class and doc-stats references.",
       "author": "foundry-mcp"
     },
     {
       "timestamp": "2025-12-10T15:44:17.317759Z",
       "task_id": "task-6-3",
       "entry_type": "status_change",
-      "title": "Task Completed: Update docs/codebase_standards/naming-conventions.md",
-      "content": "Updated docs/codebase_standards/naming-conventions.md: Removed 'render' and 'doc' CLI namespace rows, removed rendering.py and docs.py module rows from the canonical tools table.",
+      "title": "Task Completed: Update dev_docs/codebase_standards/naming-conventions.md",
+      "content": "Updated dev_docs/codebase_standards/naming-conventions.md: Removed 'render' and 'doc' CLI namespace rows, removed rendering.py and docs.py module rows from the canonical tools table.",
       "author": "foundry-mcp"
     },
     {

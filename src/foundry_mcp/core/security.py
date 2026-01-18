@@ -2,8 +2,8 @@
 Security utilities for foundry-mcp.
 
 Provides input validation, size limits, and prompt injection defense
-for MCP tools. See docs/mcp_best_practices/04-validation-input-hygiene.md
-and docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
+for MCP tools. See dev_docs/mcp_best_practices/04-validation-input-hygiene.md
+and dev_docs/mcp_best_practices/08-security-trust-boundaries.md for guidance.
 """
 
 import logging
@@ -59,7 +59,7 @@ Prevents resource exhaustion from objects with excessive properties.
 # =============================================================================
 # These regex patterns detect common prompt injection attempts in LLM-generated
 # input. MCP tools receiving untrusted input should check against these patterns.
-# See docs/mcp_best_practices/08-security-trust-boundaries.md for details.
+# See dev_docs/mcp_best_practices/08-security-trust-boundaries.md for details.
 
 INJECTION_PATTERNS: Final[list[str]] = [
     # Instruction override attempts

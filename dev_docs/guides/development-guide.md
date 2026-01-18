@@ -599,7 +599,7 @@ Because those transcripts live outside the repo, access is opt-in:
 - Set `FOUNDRY_MCP_ALLOW_TRANSCRIPTS=1` or pass `--allow-home-transcripts` to scan
   `~/.claude/projects` derived paths
 - Without either control, the command returns `TRANSCRIPTS_DISABLED` to honor
-  the trust-boundary guidance in `docs/mcp_best_practices/08-security-trust-boundaries.md`
+  the trust-boundary guidance in `dev_docs/mcp_best_practices/08-security-trust-boundaries.md`
 
 All transcript scans continue to produce JSON envelopes and respect the
 `MEDIUM_TIMEOUT` budget so that exponential backoff never exceeds the declared limit.

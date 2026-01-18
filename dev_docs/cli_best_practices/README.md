@@ -18,4 +18,4 @@
 3. Follow **Shared Services** to reuse existing helpers (`foundry_mcp.core.*`) instead of re-inventing CLI-only utilities.
 4. Apply **Testing & Parity** when validating new commands against prior references or MCP adapters.
 
-Each document references the relevant sections inside [docs/mcp_best_practices](../mcp_best_practices/README.md) so both surfaces share the same contracts, security posture, and rollout discipline.
+Each document references the relevant sections inside [dev_docs/mcp_best_practices](../mcp_best_practices/README.md) so both surfaces share the same contracts, security posture, and rollout discipline.

@@ -867,7 +867,7 @@
       "completed_tasks": 1,
       "metadata": {
         "task_category": "implementation",
-        "file_path": "docs/guides/observability.md",
+        "file_path": "dev_docs/guides/observability.md",
         "estimated_hours": 0.75,
         "details": [
           "Document design philosophy (graceful degradation)",
@@ -1105,7 +1105,7 @@
       "task_id": "task-6-5",
       "entry_type": "status_change",
       "title": "Task Completed: Create observability user guide",
-      "content": "Created docs/guides/observability.md with: design philosophy (graceful degradation), quick start sections for Prometheus and OTel, full stack configuration example, configuration reference tables (TOML and env vars), metrics catalog, Grafana dashboards reference, troubleshooting section, and programmatic access examples.",
+      "content": "Created dev_docs/guides/observability.md with: design philosophy (graceful degradation), quick start sections for Prometheus and OTel, full stack configuration example, configuration reference tables (TOML and env vars), metrics catalog, Grafana dashboards reference, troubleshooting section, and programmatic access examples.",
       "author": "foundry-mcp"
     },
     {

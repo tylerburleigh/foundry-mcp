@@ -161,7 +161,7 @@ class ErrorType(str, Enum):
     Each type corresponds to an HTTP status code analog and indicates
     whether the operation should be retried.
 
-    See docs/codebase_standards/mcp_response_schema.md for the full mapping.
+    See dev_docs/codebase_standards/mcp_response_schema.md for the full mapping.
     """
 
     VALIDATION = "validation"  # 400 - No retry, fix input

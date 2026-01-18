@@ -4,7 +4,7 @@
 
 ## 2.1 Namespace Strategy
 
-- Group subcommands under the same domains listed in [docs/codebase_standards/naming-conventions.md](../codebase_standards/naming-conventions.md) (plan, next, update, validate, provider, test, spec-mod, plan-review/pr, context).
+- Group subcommands under the same domains listed in [dev_docs/codebase_standards/naming-conventions.md](../codebase_standards/naming-conventions.md) (plan, next, update, validate, provider, test, spec-mod, plan-review/pr, context).
 - The `sdd --help` output MUST list namespaces in the same order as the Recommended Mapping Matrix to reinforce the mental model from the docs.
 
 ## 2.2 Canonical Names

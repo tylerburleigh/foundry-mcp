@@ -1,5 +1,8 @@
 # Deep Research Workflow: Multi-Agent Architecture
 
+For workflow context and where this fits in the product, see
+[Workflow Guide](../03-workflow-guide.md).
+
 This document describes the multi-agent supervisor orchestration pattern used in the Deep Research workflow, including prompt templates for each specialist agent, input/output schemas for handoffs, and the state machine governing phase transitions.
 
 ## Overview

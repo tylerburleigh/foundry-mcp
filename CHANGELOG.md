@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.26] - 2026-01-18
+
+### Changed
+
+- **Documentation reorganization**: Separated internal developer docs from user-facing documentation
+  - Moved MCP best practices, CLI best practices, codebase standards, and developer guides to `dev_docs/`
+  - Created new user-facing documentation structure in `docs/` with quick start, workflow guides, CLI/MCP references, configuration, and troubleshooting
+  - Updated `AGENTS.md` and `CLAUDE.md` with corrected paths to `dev_docs/`
+- **README overhaul**: Rewrote README to be user-focused with clearer value proposition, streamlined installation, and practical quick start guide
+
+### Added
+
+- **New user documentation**: Comprehensive docs for end users
+  - `docs/01-quick-start.md` - Getting started guide
+  - `docs/02-core-concepts.md` - Specs, phases, tasks explained
+  - `docs/03-workflow-guide.md` - Step-by-step workflow
+  - `docs/04-cli-command-reference.md` - Full CLI documentation
+  - `docs/05-mcp-tool-reference.md` - MCP tool documentation
+  - `docs/06-configuration.md` - Configuration options
+  - `docs/07-troubleshooting.md` - Common issues and solutions
+  - `docs/concepts/spec-schema.md` - Spec JSON schema reference
+  - `docs/concepts/response-envelope.md` - Response format reference
+  - `docs/reference/error-codes.md` - Error code reference
+
 ## [0.8.25] - 2026-01-18
 
 ### Removed
@@ -325,7 +349,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Feature Flags System**: Removed the entire feature flags subsystem to simplify codebase
   - Deleted `src/foundry_mcp/core/feature_flags.py` and `src/foundry_mcp/cli/flags.py`
-  - Removed `docs/mcp_best_practices/14-feature-flags.md` documentation
+  - Removed `dev_docs/mcp_best_practices/14-feature-flags.md` documentation
   - Server tools now always use unified manifest (previously feature-flag controlled)
   - Removed all feature flag imports and usage across tools
 

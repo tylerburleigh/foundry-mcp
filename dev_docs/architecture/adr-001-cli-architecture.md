@@ -415,5 +415,5 @@ When implementing a CLI command, use this decision tree:
 
 ## Related Documents
 
-- **MCP Best Practices:** See `docs/mcp_best_practices/` for tool design guidance
-- **CLI Best Practices:** See `docs/cli_best_practices/` for CLI implementation patterns
+- **MCP Best Practices:** See `dev_docs/mcp_best_practices/` for tool design guidance
+- **CLI Best Practices:** See `dev_docs/cli_best_practices/` for CLI implementation patterns

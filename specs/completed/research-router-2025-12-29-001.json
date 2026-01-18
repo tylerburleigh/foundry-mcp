@@ -322,7 +322,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create all Pydantic models following docs/mcp_best_practices/04-validation-input-hygiene.md patterns. Models: WorkflowType, ConfidenceLevel, ConsensusStrategy, ThreadStatus enums; ConversationMessage, ConversationThread; Hypothesis, InvestigationStep, ThinkDeepState; Idea, IdeaCluster, IdeationState; ModelResponse, ConsensusConfig, ConsensusState. Reference: /claude-model-chorus/model_chorus/src/model_chorus/core/models.py",
+        "description": "Create all Pydantic models following dev_docs/mcp_best_practices/04-validation-input-hygiene.md patterns. Models: WorkflowType, ConfidenceLevel, ConsensusStrategy, ThreadStatus enums; ConversationMessage, ConversationThread; Hypothesis, InvestigationStep, ThinkDeepState; Idea, IdeaCluster, IdeationState; ModelResponse, ConsensusConfig, ConsensusState. Reference: /claude-model-chorus/model_chorus/src/model_chorus/core/models.py",
         "file_path": "src/foundry_mcp/core/research/models.py",
         "acceptance_criteria": [
           "All models serialize/deserialize correctly",
@@ -349,7 +349,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create FileStorageBackend with save/load/delete/list operations using one JSON file per thread/session (granular storage per docs/mcp_best_practices/15-concurrency-patterns.md). ResearchMemory class with thread/investigation/ideation CRUD, file locking via filelock, and lazy TTL cleanup (check on access). Reference: /claude-model-chorus/model_chorus/src/model_chorus/core/conversation.py",
+        "description": "Create FileStorageBackend with save/load/delete/list operations using one JSON file per thread/session (granular storage per dev_docs/mcp_best_practices/15-concurrency-patterns.md). ResearchMemory class with thread/investigation/ideation CRUD, file locking via filelock, and lazy TTL cleanup (check on access). Reference: /claude-model-chorus/model_chorus/src/model_chorus/core/conversation.py",
         "file_path": "src/foundry_mcp/core/research/memory.py",
         "acceptance_criteria": [
           "CRUD operations work correctly",
@@ -557,7 +557,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create base class with _execute_provider() using existing provider infrastructure (see src/foundry_mcp/tools/unified/provider.py), _resolve_provider() helper, shared token budgeting for ALL workflows per docs/mcp_best_practices/11-ai-llm-integration.md, and error handling per docs/mcp_best_practices/07-error-semantics.md",
+        "description": "Create base class with _execute_provider() using existing provider infrastructure (see src/foundry_mcp/tools/unified/provider.py), _resolve_provider() helper, shared token budgeting for ALL workflows per dev_docs/mcp_best_practices/11-ai-llm-integration.md, and error handling per dev_docs/mcp_best_practices/07-error-semantics.md",
         "file_path": "src/foundry_mcp/core/research/workflows/base.py",
         "acceptance_criteria": [
           "Provider integration works via resolve_provider",
@@ -661,7 +661,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create ConsensusWorkflow with _execute_parallel() async method using asyncio.gather() per docs/mcp_best_practices/15-concurrency-patterns.md, asyncio.Semaphore for concurrency limiting (max 5), synthesis strategies (all_responses, synthesize, majority, first_valid), partial failure handling, and token budgeting from base class. Reference: /claude-model-chorus/model_chorus/src/model_chorus/workflows/consensus.py",
+        "description": "Create ConsensusWorkflow with _execute_parallel() async method using asyncio.gather() per dev_docs/mcp_best_practices/15-concurrency-patterns.md, asyncio.Semaphore for concurrency limiting (max 5), synthesis strategies (all_responses, synthesize, majority, first_valid), partial failure handling, and token budgeting from base class. Reference: /claude-model-chorus/model_chorus/src/model_chorus/workflows/consensus.py",
         "file_path": "src/foundry_mcp/core/research/workflows/consensus.py",
         "acceptance_criteria": [
           "Parallel execution via asyncio.gather",
@@ -899,7 +899,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create research router following patterns in src/foundry_mcp/tools/unified/provider.py: register research_tools feature flag (BETA) per docs/mcp_best_practices/14-feature-flags.md, define _ACTION_SUMMARY, implement all handlers with validation per docs/mcp_best_practices/04-validation-input-hygiene.md, use response envelopes per docs/codebase_standards/mcp_response_schema.md, apply @mcp_tool decorator per docs/mcp_best_practices/05-observability-telemetry.md",
+        "description": "Create research router following patterns in src/foundry_mcp/tools/unified/provider.py: register research_tools feature flag (BETA) per dev_docs/mcp_best_practices/14-feature-flags.md, define _ACTION_SUMMARY, implement all handlers with validation per dev_docs/mcp_best_practices/04-validation-input-hygiene.md, use response envelopes per dev_docs/codebase_standards/mcp_response_schema.md, apply @mcp_tool decorator per dev_docs/mcp_best_practices/05-observability-telemetry.md",
         "file_path": "src/foundry_mcp/tools/unified/research.py",
         "acceptance_criteria": [
           "Feature flag registered as BETA",
@@ -1062,7 +1062,7 @@
       "total_tasks": 1,
       "completed_tasks": 1,
       "metadata": {
-        "description": "Create integration tests per docs/mcp_best_practices/10-testing-fixtures.md: dispatch tests, action handler tests with mocked providers, error condition tests, response envelope validation (meta.version=response-v2). Reference existing tests in tests/tools/unified/",
+        "description": "Create integration tests per dev_docs/mcp_best_practices/10-testing-fixtures.md: dispatch tests, action handler tests with mocked providers, error condition tests, response envelope validation (meta.version=response-v2). Reference existing tests in tests/tools/unified/",
         "file_path": "tests/tools/unified/test_research.py",
         "acceptance_criteria": [
           "All actions tested",

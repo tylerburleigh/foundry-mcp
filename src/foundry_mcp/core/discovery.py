@@ -3,7 +3,7 @@ Tool metadata and discovery module for foundry-mcp.
 
 Provides dataclasses and utilities for tool registration, discovery,
 capability negotiation, and deprecation handling per MCP best practices
-(docs/mcp_best_practices/13-tool-discovery.md).
+(dev_docs/mcp_best_practices/13-tool-discovery.md).
 """
 
 from dataclasses import dataclass, field

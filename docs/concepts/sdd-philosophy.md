@@ -1,5 +1,7 @@
 # Spec-Driven Development Philosophy
 
+For a shorter overview, see [Core Concepts](../02-core-concepts.md).
+
 ## What is SDD?
 
 Spec-Driven Development (SDD) is a documentation-first methodology where machine-readable specifications serve as the single source of truth for software development. Unlike traditional approaches where documentation follows (or never arrives), SDD requires structured specifications *before* implementation begins.

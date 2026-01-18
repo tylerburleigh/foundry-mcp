@@ -2,7 +2,7 @@
 Cross-provider validation, observability hooks, and resilience patterns.
 
 Centralizes ProviderRequest validation, input hygiene, observability hooks,
-and rate limiting consistent with docs/mcp_best_practices/{04,05,12,15}.
+and rate limiting consistent with dev_docs/mcp_best_practices/{04,05,12,15}.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from .base import (
 )
 
 # ---------------------------------------------------------------------------
-# Logging Configuration (per docs/mcp_best_practices/05-observability-telemetry.md)
+# Logging Configuration (per dev_docs/mcp_best_practices/05-observability-telemetry.md)
 # ---------------------------------------------------------------------------
 
 logger = logging.getLogger("foundry_mcp.providers")
@@ -44,7 +44,7 @@ MAX_METADATA_SIZE = 64 * 1024  # 64KB
 
 
 # ---------------------------------------------------------------------------
-# Input Hygiene (per docs/mcp_best_practices/04-validation-input-hygiene.md)
+# Input Hygiene (per dev_docs/mcp_best_practices/04-validation-input-hygiene.md)
 # ---------------------------------------------------------------------------
 
 
@@ -156,7 +156,7 @@ def validate_request(request: ProviderRequest) -> ProviderRequest:
 
 
 # ---------------------------------------------------------------------------
-# Command Allowlists (per docs/mcp_best_practices/04-validation-input-hygiene.md)
+# Command Allowlists (per dev_docs/mcp_best_practices/04-validation-input-hygiene.md)
 # ---------------------------------------------------------------------------
 
 # Common read-only commands that are safe across all providers
@@ -313,7 +313,7 @@ def is_command_allowed(command: str, *, allowlist: Optional[Set[str]] = None) ->
 
 
 # ---------------------------------------------------------------------------
-# Observability & Telemetry (per docs/mcp_best_practices/05-observability-telemetry.md)
+# Observability & Telemetry (per dev_docs/mcp_best_practices/05-observability-telemetry.md)
 # ---------------------------------------------------------------------------
 
 
@@ -393,7 +393,7 @@ def log_span(span: ExecutionSpan, level: int = logging.INFO) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Retry Matrix (per docs/mcp_best_practices/12-timeout-resilience.md)
+# Retry Matrix (per dev_docs/mcp_best_practices/12-timeout-resilience.md)
 # ---------------------------------------------------------------------------
 
 # Status codes that are safe to retry
@@ -419,7 +419,7 @@ def is_retryable_error(error: Exception) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Circuit Breaker (per docs/mcp_best_practices/12-timeout-resilience.md)
+# Circuit Breaker (per dev_docs/mcp_best_practices/12-timeout-resilience.md)
 # ---------------------------------------------------------------------------
 
 
@@ -525,7 +525,7 @@ def reset_circuit_breakers() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Rate Limiting (per docs/mcp_best_practices/15-concurrency-patterns.md)
+# Rate Limiting (per dev_docs/mcp_best_practices/15-concurrency-patterns.md)
 # ---------------------------------------------------------------------------
 
 
