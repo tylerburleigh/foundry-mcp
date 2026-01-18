@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.25] - 2026-01-18
+
+### Removed
+
+- **Dashboard feature**: Removed entire Streamlit-based dashboard package (`src/foundry_mcp/dashboard/`)
+- **Dashboard CLI command**: Removed `dashboard` subcommand (`src/foundry_mcp/cli/commands/dashboard.py`)
+- **Dashboard dependencies**: Removed streamlit, plotly, pandas from pyproject.toml
+- **Dashboard documentation**: Removed `docs/dashboards/` directory and Prometheus rules
+- **Metrics unified tool**: Removed `src/foundry_mcp/tools/unified/metrics.py` (tool count 17→16)
+- **Legacy verification type mapping**: Removed `"test"→"run-tests"` and `"auto"→"run-tests"` auto-conversion
+- **Legacy `phase_id` parameter aliasing**: Removed `phase_id` as alias for `parent` in task actions
+- **Legacy metadata category fallback**: Removed category fallback logic from metadata validation
+
+### Changed
+
+- Updated branding from "legacy claude-sdd-toolkit CLI" to "Foundry CLI"
+- Simplified `fix-verification-types` action (sets unknown types to `"manual"` only, no legacy mapping)
+- Updated tool count in documentation (17→16)
+
 ## [0.8.24] - 2026-01-17
 
 ### Changed

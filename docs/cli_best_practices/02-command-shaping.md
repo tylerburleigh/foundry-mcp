@@ -11,7 +11,7 @@
 
 - Every CLI operation should refer to the canonical tool name in its help text (e.g., `sdd validate check` maps to MCP `spec(action="validate")`).
 - When introducing a CLI command first, reserve the canonical tool name immediately so the MCP adapter can pick it up without another rename.
-- Avoid legacy aliases unless absolutely necessary for migration; if an alias exists, document the retirement timeline inside the spec and remove it within two releases.
+- Avoid deprecated aliases unless absolutely necessary for migration; if an alias exists, document the retirement timeline inside the spec and remove it within two releases.
 
 ## 2.3 Help Text & Examples
 

@@ -1425,10 +1425,6 @@ def add_phase_bulk(
         if task_category is not None and not isinstance(task_category, str):
             return None, f"Task at index {idx} has invalid task_category"
 
-        legacy_category = task_def.get("category")
-        if legacy_category is not None and not isinstance(legacy_category, str):
-            return None, f"Task at index {idx} has invalid category"
-
         acceptance_criteria = task_def.get("acceptance_criteria")
         if acceptance_criteria is not None and not isinstance(
             acceptance_criteria, (list, str)

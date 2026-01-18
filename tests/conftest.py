@@ -29,7 +29,7 @@ def extract_response_dict(result: Union[Dict[str, Any], TextContent]) -> Dict[st
     minified JSON. This helper extracts the dict for test assertions.
 
     Args:
-        result: Tool result - either dict (legacy) or TextContent (minified)
+        result: Tool result - either dict (non-minified) or TextContent (minified)
 
     Returns:
         Parsed dictionary from the response

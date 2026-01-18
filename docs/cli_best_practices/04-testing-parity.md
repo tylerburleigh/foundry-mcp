@@ -1,6 +1,6 @@
 # 4. Testing & Parity
 
-> Prove the native CLI behaves exactly like the MCP adapters (and any legacy CLIs we still reference).
+> Prove the native CLI behaves exactly like the MCP adapters (and any prior CLIs we still reference).
 
 ## 4.1 Unit Coverage
 

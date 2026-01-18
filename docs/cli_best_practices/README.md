@@ -16,6 +16,6 @@
 1. Start with **Runtime Ergonomics** to wire argparse, printers, and JSON output so CLI behavior matches MCP envelopes.
 2. Consult **Command Design** before adding or renaming subcommands to ensure namespace alignment with canonical tool prefixes.
 3. Follow **Shared Services** to reuse existing helpers (`foundry_mcp.core.*`) instead of re-inventing CLI-only utilities.
-4. Apply **Testing & Parity** when validating new commands against legacy references or MCP adapters.
+4. Apply **Testing & Parity** when validating new commands against prior references or MCP adapters.
 
 Each document references the relevant sections inside [docs/mcp_best_practices](../mcp_best_practices/README.md) so both surfaces share the same contracts, security posture, and rollout discipline.

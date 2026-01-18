@@ -5,7 +5,6 @@ Legacy top-level aliases are intentionally not exported.
 """
 
 from foundry_mcp.cli.commands.cache import cache
-from foundry_mcp.cli.commands.dashboard import dashboard_group
 from foundry_mcp.cli.commands.dev import dev_group
 from foundry_mcp.cli.commands.journal import journal
 from foundry_mcp.cli.commands.lifecycle import lifecycle
@@ -21,7 +20,6 @@ from foundry_mcp.cli.commands.validate import validate_group
 
 __all__ = [
     "cache",
-    "dashboard_group",
     "dev_group",
     "journal",
     "lifecycle",

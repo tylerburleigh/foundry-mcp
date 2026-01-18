@@ -14,7 +14,7 @@
 
 ## 3.3 Observability & Metrics
 
-- All commands should register spans or events through `foundry_mcp.core.observability.audit_log` / `get_metrics` so dashboards capture CLI traffic alongside MCP usage.
+- All commands should register spans or events through `foundry_mcp.core.observability.audit_log` / `get_metrics` so CLI traffic is captured alongside MCP usage.
 - When commands interact with external tools (git, test runners), log command lines with sensitive data redacted per [docs/mcp_best_practices/08-security-trust-boundaries.md](../mcp_best_practices/08-security-trust-boundaries.md).
 
 ## 3.4 Resilience & Concurrency

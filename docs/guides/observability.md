@@ -151,16 +151,6 @@ results, LLM prompts/responses, and summary stats.
 {"timestamp":"2026-01-01T12:00:00Z","event_id":"...","event_type":"analysis_result","level":"info","research_id":"deepres-abc123","phase":"analysis","iteration":1,"data":{"provider_id":"gemini","tokens_used":1234,"parse_success":true,"finding_count":4}}
 ```
 
-## Grafana Dashboards
-
-Pre-built Grafana dashboards are available in `docs/dashboards/`:
-
-- **Overview** (`foundry-mcp-overview.json`): Server health and request metrics
-- **Tools** (`foundry-mcp-tools.json`): Per-tool performance analysis
-- **Errors** (`foundry-mcp-errors.json`): Error tracking and analysis
-
-See `docs/dashboards/README.md` for import instructions.
-
 ## Troubleshooting
 
 ### Observability Not Working

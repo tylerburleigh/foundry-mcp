@@ -60,7 +60,6 @@ def register_all_commands(cli: click.Group) -> None:
     # Import and register command groups
     from foundry_mcp.cli.commands import (
         cache,
-        dashboard_group,
         dev_group,
         journal,
         lifecycle,
@@ -87,7 +86,6 @@ def register_all_commands(cli: click.Group) -> None:
     cli.add_command(modify_group)
     cli.add_command(test_group)
     cli.add_command(dev_group)
-    cli.add_command(dashboard_group)
     cli.add_command(plan_group)
 
     # Placeholder: version command for testing the scaffold

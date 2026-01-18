@@ -41,10 +41,10 @@ structured = true
 
 [tools]
 # Disable tools to reduce context window usage
-# Available: health, plan, pr, error, metrics, journal, authoring, review,
+# Available: health, plan, pr, error, journal, authoring, review,
 #            spec, task, provider, environment, lifecycle, verification,
 #            server, test, research
-disabled_tools = ["error", "metrics", "health"]
+disabled_tools = ["error", "health"]
 
 [workflow]
 mode = "single"

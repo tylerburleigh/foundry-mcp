@@ -41,12 +41,12 @@ def _check_spec_exists() -> bool:
 pytestmark = pytest.mark.skipif(
     not _check_spec_exists(),
     reason=f"Test fixture spec '{REQUIRED_SPEC_ID}' not found. "
-    "These tests require the sdd-toolkit test fixtures.",
+    "These tests require the Foundry CLI test fixtures.",
 )
 
 
 def run_prepare_task_command(spec_id: str, *args) -> dict:
-    """Run sdd tasks prepare command and return parsed JSON output."""
+    """Run foundry tasks prepare command and return parsed JSON output."""
     cmd = ["foundry-cli", "tasks", "prepare", spec_id] + list(args)
     result = subprocess.run(
         cmd,

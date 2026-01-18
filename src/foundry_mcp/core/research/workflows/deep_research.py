@@ -378,7 +378,7 @@ class BackgroundTask:
 
         Args:
             research_id: ID of the research session
-            task: Optional asyncio task running the workflow (legacy)
+            task: Optional asyncio task running the workflow
             thread: Optional thread running the workflow (preferred)
             timeout: Optional timeout in seconds
         """
@@ -442,7 +442,7 @@ class BackgroundTask:
             self.status = TaskStatus.CANCELLED
             self.completed_at = time.time()
             return True
-        # Handle asyncio-based execution (legacy)
+        # Handle asyncio-based execution
         elif self.task is not None:
             if self.task.done():
                 return False

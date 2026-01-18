@@ -1,7 +1,7 @@
 """
 Base provider abstractions for foundry-mcp.
 
-This module provides the core provider contracts adapted from sdd-toolkit,
+This module provides the core provider contracts adapted from the Foundry CLI,
 enabling pluggable LLM backends for CLI operations. The abstractions support
 capability negotiation, request/response normalization, and lifecycle hooks.
 

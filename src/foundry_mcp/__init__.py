@@ -1,4 +1,4 @@
-"""Foundry MCP - MCP server for SDD toolkit spec management."""
+"""Foundry MCP - MCP server for spec-driven development management."""
 
 from importlib.metadata import version, PackageNotFoundError
 

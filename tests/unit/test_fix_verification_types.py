@@ -157,60 +157,40 @@ class TestMissingVerificationType:
 
 
 # =============================================================================
-# Legacy Type Mapping Tests
-# =============================================================================
-
-class TestLegacyTypeMapping:
-    def test_legacy_test_maps_to_run_tests(self, task_tool, test_specs_dir):
-        """Legacy 'test' type should map to 'run-tests'."""
-        hierarchy = {
-            "spec-root": {"type": "spec", "title": "Test", "status": "in_progress", "children": ["verify-1"]},
-            "verify-1": {"type": "verify", "title": "Run tests", "status": "pending", "parent": "spec-root", "children": [], "metadata": {"verification_type": "test"}},
-        }
-        write_spec(test_specs_dir, "legacy-test-001", hierarchy)
-
-        result = task_tool(action="fix-verification-types", spec_id="legacy-test-001")
-        assert result["success"] is True
-        assert result["data"]["total_fixes"] == 1
-        assert result["data"]["fixes"][0]["issue"] == "legacy"
-        assert result["data"]["fixes"][0]["old_value"] == "test"
-        assert result["data"]["fixes"][0]["new_value"] == "run-tests"
-
-    def test_legacy_auto_maps_to_run_tests(self, task_tool, test_specs_dir):
-        """Legacy 'auto' type should map to 'run-tests'."""
-        hierarchy = {
-            "spec-root": {"type": "spec", "title": "Test", "status": "in_progress", "children": ["verify-1"]},
-            "verify-1": {"type": "verify", "title": "Auto verify", "status": "pending", "parent": "spec-root", "children": [], "metadata": {"verification_type": "auto"}},
-        }
-        write_spec(test_specs_dir, "legacy-auto-001", hierarchy)
-
-        result = task_tool(action="fix-verification-types", spec_id="legacy-auto-001")
-        assert result["success"] is True
-        assert result["data"]["total_fixes"] == 1
-        assert result["data"]["fixes"][0]["issue"] == "legacy"
-        assert result["data"]["fixes"][0]["old_value"] == "auto"
-        assert result["data"]["fixes"][0]["new_value"] == "run-tests"
-
-    def test_legacy_mappings_returned_in_response(self, task_tool, test_specs_dir):
-        """Response should include available legacy mappings."""
-        hierarchy = {
-            "spec-root": {"type": "spec", "title": "Test", "status": "in_progress", "children": ["verify-1"]},
-            "verify-1": {"type": "verify", "title": "Test", "status": "pending", "parent": "spec-root", "children": [], "metadata": {"verification_type": "run-tests"}},
-        }
-        write_spec(test_specs_dir, "mappings-001", hierarchy)
-
-        result = task_tool(action="fix-verification-types", spec_id="mappings-001")
-        assert result["success"] is True
-        assert "legacy_mappings" in result["data"]
-        assert result["data"]["legacy_mappings"]["test"] == "run-tests"
-        assert result["data"]["legacy_mappings"]["auto"] == "run-tests"
-
-
-# =============================================================================
 # Invalid Type Tests
 # =============================================================================
 
 class TestInvalidType:
+    def test_test_type_defaults_to_manual(self, task_tool, test_specs_dir):
+        """Deprecated 'test' verification_type should default to manual."""
+        hierarchy = {
+            "spec-root": {"type": "spec", "title": "Test", "status": "in_progress", "children": ["verify-1"]},
+            "verify-1": {"type": "verify", "title": "Run tests", "status": "pending", "parent": "spec-root", "children": [], "metadata": {"verification_type": "test"}},
+        }
+        write_spec(test_specs_dir, "deprecated-test-001", hierarchy)
+
+        result = task_tool(action="fix-verification-types", spec_id="deprecated-test-001")
+        assert result["success"] is True
+        assert result["data"]["total_fixes"] == 1
+        assert result["data"]["fixes"][0]["issue"] == "invalid"
+        assert result["data"]["fixes"][0]["old_value"] == "test"
+        assert result["data"]["fixes"][0]["new_value"] == "manual"
+
+    def test_auto_type_defaults_to_manual(self, task_tool, test_specs_dir):
+        """Deprecated 'auto' verification_type should default to manual."""
+        hierarchy = {
+            "spec-root": {"type": "spec", "title": "Test", "status": "in_progress", "children": ["verify-1"]},
+            "verify-1": {"type": "verify", "title": "Auto verify", "status": "pending", "parent": "spec-root", "children": [], "metadata": {"verification_type": "auto"}},
+        }
+        write_spec(test_specs_dir, "deprecated-auto-001", hierarchy)
+
+        result = task_tool(action="fix-verification-types", spec_id="deprecated-auto-001")
+        assert result["success"] is True
+        assert result["data"]["total_fixes"] == 1
+        assert result["data"]["fixes"][0]["issue"] == "invalid"
+        assert result["data"]["fixes"][0]["old_value"] == "auto"
+        assert result["data"]["fixes"][0]["new_value"] == "manual"
+
     def test_unknown_type_defaults_to_manual(self, task_tool, test_specs_dir):
         """Unknown verification_type should default to manual."""
         hierarchy = {
@@ -315,8 +295,7 @@ class TestMultipleNodes:
         assert result["success"] is True
         assert result["data"]["total_fixes"] == 3
         assert result["data"]["summary"]["missing_set_to_run_tests"] == 1
-        assert result["data"]["summary"]["legacy_mapped"] == 1
-        assert result["data"]["summary"]["invalid_set_to_manual"] == 1
+        assert result["data"]["summary"]["invalid_set_to_manual"] == 2
 
     def test_skips_non_verify_nodes(self, task_tool, test_specs_dir):
         """Should only process verify nodes, not task/phase nodes."""

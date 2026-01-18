@@ -51,7 +51,6 @@ structured = true
 #   plan        - Plan creation and review workflows
 #   pr          - Pull request creation
 #   error       - Error collection and querying
-#   metrics     - Metrics persistence and querying
 #   journal     - Implementation journals
 #   authoring   - Spec authoring operations
 #   review      - Fidelity and code reviews
@@ -65,11 +64,11 @@ structured = true
 #   test        - Test runner integration
 #   research    - Research workflows (chat, consensus, thinkdeep, ideate, deep)
 #
-# Default: disable tools only used during setup or for dashboard features
-disabled_tools = ["error", "metrics", "health", "environment"]
+# Default: disable tools only used during setup
+disabled_tools = ["error", "health", "environment"]
 
 # Environment variable alternative: FOUNDRY_MCP_DISABLED_TOOLS (comma-separated)
-# Example: FOUNDRY_MCP_DISABLED_TOOLS=error,metrics,research
+# Example: FOUNDRY_MCP_DISABLED_TOOLS=error,research
 
 # =============================================================================
 # Authentication Configuration
@@ -391,54 +390,10 @@ show_before_commit = true
 # "[api]openai/gpt-4.1" = { timeout = 120, max_tokens = 4096 }
 
 # =============================================================================
-# Dashboard Configuration
-# =============================================================================
-#
-# Built-in web dashboard for viewing errors, metrics, and AI provider status.
-# Requires optional dependency: pip install foundry-mcp[dashboard]
-#
-# When aiohttp is not installed, dashboard features gracefully degrade to no-ops.
-
-[dashboard]
-# Enable the built-in web dashboard
-enabled = false
-
-# HTTP server port
-port = 8080
-
-# HTTP server bind address (127.0.0.1 for localhost-only, 0.0.0.0 for all interfaces)
-host = "127.0.0.1"
-
-# Automatically open browser when dashboard starts
-auto_open_browser = false
-
-# Frontend auto-refresh interval in milliseconds
-refresh_interval_ms = 5000
-
-# =============================================================================
-# Dashboard Examples
-# =============================================================================
-
-# --- Enable dashboard with default settings ---
-# [dashboard]
-# enabled = true
-
-# --- Enable with auto-open browser ---
-# [dashboard]
-# enabled = true
-# auto_open_browser = true
-
-# --- Custom port and faster refresh ---
-# [dashboard]
-# enabled = true
-# port = 9000
-# refresh_interval_ms = 2000
-
-# =============================================================================
 # Error Collection Configuration
 # =============================================================================
 #
-# Stores error logs for dashboard visibility and debugging.
+# Stores error logs for observability and debugging.
 # Errors are stored in append-only JSONL format with automatic cleanup.
 
 [error_collection]
@@ -465,11 +420,11 @@ redact_inputs = true
 # Metrics Persistence Configuration
 # =============================================================================
 #
-# Stores metrics for dashboard charts and historical analysis.
+# Stores metrics for historical analysis.
 # Metrics are aggregated into time buckets before storage.
 
 [metrics_persistence]
-# Enable metrics persistence (recommended for dashboard)
+# Enable metrics persistence
 enabled = true
 
 # Storage path (default: ~/.foundry-mcp/metrics)

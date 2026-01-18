@@ -793,7 +793,7 @@ def _record_to_metrics_persistence(
     tool_name: str, success: bool, duration_ms: float, action: Optional[str] = None
 ) -> None:
     """
-    Record tool invocation to metrics persistence for dashboard visibility.
+    Record tool invocation to metrics persistence for observability history.
 
     Args:
         tool_name: Name of the tool (router)
@@ -943,7 +943,7 @@ def mcp_tool(
                         correlation_id=corr_id,
                     )
 
-                # Record to metrics persistence (for dashboard visibility)
+                # Record to metrics persistence for observability history
                 # Extract action from kwargs for router tools
                 action = kwargs.get("action") if isinstance(kwargs.get("action"), str) else None
                 _record_to_metrics_persistence(name, success, duration_ms, action=action)
@@ -1042,7 +1042,7 @@ def mcp_tool(
                         correlation_id=_corr_id,
                     )
 
-                # Record to metrics persistence (for dashboard visibility)
+                # Record to metrics persistence for observability history
                 # Extract action from kwargs for router tools
                 action = _kwargs.get("action") if isinstance(_kwargs.get("action"), str) else None
                 _record_to_metrics_persistence(_tool_name, success, duration_ms, action=action)

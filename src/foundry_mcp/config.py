@@ -299,45 +299,6 @@ class MetricsPersistenceConfig:
 
 
 @dataclass
-class DashboardConfig:
-    """Configuration for built-in web dashboard.
-
-    The dashboard provides a web UI for viewing errors, metrics, and
-    AI provider status without requiring external tools like Grafana.
-
-    Attributes:
-        enabled: Whether the dashboard server is enabled
-        port: HTTP port for dashboard (default: 8080)
-        host: Host to bind to (default: 127.0.0.1 for localhost only)
-        auto_open_browser: Open browser when dashboard starts
-        refresh_interval_ms: Auto-refresh interval in milliseconds
-    """
-
-    enabled: bool = False
-    port: int = 8501  # Streamlit default port
-    host: str = "127.0.0.1"
-    auto_open_browser: bool = False
-    refresh_interval_ms: int = 5000
-
-    @classmethod
-    def from_toml_dict(cls, data: Dict[str, Any]) -> "DashboardConfig":
-        """Create config from TOML dict (typically [dashboard] section).
-
-        Args:
-            data: Dict from TOML parsing
-
-        Returns:
-            DashboardConfig instance
-        """
-        return cls(
-            enabled=_parse_bool(data.get("enabled", False)),
-            port=int(data.get("port", 8501)),  # Streamlit default
-            host=str(data.get("host", "127.0.0.1")),
-            auto_open_browser=_parse_bool(data.get("auto_open_browser", False)),
-            refresh_interval_ms=int(data.get("refresh_interval_ms", 5000)),
-        )
-
-
 @dataclass
 class RunnerConfig:
     """Configuration for a test runner (pytest, go, npm, etc.).
@@ -913,9 +874,6 @@ class ServerConfig:
     # Metrics persistence configuration
     metrics_persistence: MetricsPersistenceConfig = field(default_factory=MetricsPersistenceConfig)
 
-    # Dashboard configuration
-    dashboard: DashboardConfig = field(default_factory=DashboardConfig)
-
     # Test runner configuration
     test: TestConfig = field(default_factory=TestConfig)
 
@@ -998,10 +956,6 @@ class ServerConfig:
                     self.server_name = srv["name"]
                 if "version" in srv:
                     self.server_version = srv["version"]
-                # Legacy: disabled_tools under [server] (deprecated)
-                if "disabled_tools" in srv:
-                    self.disabled_tools = srv["disabled_tools"]
-
             # Tools configuration (preferred location for disabled_tools)
             if "tools" in data:
                 tools_cfg = data["tools"]
@@ -1049,10 +1003,6 @@ class ServerConfig:
                 self.metrics_persistence = MetricsPersistenceConfig.from_toml_dict(
                     data["metrics_persistence"]
                 )
-
-            # Dashboard settings
-            if "dashboard" in data:
-                self.dashboard = DashboardConfig.from_toml_dict(data["dashboard"])
 
             # Test runner settings
             if "test" in data:
@@ -1217,24 +1167,6 @@ class ServerConfig:
             self.metrics_persistence.persist_metrics = [
                 m.strip() for m in persist_list.split(",") if m.strip()
             ]
-
-        # Dashboard settings
-        if dash_enabled := os.environ.get("FOUNDRY_MCP_DASHBOARD_ENABLED"):
-            self.dashboard.enabled = _parse_bool(dash_enabled)
-        if dash_port := os.environ.get("FOUNDRY_MCP_DASHBOARD_PORT"):
-            try:
-                self.dashboard.port = int(dash_port)
-            except ValueError:
-                pass
-        if dash_host := os.environ.get("FOUNDRY_MCP_DASHBOARD_HOST"):
-            self.dashboard.host = dash_host
-        if dash_auto_open := os.environ.get("FOUNDRY_MCP_DASHBOARD_AUTO_OPEN"):
-            self.dashboard.auto_open_browser = _parse_bool(dash_auto_open)
-        if dash_refresh := os.environ.get("FOUNDRY_MCP_DASHBOARD_REFRESH_INTERVAL"):
-            try:
-                self.dashboard.refresh_interval_ms = int(dash_refresh)
-            except ValueError:
-                pass
 
         # Search provider API keys (direct env vars, no FOUNDRY_MCP_ prefix)
         # These use standard env var names that match provider documentation

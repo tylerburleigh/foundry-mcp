@@ -1,6 +1,6 @@
 """Parse Claude Code transcript files to extract token usage metrics.
 
-Ported from claude-sdd-toolkit context_tracker module.
+Ported from the Foundry CLI context_tracker module.
 """
 
 import json

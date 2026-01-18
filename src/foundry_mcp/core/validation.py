@@ -121,12 +121,6 @@ VALID_TASK_CATEGORIES = {
 }
 VALID_VERIFICATION_TYPES = {"run-tests", "fidelity", "manual"}
 
-# Legacy to canonical verification type mapping
-VERIFICATION_TYPE_MAPPING = {
-    "test": "run-tests",
-    "auto": "run-tests",
-}
-
 # Research node constants
 VALID_RESEARCH_TYPES = {"chat", "consensus", "thinkdeep", "ideate", "deep-research"}
 VALID_RESEARCH_RESULTS = {"completed", "inconclusive", "blocked", "cancelled"}
@@ -1114,11 +1108,6 @@ def _validate_metadata(
                         )
 
             category_for_file_path = task_category
-            if category_for_file_path is None:
-                legacy_category = metadata.get("category")
-                if isinstance(legacy_category, str) and legacy_category.strip():
-                    category_for_file_path = legacy_category.strip().lower()
-
             # file_path required for implementation and refactoring.
             # Do not auto-generate placeholder paths; the authoring agent/user must
             # provide a real path in the target codebase.
@@ -1620,20 +1609,16 @@ def _build_invalid_verification_type_fix(
         metadata = node.get("metadata", {})
         current_type = metadata.get("verification_type", "")
 
-        # Map legacy values to canonical
-        mapped_type = VERIFICATION_TYPE_MAPPING.get(current_type)
-        if mapped_type:
-            metadata["verification_type"] = mapped_type
-        elif current_type not in VALID_VERIFICATION_TYPES:
+        if current_type not in VALID_VERIFICATION_TYPES:
             metadata["verification_type"] = "manual"  # safe fallback for unknown values
 
     return FixAction(
         id=f"metadata.fix_invalid_verification_type:{node_id}",
-        description=f"Map verification_type to canonical value for {node_id}",
+        description=f"Set verification_type to a canonical value for {node_id}",
         category="metadata",
         severity=diag.severity,
         auto_apply=True,
-        preview=f"Map legacy verification_type to canonical value for {node_id}",
+        preview=f"Set verification_type to canonical value for {node_id}",
         apply=apply,
     )
 

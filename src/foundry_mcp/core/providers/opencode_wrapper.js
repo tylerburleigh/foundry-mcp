@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * OpenCode AI SDK Wrapper for Claude SDD Toolkit
+ * OpenCode AI SDK Wrapper for Foundry MCP
  *
  * This wrapper bridges the Python provider with the Node.js OpenCode AI SDK.
  * It receives prompts and configuration via stdin (to avoid CLI argument length limits)

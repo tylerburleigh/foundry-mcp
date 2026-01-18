@@ -228,12 +228,12 @@ class PrometheusExporter:
             self._manifest_tokens = Gauge(
                 f"{ns}_manifest_tokens",
                 "Estimated token count for the advertised tool manifest",
-                ["manifest"],  # unified|legacy
+                ["manifest"],  # advertised manifest name (e.g., unified)
             )
             self._manifest_tool_count = Gauge(
                 f"{ns}_manifest_tool_count",
                 "Tool count for the advertised tool manifest",
-                ["manifest"],  # unified|legacy
+                ["manifest"],  # advertised manifest name (e.g., unified)
             )
 
             # Health check metrics

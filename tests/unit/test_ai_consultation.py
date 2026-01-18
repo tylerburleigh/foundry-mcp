@@ -736,7 +736,7 @@ class TestBackwardCompatibility:
     def test_existing_code_accessing_content_attribute(self):
         """Existing code using result.content continues to work.
 
-        Legacy pattern: accessing result.content directly.
+        Direct access pattern: accessing result.content directly.
         """
         result = ConsultationResult(
             workflow=ConsultationWorkflow.PLAN_REVIEW,
@@ -745,14 +745,14 @@ class TestBackwardCompatibility:
             model_used="gpt-4",
         )
 
-        # Direct attribute access - legacy pattern
+        # Direct attribute access
         assert result.content == "Generated review..."
         assert len(result.content) > 0
 
     def test_existing_code_accessing_provider_id(self):
         """Existing code using result.provider_id continues to work.
 
-        Legacy pattern: checking which provider was used.
+        Direct access pattern: checking which provider was used.
         """
         result = ConsultationResult(
             workflow=ConsultationWorkflow.PLAN_REVIEW,
@@ -761,14 +761,14 @@ class TestBackwardCompatibility:
             model_used="claude-3-opus",
         )
 
-        # Direct attribute access - legacy pattern
+        # Direct attribute access
         assert result.provider_id == "anthropic"
         assert result.model_used == "claude-3-opus"
 
     def test_existing_code_checking_error_attribute(self):
         """Existing code using result.error continues to work.
 
-        Legacy pattern: checking if an error occurred.
+        Direct access pattern: checking if an error occurred.
         """
         # Success case - no error
         success_result = ConsultationResult(
@@ -856,10 +856,10 @@ class TestBackwardCompatibility:
         assert result.error is None
         assert result.tokens == {"total": 100}
 
-    def test_isinstance_check_for_legacy_code(self):
+    def test_isinstance_check_for_type_guard(self):
         """isinstance(result, ConsultationResult) works for type guards.
 
-        Legacy pattern using isinstance for type narrowing.
+        Pattern using isinstance for type narrowing.
         """
         from foundry_mcp.core.ai_consultation import (
             ConsensusResult,
@@ -868,7 +868,7 @@ class TestBackwardCompatibility:
         )
 
         def handle_result(result: ConsultationOutcome) -> str:
-            """Example legacy handler with type narrowing."""
+            """Example handler with type narrowing."""
             if isinstance(result, ConsultationResult):
                 # Single-model path - existing code
                 return f"Single: {result.provider_id}"

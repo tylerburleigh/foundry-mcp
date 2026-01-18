@@ -1,6 +1,6 @@
 """Smoke tests for MCP server tool registration.
 
-Verifies that the server registers the unified 17-router tool surface.
+Verifies that the server registers the unified 16-router tool surface.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ _UNIFIED_TOOL_NAMES = {
     "plan",
     "pr",
     "error",
-    "metrics",
     "journal",
     "authoring",
     "provider",

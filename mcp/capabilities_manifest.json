@@ -156,46 +156,6 @@
         ]
       },
       {
-        "name": "metrics",
-        "description": "Metrics query, stats, and cleanup.",
-        "auth_required": false,
-        "rate_limit": null,
-        "parameters": [
-          {
-            "name": "action",
-            "type": "string",
-            "required": true,
-            "enum": [
-              "query",
-              "list",
-              "summary",
-              "stats",
-              "cleanup"
-            ],
-            "description": "Metrics action"
-          },
-          {
-            "name": "metric_name",
-            "type": "string",
-            "required": false,
-            "description": "Metric name (required for some actions)"
-          }
-        ],
-        "version": "1.0.0",
-        "deprecated": false,
-        "tags": [
-          "unified"
-        ],
-        "examples": [
-          {
-            "description": "Example: metrics action=query",
-            "input": {
-              "action": "query"
-            }
-          }
-        ]
-      },
-      {
         "name": "journal",
         "description": "Journaling add/list helpers.",
         "auth_required": false,
@@ -386,7 +346,11 @@
             "type": "string",
             "required": false,
             "default": "all",
-            "enum": ["all", "titles", "descriptions"],
+            "enum": [
+              "all",
+              "titles",
+              "descriptions"
+            ],
             "description": "Scope of find-replace: titles only, descriptions only, or all"
           },
           {
@@ -424,7 +388,13 @@
             "type": "string",
             "required": false,
             "default": "p2",
-            "enum": ["p0", "p1", "p2", "p3", "p4"],
+            "enum": [
+              "p0",
+              "p1",
+              "p2",
+              "p3",
+              "p4"
+            ],
             "description": "Priority level for intake-add (p0=highest, p4=lowest, default p2)"
           },
           {
@@ -568,7 +538,10 @@
               "title": "Add dark mode support",
               "description": "Users have requested dark mode for reduced eye strain",
               "priority": "p2",
-              "tags": ["ui", "accessibility"],
+              "tags": [
+                "ui",
+                "accessibility"
+              ],
               "source": "user-feedback",
               "requester": "product-team"
             }
@@ -839,14 +812,22 @@
             "type": "string",
             "required": false,
             "default": "blocks",
-            "enum": ["blocks", "blocked_by", "depends"],
+            "enum": [
+              "blocks",
+              "blocked_by",
+              "depends"
+            ],
             "description": "Type of dependency relationship"
           },
           {
             "name": "requirement_type",
             "type": "string",
             "required": false,
-            "enum": ["acceptance", "technical", "constraint"],
+            "enum": [
+              "acceptance",
+              "technical",
+              "constraint"
+            ],
             "description": "Type of requirement for add-requirement action"
           },
           {
@@ -933,7 +914,11 @@
             "input": {
               "action": "start-batch",
               "spec_id": "my-feature-spec-001",
-              "task_ids": ["task-1-1", "task-1-2", "task-1-3"]
+              "task_ids": [
+                "task-1-1",
+                "task-1-2",
+                "task-1-3"
+              ]
             }
           },
           {
@@ -942,8 +927,16 @@
               "action": "complete-batch",
               "spec_id": "my-feature-spec-001",
               "completions": [
-                {"task_id": "task-1-1", "success": true, "completion_note": "Implemented feature"},
-                {"task_id": "task-1-2", "success": false, "completion_note": "Tests failing"}
+                {
+                  "task_id": "task-1-1",
+                  "success": true,
+                  "completion_note": "Implemented feature"
+                },
+                {
+                  "task_id": "task-1-2",
+                  "success": false,
+                  "completion_note": "Tests failing"
+                }
               ]
             }
           },
@@ -1016,7 +1009,13 @@
             "type": "string",
             "required": false,
             "default": "all",
-            "enum": ["all", "pending", "active", "completed", "archived"],
+            "enum": [
+              "all",
+              "pending",
+              "active",
+              "completed",
+              "archived"
+            ],
             "description": "Filter specs by status for list action"
           },
           {
@@ -1056,7 +1055,11 @@
             "type": "string",
             "required": false,
             "default": "titles",
-            "enum": ["titles", "descriptions", "all"],
+            "enum": [
+              "titles",
+              "descriptions",
+              "all"
+            ],
             "description": "What to compare for duplicate-detection action"
           },
           {
@@ -1530,7 +1533,9 @@
         "default_enabled": true,
         "percentage_rollout": 100,
         "owner": "spec-team",
-        "dependencies": ["authoring_tools"],
+        "dependencies": [
+          "authoring_tools"
+        ],
         "created_at": "2025-12-28T00:00:00Z",
         "expires_at": null
       },
@@ -1595,7 +1600,7 @@
         "expires_at": null
       },
       "unified_manifest": {
-        "description": "Expose only the 17 unified tools for discovery/token reduction",
+        "description": "Expose only the 16 unified tools for discovery/token reduction",
         "state": "beta",
         "default_enabled": false,
         "percentage_rollout": 0,
@@ -1629,13 +1634,12 @@
       },
       "unified_tools": {
         "supported": true,
-        "description": "Action-based unified tool surface (17 tools)",
+        "description": "Action-based unified tool surface (16 tools)",
         "tools": [
           "health",
           "plan",
           "pr",
           "error",
-          "metrics",
           "journal",
           "authoring",
           "provider",

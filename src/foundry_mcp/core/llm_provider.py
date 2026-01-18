@@ -680,15 +680,15 @@ class OpenAIProvider(LLMProvider):
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         """Generate a text completion using OpenAI's API.
 
-        Note: Uses chat completions API internally as legacy completions
-        are deprecated for most models.
+        Note: Uses the chat completions API internally because the
+        completions endpoint is deprecated for most models.
         """
         self.validate_request(request)
         client = self._get_client()
         model = self.get_model(request.model)
 
         try:
-            # Use chat completions API (legacy completions deprecated)
+            # Use chat completions API (completions endpoint deprecated)
             response = await client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": request.prompt}],

@@ -4,7 +4,7 @@ This module centralizes the reusable building blocks used by
 `foundry_mcp.tools.unified.review` so the main router stays focused on
 input validation and action dispatch.
 
-The implementation is adapted from the legacy CLI review command helpers.
+The implementation is adapted from the CLI review command helpers.
 """
 
 from __future__ import annotations

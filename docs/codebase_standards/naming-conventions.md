@@ -11,7 +11,7 @@ Consistent naming shortens discovery time, improves LLM selection accuracy, and 
 1. **Router + Action** – Use a small set of domain routers (`spec`, `task`, `review`, etc.) and encode the verb in an `action` parameter. This keeps the advertised manifest small and LLM-friendly.
 2. **Action Naming** – `action` values MUST be stable, `kebab-case`, and scoped to the router (e.g., `spec: validate`, `task: next`, `review: fidelity`).
 3. **Avoid Verb Explosion** – Prefer extending an existing router with a new `action` instead of introducing a new top-level tool name.
-4. **Deprecation Discipline** – If you temporarily support legacy tool names, document the retirement timeline in specs and remove them within two releases per [§13 Tool Discovery](../mcp_best_practices/13-tool-discovery.md#deprecation-handling).
+4. **Deprecation Discipline** – If you temporarily support deprecated tool names, document the retirement timeline in specs and remove them within two releases per [§13 Tool Discovery](../mcp_best_practices/13-tool-discovery.md#deprecation-handling).
 5. **No Overloaded Actions** – Don’t reuse the same `action` string with incompatible semantics; add a new action or introduce a separate parameter for mode selection.
 
 ## Recommended Mapping Matrix
@@ -65,7 +65,7 @@ All binaries import `foundry_mcp.sdd_cli.__main__` so the same parser/runtime st
 
 1. **Choose Prefix** – Identify the narrowest artifact the tool acts upon and apply the matching prefix.
 2. **Normalize Verb** – Use an imperative verb (`create`, `update`, `list`, `report`, `execute`). Prefer `report`/`format` over ambiguous `process`/`handle`.
-3. **Canonical Only** – Register the canonical MCP name and update specs/tests simultaneously; do not ship parallel legacy identifiers.
+3. **Canonical Only** – Register the canonical MCP name and update specs/tests simultaneously; do not ship parallel deprecated identifiers.
 4. **Document Updates** – Reflect the rename in:
    - Specs (`specs/completed/*.json`)
    - `docs/` references (including [OPERATIONS_TO_ADD.md](../../half_baked_plans/OPERATIONS_TO_ADD.md))
@@ -79,9 +79,9 @@ All binaries import `foundry_mcp.sdd_cli.__main__` so the same parser/runtime st
 
 ## Current Implementation Audit *(unified routers)*
 
-The canonical advertised tool surface is the 17 unified routers in `mcp/capabilities_manifest.json`:
+The canonical advertised tool surface is the 16 unified routers in `mcp/capabilities_manifest.json`:
 
-`health`, `plan`, `pr`, `error`, `metrics`, `journal`, `authoring`, `provider`, `environment`, `lifecycle`, `verification`, `task`, `spec`, `review`, `code`, `server`, `test`.
+`health`, `plan`, `pr`, `error`, `journal`, `authoring`, `provider`, `environment`, `lifecycle`, `verification`, `task`, `spec`, `review`, `code`, `server`, `test`.
 
 Each router exposes a stable `action` enum; add functionality by extending `action` (and updating the manifest/specs/tests) rather than introducing new top-level tool names.
 

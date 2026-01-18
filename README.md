@@ -13,7 +13,7 @@ foundry-mcp packages the spec lifecycle, a single CLI/service layer, and MCP ada
 
 - **Single service layer for CLI + MCP** — The completed CLI re-implementation and subprocess elimination specs ensure the CLI and MCP tools share contracts, observability, and feature flags.
 - **Spec lifecycle automation** — Tools manage creation, validation, lifecycle transitions, blockers, and journaling with cursor-based pagination and dependency tracking.
-- **Quality gates & behavioral testing** — A dedicated regression harness keeps foundry-mcp aligned with the legacy claude-sdd-toolkit CLI while integration/unit/property suites guard regressions.
+- **Quality gates & behavioral testing** — A dedicated regression harness keeps foundry-mcp aligned with the Foundry CLI while integration/unit/property suites guard regressions.
 - **LLM-ready workflows** — Provider abstractions, prompt shielding, and graceful fallbacks power AI review, documentation, and PR creation workflows when LLM access is available.
 - **Security & governance baked in** — API keys, workspace scoping, rate limiting, structured logging, and audit trails are enforced before business logic as mandated by the MCP best-practices remediation spec.
 - **Discovery-first design** — Capabilities are declared through `mcp/capabilities_manifest.json` so clients can negotiate response contracts, feature flags, and tool availability.
@@ -85,13 +85,13 @@ specs/
 ### Batch metadata utilities
 
 - `task(action=metadata-batch)` — Apply metadata updates (e.g., `file_path`, `estimated_hours`) to multiple nodes at once. Supports flexible AND-based filtering by `node_type`, `phase_id`, or `pattern` regex. Includes `dry_run` mode for previewing changes.
-- `task(action=fix-verification-types)` — Auto-fix invalid or missing `verification_type` on verify nodes. Supports legacy mappings (`test` → `run-tests`, `auto` → `run-tests`) and defaults unknown types to `manual`. Includes `dry_run` mode for previewing fixes.
+- `task(action=fix-verification-types)` — Auto-fix invalid or missing `verification_type` on verify nodes and default unknown types to `manual`. Includes `dry_run` mode for previewing fixes.
 
 ### Code, docs, and testing intelligence
 
 - Code navigation tools via `code(action=...)` support symbol lookup and call-graph tracing.
 - Testing tools via `test(action=run|discover, preset=quick|unit|full)` run pytest presets with structured output.
-- Shared adapters mirror claude-sdd-toolkit behavior and integrate with the regression testing harness.
+- Shared adapters mirror Foundry CLI behavior and integrate with the regression testing harness.
 
 ### LLM-powered workflows
 
@@ -135,7 +135,7 @@ All MCP tools emit the standardized envelope defined in `docs/codebase_standards
 
 - `success`, `data`, `error`, and `meta` are always present so clients never guess at output shape.
 - `response_contract_v2` is feature-flagged; clients advertise support via capability negotiation.
-- `mcp/capabilities_manifest.json` advertises the 17 unified tools (plus feature flags like `unified_manifest`).
+- `mcp/capabilities_manifest.json` advertises the 16 unified tools (plus feature flags like `unified_manifest`).
 
 **Legacy → unified mapping (examples)**
 
@@ -211,7 +211,7 @@ The server will advertise its capabilities, feature flags, and response contract
 python -m foundry_mcp.cli task next --specs-dir /path/to/specs
 ```
 
-All CLI commands output JSON for reliable parsing by AI coding tools and mirror the legacy `claude-sdd-toolkit` surface.
+All CLI commands output JSON for reliable parsing by AI coding tools and mirror the Foundry CLI surface.
 
 ### Claude Code setup
 
@@ -283,7 +283,7 @@ pytest tests/integration/test_mcp_smoke.py  # MCP smoke tests
 pytest tests/integration/test_mcp_tools.py  # Tool contract coverage
 ```
 
-- Regression tests keep MCP/CLI adapters aligned with the legacy claude-sdd-toolkit contracts.
+- Regression tests keep MCP/CLI adapters aligned across surfaces.
 - Golden fixtures (`tests/fixtures/golden`) ensure response envelopes, error semantics, and pagination never regress.
 - Freshness checks (doc generation, capability manifests) run alongside core unit and integration suites.
 

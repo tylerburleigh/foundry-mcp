@@ -70,10 +70,7 @@ from foundry_mcp.cli.context import (
     AutonomousSession,
     get_context_tracker,
 )
-from foundry_mcp.core.validation import (
-    VALID_VERIFICATION_TYPES,
-    VERIFICATION_TYPE_MAPPING,
-)
+from foundry_mcp.core.validation import VALID_VERIFICATION_TYPES
 from foundry_mcp.tools.unified.router import (
     ActionDefinition,
     ActionRouter,
@@ -1775,11 +1772,6 @@ def _handle_add(*, config: ServerConfig, payload: Dict[str, Any]) -> dict:
     action = "add"
     spec_id = payload.get("spec_id")
     parent = payload.get("parent")
-    phase_id = payload.get("phase_id")  # Alias for parent
-
-    # Use phase_id as parent if parent not provided
-    if parent is None and phase_id is not None:
-        parent = phase_id
 
     title = payload.get("title")
     description = payload.get("description")
@@ -3065,9 +3057,6 @@ def _handle_metadata_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> 
     - parent_filter: Filter by parent node ID (e.g., phase-1, task-2-1)
     - pattern: Regex pattern to match task titles/IDs
 
-    Legacy filters (deprecated, use parent_filter instead):
-    - phase_id: Alias for parent_filter
-
     Metadata fields supported:
     - description, file_path, estimated_hours, category, labels, owners
     - update_metadata: Dict for custom metadata fields (verification_type, command, etc.)
@@ -3090,12 +3079,7 @@ def _handle_metadata_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> 
     # Extract filter parameters
     status_filter = payload.get("status_filter")
     parent_filter = payload.get("parent_filter")
-    phase_id = payload.get("phase_id")  # Legacy alias for parent_filter
     pattern = payload.get("pattern")
-
-    # Use phase_id as parent_filter if parent_filter not provided (backwards compat)
-    if parent_filter is None and phase_id is not None:
-        parent_filter = phase_id
 
     # Validate status_filter
     if status_filter is not None:
@@ -3150,7 +3134,7 @@ def _handle_metadata_batch(*, config: ServerConfig, payload: Dict[str, Any]) -> 
             message="Provide at least one filter: status_filter, parent_filter, or pattern",
             request_id=request_id,
             code=ErrorCode.MISSING_REQUIRED,
-            remediation="Specify status_filter, parent_filter (or phase_id), and/or pattern to target tasks",
+            remediation="Specify status_filter, parent_filter, and/or pattern to target tasks",
         )
 
     # Extract metadata fields
@@ -3360,9 +3344,8 @@ def _handle_fix_verification_types(
 
     This action:
     1. Finds all verify nodes with invalid or missing verification_type
-    2. Maps legacy values (e.g., 'test' -> 'run-tests') using VERIFICATION_TYPE_MAPPING
-    3. Sets missing types to 'run-tests' (default)
-    4. Sets unknown types to 'manual' (fallback)
+    2. Sets missing types to 'run-tests' (default)
+    3. Sets unknown types to 'manual' (fallback)
 
     Supports dry-run mode to preview changes without persisting.
     """
@@ -3423,24 +3406,14 @@ def _handle_fix_verification_types(
                 "new_value": "run-tests",
             }
         elif current_type not in VALID_VERIFICATION_TYPES:
-            # Invalid type -> check mapping or fallback to 'manual'
-            mapped = VERIFICATION_TYPE_MAPPING.get(current_type)
-            if mapped:
-                fix_info = {
-                    "node_id": node_id,
-                    "title": node_data.get("title", ""),
-                    "issue": "legacy",
-                    "old_value": current_type,
-                    "new_value": mapped,
-                }
-            else:
-                fix_info = {
-                    "node_id": node_id,
-                    "title": node_data.get("title", ""),
-                    "issue": "invalid",
-                    "old_value": current_type,
-                    "new_value": "manual",
-                }
+            # Invalid type -> fallback to 'manual'
+            fix_info = {
+                "node_id": node_id,
+                "title": node_data.get("title", ""),
+                "issue": "invalid",
+                "old_value": current_type,
+                "new_value": "manual",
+            }
 
         if fix_info:
             fixes.append(fix_info)
@@ -3468,7 +3441,6 @@ def _handle_fix_verification_types(
 
     # Count by issue type
     missing_count = sum(1 for f in fixes if f["issue"] == "missing")
-    legacy_count = sum(1 for f in fixes if f["issue"] == "legacy")
     invalid_count = sum(1 for f in fixes if f["issue"] == "invalid")
 
     response = success_response(
@@ -3478,11 +3450,9 @@ def _handle_fix_verification_types(
         fixes=fixes,
         summary={
             "missing_set_to_run_tests": missing_count,
-            "legacy_mapped": legacy_count,
             "invalid_set_to_manual": invalid_count,
         },
         valid_types=sorted(VALID_VERIFICATION_TYPES),
-        legacy_mappings=VERIFICATION_TYPE_MAPPING,
         dry_run=dry_run_bool,
         request_id=request_id,
         telemetry={"duration_ms": round(elapsed_ms, 2)},
@@ -3766,7 +3736,6 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
         max_depth: int = 2,
         include_metadata: bool = False,
         # metadata-batch specific parameters
-        phase_id: Optional[str] = None,
         pattern: Optional[str] = None,
         node_type: Optional[str] = None,
         owners: Optional[List[str]] = None,
@@ -3820,7 +3789,6 @@ def register_unified_task_tool(mcp: FastMCP, config: ServerConfig) -> None:
             "max_depth": max_depth,
             "include_metadata": include_metadata,
             # metadata-batch specific
-            "phase_id": phase_id,
             "pattern": pattern,
             "node_type": node_type,
             "owners": owners,

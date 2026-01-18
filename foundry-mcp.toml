@@ -79,27 +79,19 @@ model = "haiku"   # --model: model for delegated tasks (haiku, sonnet, opus)
 enabled = true
 commit_cadence = "task"
 
-# Error collection - stores error logs for dashboard visibility
+# Error collection - stores error logs for observability and debugging
 [error_collection]
 enabled = true
 # storage_path defaults to ~/.foundry-mcp/errors
 retention_days = 30
 max_records = 10000
 
-# Metrics persistence - stores metrics for dashboard charts
+# Metrics persistence - stores metrics for historical analysis
 [metrics_persistence]
 enabled = true
 # storage_path defaults to ~/.foundry-mcp/metrics
 retention_days = 7
 max_records = 50000
-
-# Dashboard - web UI for viewing errors, metrics, and providers
-[dashboard]
-enabled = true
-port = 8080
-host = "127.0.0.1"
-auto_open_browser = false
-refresh_interval_ms = 5000
 
 # Research workflow configuration
 [research]

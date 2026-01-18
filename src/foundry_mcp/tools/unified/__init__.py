@@ -8,7 +8,6 @@ from .authoring import register_unified_authoring_tool
 from .error import register_unified_error_tool
 from .health import register_unified_health_tool
 from .journal import register_unified_journal_tool
-from .metrics import register_unified_metrics_tool
 from .plan import register_unified_plan_tool
 from .pr import register_unified_pr_tool
 from .provider import register_unified_provider_tool
@@ -39,8 +38,6 @@ def register_unified_tools(mcp: "FastMCP", config: "ServerConfig") -> None:
         register_unified_pr_tool(mcp, config)
     if "error" not in disabled:
         register_unified_error_tool(mcp, config)
-    if "metrics" not in disabled:
-        register_unified_metrics_tool(mcp, config)
     if "journal" not in disabled:
         register_unified_journal_tool(mcp, config)
     if "authoring" not in disabled:
@@ -77,7 +74,6 @@ __all__ = [
     "register_unified_plan_tool",
     "register_unified_pr_tool",
     "register_unified_error_tool",
-    "register_unified_metrics_tool",
     "register_unified_journal_tool",
     "register_unified_authoring_tool",
     "register_unified_review_tool",

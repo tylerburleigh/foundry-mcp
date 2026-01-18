@@ -325,7 +325,7 @@ class ClaudeProvider(ProviderContext):
         # 1. Check request.model first (from ProviderRequest constructor)
         if request.model:
             return str(request.model)
-        # 2. Fallback to metadata override (legacy/alternative path)
+        # 2. Fallback to metadata override (alternate path)
         model_override = request.metadata.get("model") if request.metadata else None
         if model_override:
             return str(model_override)

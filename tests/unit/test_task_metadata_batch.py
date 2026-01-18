@@ -156,12 +156,6 @@ class TestFiltering:
         assert result["success"] is True
         assert result["data"]["matched_count"] == 0
 
-    def test_filter_legacy_phase_id(self, task_tool):
-        """phase_id is a legacy alias for parent_filter."""
-        result = task_tool(action="metadata-batch", spec_id="batch-test-spec-001", phase_id="phase-2", file_path="test.py", dry_run=True)
-        assert result["success"] is True
-        assert result["data"]["matched_count"] == 2  # task-2-1, verify-2-1
-
 
 # =============================================================================
 # Dry Run Tests

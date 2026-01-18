@@ -25,18 +25,18 @@ class TestDisabledToolsConfig:
     def test_env_var_multiple_tools(self):
         """FOUNDRY_MCP_DISABLED_TOOLS with multiple tools."""
         with patch.dict(
-            os.environ, {"FOUNDRY_MCP_DISABLED_TOOLS": "error,health,metrics"}
+            os.environ, {"FOUNDRY_MCP_DISABLED_TOOLS": "error,health"}
         ):
             config = ServerConfig.from_env()
-            assert set(config.disabled_tools) == {"error", "health", "metrics"}
+            assert set(config.disabled_tools) == {"error", "health"}
 
     def test_env_var_whitespace_handling(self):
         """Whitespace in FOUNDRY_MCP_DISABLED_TOOLS is trimmed."""
         with patch.dict(
-            os.environ, {"FOUNDRY_MCP_DISABLED_TOOLS": " error , health , metrics "}
+            os.environ, {"FOUNDRY_MCP_DISABLED_TOOLS": " error , health "}
         ):
             config = ServerConfig.from_env()
-            assert set(config.disabled_tools) == {"error", "health", "metrics"}
+            assert set(config.disabled_tools) == {"error", "health"}
 
     def test_env_var_empty_entries_filtered(self):
         """Empty entries from trailing commas are filtered."""
@@ -55,7 +55,7 @@ class TestToolRegistrationWithDisabled:
         from foundry_mcp.tools.unified import register_unified_tools
 
         config = ServerConfig()
-        config.disabled_tools = ["health", "error", "metrics"]
+        config.disabled_tools = ["health", "error"]
 
         mcp = MagicMock()
 
@@ -70,14 +70,13 @@ class TestToolRegistrationWithDisabled:
         # Verify disabled tools were not registered
         assert "health" not in registered_tools
         assert "error" not in registered_tools
-        assert "metrics" not in registered_tools
 
     def test_enabled_tools_still_registered(self):
         """Tools not in disabled_tools are still registered."""
         from foundry_mcp.tools.unified import register_unified_tools
 
         config = ServerConfig()
-        config.disabled_tools = ["health", "error", "metrics"]
+        config.disabled_tools = ["health", "error"]
 
         mcp = MagicMock()
 

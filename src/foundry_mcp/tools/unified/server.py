@@ -75,7 +75,7 @@ def _get_tokenizer() -> Any | None:
 
 
 def _estimate_tokens(text: str) -> int:
-    """Estimate token usage for manifest budget dashboards.
+    """Estimate token usage for manifest budget telemetry.
 
     Uses `tiktoken` when available, otherwise falls back to a conservative
     ~4-chars-per-token heuristic.
@@ -103,7 +103,7 @@ def _validation_error(
 
 
 def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
-    """Return compact tool entries for the 16-tool unified manifest."""
+    """Return compact tool entries for the 15-tool unified manifest."""
 
     from foundry_mcp.tools.unified.authoring import _AUTHORING_ROUTER
     from foundry_mcp.tools.unified.environment import _ENVIRONMENT_ROUTER
@@ -111,7 +111,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
     from foundry_mcp.tools.unified.health import _HEALTH_ROUTER
     from foundry_mcp.tools.unified.journal import _JOURNAL_ROUTER
     from foundry_mcp.tools.unified.lifecycle import _LIFECYCLE_ROUTER
-    from foundry_mcp.tools.unified.metrics import _METRICS_ROUTER
     from foundry_mcp.tools.unified.plan import _PLAN_ROUTER
     from foundry_mcp.tools.unified.pr import _PR_ROUTER
     from foundry_mcp.tools.unified.provider import _PROVIDER_ROUTER
@@ -126,7 +125,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "plan": _PLAN_ROUTER,
         "pr": _PR_ROUTER,
         "error": _ERROR_ROUTER,
-        "metrics": _METRICS_ROUTER,
         "journal": _JOURNAL_ROUTER,
         "authoring": _AUTHORING_ROUTER,
         "provider": _PROVIDER_ROUTER,
@@ -145,7 +143,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "plan": "planning",
         "pr": "workflow",
         "error": "observability",
-        "metrics": "observability",
         "journal": "journal",
         "authoring": "specs",
         "provider": "providers",
@@ -164,7 +161,6 @@ def _build_unified_manifest_tools() -> list[Dict[str, Any]]:
         "plan": "Planning helpers (create/list/review plans).",
         "pr": "PR workflows with spec context.",
         "error": "Error collection query and cleanup.",
-        "metrics": "Metrics query, stats, and cleanup.",
         "journal": "Journaling add/list helpers.",
         "authoring": "Spec authoring mutations (phases, assumptions, revisions).",
         "provider": "LLM provider discovery and execution.",
