@@ -2794,21 +2794,10 @@ _INTAKE_TAG_PATTERN = "^[a-z0-9_-]+$"
 _TAG_REGEX = re.compile(_INTAKE_TAG_PATTERN)
 
 
-def _intake_feature_flag_blocked(request_id: str) -> Optional[dict]:
-    """Check if intake tools are blocked by feature flag. Returns None to allow."""
-    # Feature flags disabled - always allow
-    return None
-
-
 def _handle_intake_add(*, config: ServerConfig, **payload: Any) -> dict:
     """Add a new intake item to the notes queue."""
     request_id = _request_id()
     action = "intake-add"
-
-    # Check feature flag
-    blocked = _intake_feature_flag_blocked(request_id)
-    if blocked:
-        return blocked
 
     # Validate title (required, 1-140 chars)
     title = payload.get("title")
@@ -3114,11 +3103,6 @@ def _handle_intake_list(*, config: ServerConfig, **payload: Any) -> dict:
     request_id = _request_id()
     action = "intake-list"
 
-    # Check feature flag
-    blocked = _intake_feature_flag_blocked(request_id)
-    if blocked:
-        return blocked
-
     # Validate limit (optional, default 50, range 1-200)
     limit = payload.get("limit", _INTAKE_LIST_DEFAULT_LIMIT)
     if limit is not None:
@@ -3257,11 +3241,6 @@ def _handle_intake_dismiss(*, config: ServerConfig, **payload: Any) -> dict:
     """Dismiss an intake item by changing its status to 'dismissed'."""
     request_id = _request_id()
     action = "intake-dismiss"
-
-    # Check feature flag
-    blocked = _intake_feature_flag_blocked(request_id)
-    if blocked:
-        return blocked
 
     # Validate intake_id (required, must match pattern)
     intake_id = payload.get("intake_id")

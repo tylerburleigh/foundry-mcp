@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.32] - 2026-01-22
+
+### Changed
+
+- **Improved lifecycle action descriptions**: More descriptive summaries for `activate`, `complete`, and `archive` actions clarifying behavior and folder destinations
+
+### Removed
+
+- **Removed intake tools feature flag**: Intake tools (`intake-add`, `intake-list`, `intake-dismiss`) are now always enabled
+  - Removed `intake_tools` feature flag from capabilities manifest
+  - Removed feature flag check code from authoring tool handlers
+  - Removed feature flag documentation from intake guide
+
 ## [0.8.31] - 2026-01-22
 
 ### Added

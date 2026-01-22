@@ -402,33 +402,6 @@ for item in items:
 
 ---
 
-## Feature Flag
-
-Intake tools are gated behind the `intake_tools` feature flag.
-
-### Enabling the Feature
-
-The flag must be enabled before using intake actions. If disabled, you'll receive:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "FEATURE_DISABLED",
-    "message": "Feature 'intake_tools' is not enabled",
-    "remediation": "Enable the 'intake_tools' feature flag to use intake actions."
-  }
-}
-```
-
-### Configuration
-
-Enable the feature flag via the feature flag system:
-- State: `EXPERIMENTAL` (opt-in, default disabled)
-- Enable globally or per-workspace as needed
-
----
-
 ## Best Practices
 
 1. **Keep titles concise**: Use the description for details

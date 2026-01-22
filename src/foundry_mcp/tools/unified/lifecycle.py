@@ -43,9 +43,9 @@ _metrics = get_metrics()
 
 _ACTION_SUMMARY = {
     "move": "Move a specification between pending/active/completed/archived folders",
-    "activate": "Activate a pending specification",
-    "complete": "Complete a specification with optional force overrides",
-    "archive": "Archive a specification for long-term storage",
+    "activate": "Activate a pending specification (moves to active/)",
+    "complete": "Mark spec as successfully delivered (requires all tasks done, moves to completed/)",
+    "archive": "Remove spec from workflow without completing (for cancelled/superseded specs, moves to archived/)",
     "state": "Inspect the current lifecycle state and progress",
 }
 
