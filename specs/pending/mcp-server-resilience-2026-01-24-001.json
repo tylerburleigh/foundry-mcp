@@ -1,0 +1,991 @@
+{
+  "spec_id": "mcp-server-resilience-2026-01-24-001",
+  "title": "mcp-server-resilience",
+  "generated": "2026-01-24T13:39:21.017592Z",
+  "last_updated": "2026-01-24T13:41:14.298968Z",
+  "metadata": {
+    "description": "",
+    "mission": "Add comprehensive exception handling to prevent MCP server crashes when unexpected errors occur in research workflows and unified tool dispatch functions",
+    "objectives": [],
+    "complexity": "low",
+    "estimated_hours": 0,
+    "assumptions": [],
+    "owner": "",
+    "category": "implementation",
+    "template": "empty"
+  },
+  "progress_percentage": 0,
+  "status": "pending",
+  "current_phase": null,
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "mcp-server-resilience",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 41,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Research Workflow Exception Handling",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "verify-1-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Add top-level try/catch to 4 research workflow execute() methods to prevent crashes during workflow execution"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Add try/catch to ChatWorkflow.execute()",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Wrap execute() method body in try/except Exception, return WorkflowResult on error with workflow name and error_type in metadata",
+        "file_path": "src/foundry_mcp/core/research/workflows/chat.py",
+        "acceptance_criteria": [
+          "execute() catches all Exception subclasses",
+          "Returns WorkflowResult(success=False) on exception",
+          "Logs exception with logger.exception()",
+          "Includes workflow='chat' and error_type in metadata"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Add try/catch to ThinkDeepWorkflow.execute()",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Wrap execute() method body in try/except Exception, return WorkflowResult on error",
+        "file_path": "src/foundry_mcp/core/research/workflows/thinkdeep.py",
+        "acceptance_criteria": [
+          "execute() catches all Exception subclasses",
+          "Returns WorkflowResult(success=False) on exception",
+          "Logs exception with logger.exception()",
+          "Includes workflow='thinkdeep' and error_type in metadata"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Add try/catch to ConsensusWorkflow.execute()",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Wrap execute() method body in try/except Exception, return WorkflowResult on error",
+        "file_path": "src/foundry_mcp/core/research/workflows/consensus.py",
+        "acceptance_criteria": [
+          "execute() catches all Exception subclasses",
+          "Returns WorkflowResult(success=False) on exception",
+          "Logs exception with logger.exception()",
+          "Includes workflow='consensus' and error_type in metadata"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Add try/catch to IdeateWorkflow.execute()",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Wrap execute() method body in try/except Exception, return WorkflowResult on error",
+        "file_path": "src/foundry_mcp/core/research/workflows/ideate.py",
+        "acceptance_criteria": [
+          "execute() catches all Exception subclasses",
+          "Returns WorkflowResult(success=False) on exception",
+          "Logs exception with logger.exception()",
+          "Includes workflow='ideate' and error_type in metadata"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Verify workflow tests pass",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run pytest tests/core/research/workflows/ to confirm no regressions",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Unified Tool Dispatch Exception Handling",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4",
+        "task-2-5",
+        "task-2-6",
+        "task-2-7",
+        "task-2-8",
+        "task-2-9",
+        "task-2-10",
+        "task-2-11",
+        "task-2-12",
+        "task-2-13",
+        "task-2-14",
+        "task-2-15",
+        "verify-2-1"
+      ],
+      "total_tasks": 16,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Add catch-all exception handlers to 15 dispatch functions (research already protected) to prevent MCP server crashes"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_authoring_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling, return error_response with INTERNAL_ERROR",
+        "file_path": "src/foundry_mcp/tools/unified/authoring.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()",
+          "Includes action and error_type in details"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_environment_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/environment.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_error_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/error.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_health_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/health.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-5": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_journal_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/journal.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-6": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_lifecycle_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/lifecycle.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-7": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_plan_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/plan.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-8": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_provider_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/provider.py",
+        "acceptance_criteria": [
+          "Catches Exception after ActionRouterError",
+          "Returns asdict(error_response(...)) with ErrorCode.INTERNAL_ERROR",
+          "Logs with logger.exception()"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-9": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_pr_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/pr.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-10": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_review_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/review.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-11": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_server_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/server.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-12": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_spec_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-13": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_task_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-14": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_test_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/test.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-15": {
+      "type": "task",
+      "title": "Add catch-all to _dispatch_verification_action",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add except Exception clause after ActionRouterError handling",
+        "file_path": "src/foundry_mcp/tools/unified/verification.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Verify dispatch tests pass",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run pytest tests/tools/unified/ to confirm no regressions",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Test Coverage",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3",
+        "task-3-4",
+        "task-3-5",
+        "task-3-6",
+        "task-3-7",
+        "task-3-8",
+        "task-3-9",
+        "task-3-10",
+        "task-3-11",
+        "task-3-12",
+        "task-3-13",
+        "task-3-14",
+        "task-3-15",
+        "task-3-16",
+        "task-3-17",
+        "task-3-18",
+        "task-3-19",
+        "verify-3-1"
+      ],
+      "total_tasks": 20,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Add tests to verify exception handling works correctly and prevents crashes"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Add test_execute_catches_exceptions to test_chat.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that ChatWorkflow.execute() catches exceptions and returns error WorkflowResult",
+        "file_path": "tests/core/research/workflows/test_chat.py",
+        "acceptance_criteria": [
+          "Mock internal method to raise RuntimeError",
+          "Verify result.success is False",
+          "Verify error message contains exception info",
+          "Verify metadata includes error_type"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Add test_execute_catches_exceptions to test_thinkdeep.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that ThinkDeepWorkflow.execute() catches exceptions and returns error WorkflowResult",
+        "file_path": "tests/core/research/workflows/test_thinkdeep.py",
+        "acceptance_criteria": [
+          "Mock internal method to raise RuntimeError",
+          "Verify result.success is False",
+          "Verify error message contains exception info"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "Add test_execute_catches_exceptions to test_consensus.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that ConsensusWorkflow.execute() catches exceptions and returns error WorkflowResult",
+        "file_path": "tests/core/research/workflows/test_consensus.py",
+        "acceptance_criteria": [
+          "Mock internal method to raise RuntimeError",
+          "Verify result.success is False",
+          "Verify error message contains exception info"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-4": {
+      "type": "task",
+      "title": "Add test_execute_catches_exceptions to test_ideate.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that IdeateWorkflow.execute() catches exceptions and returns error WorkflowResult",
+        "file_path": "tests/core/research/workflows/test_ideate.py",
+        "acceptance_criteria": [
+          "Mock internal method to raise RuntimeError",
+          "Verify result.success is False",
+          "Verify error message contains exception info"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-5": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_authoring.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_authoring_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_authoring.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-6": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_environment.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_environment_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_environment.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-7": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_error.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_error_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_error.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-8": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_health.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_health_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_health.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-9": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_journal.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_journal_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_journal.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-10": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_lifecycle.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_lifecycle_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_lifecycle.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-11": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_plan.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_plan_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_plan.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-12": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_provider.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_provider_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_provider.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-13": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_pr.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_pr_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_pr.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-14": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_review.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_review_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_review.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-15": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_server.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_server_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_server.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-16": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_spec.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_spec_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_spec.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-17": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_task.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_task_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_task.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-18": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_test.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_test_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_test.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-19": {
+      "type": "task",
+      "title": "Add dispatch exception test to test_verification.py",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test that _dispatch_verification_action catches exceptions and returns error response",
+        "file_path": "tests/tools/unified/test_verification.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Run full test suite",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run pytest to confirm all tests pass with no regressions",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": []
+}
