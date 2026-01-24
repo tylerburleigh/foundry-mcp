@@ -1,153 +1,189 @@
 # Synthesis
 
 ## Overall Assessment
-- **Consensus Level**: Moderate (both reviews identify critical architectural issues, but focus on different aspects)
+- **Consensus Level**: Moderate (based on agreement across models)
 
-Both reviewers agree the specification is comprehensive and well-structured, but identify several critical blockers that must be addressed before implementation. The reviews complement each other: cursor-agent focuses heavily on contract consistency, schema completeness, and data integrity, while gemini emphasizes runtime architecture and configuration clarity.
+Both reviewers identify critical blockers, but they focus on different aspects of the same underlying concerns. There is strong agreement on the need for improvements around runtime overhead configuration and protected content handling, but the reviewers prioritize different architectural risks.
 
 ## Critical Blockers
 Issues that must be fixed before implementation (identified by multiple models):
 
-- **[Architecture]** Runtime overhead inference logic conflates provider ID with runtime environment - flagged by: gemini
-  - **Impact**: If a user runs `foundry-mcp` inside Gemini CLI (~40k overhead) but configures `claude:sonnet` as the model, the code will incorrectly apply Claude Code overhead (~60k) instead of the actual environment overhead. This leads to incorrect budget calculations (wasting tokens or overflowing context).
-  - **Recommended fix**: Remove inference logic from `get_effective_context`. Define `runtime_overhead` (or `system_overhead`) as a top-level configuration setting in `foundry-mcp.toml` or detect it via an environment variable set by the host CLI. The `provider_id` should only determine Model Limits, not System Overhead.
+- **[Architecture]** Warning schema inconsistency between `meta.warnings` and `data.warning_details` - flagged by: cursor-agent
+  - **Impact**: Client handling becomes inconsistent; fixtures/tests may become brittle; downstream tools may miss warnings or treat absence as error.
+  - **Recommended fix**: Define a single canonical warning contract: either always include both with empty defaults or only emit both together. Document explicit behavior for no-warning cases and ensure fixture expectations align.
 
-- **[Completeness]** Response contract placement conflicts for warning fields - flagged by: cursor-agent
-  - **Impact**: Plan states `warning_details` is in `data` but also says warnings live in `meta.warnings` and `meta.warnings` may be omitted when empty. It also says "Always include content_fidelity_schema_version… warning_details empty list" but then says omit `meta.warnings` when empty. The contract example shows `warning_details` inside `data`, but schema fragment doesn't show where it lives and fixtures guidance conflicts (always include vs omit).
-  - **Recommended fix**: Explicitly define location and presence rules per field (e.g., `data.warning_details` always present, `meta.warnings` optional). Update schema fragments to include full path and required/optional status and align fixtures guidance with that.
+- **[Architecture]** Token counting strategy prioritizes network-dependent APIs - flagged by: gemini
+  - **Impact**: Significant slowdown of the research loop; potential for rate-limit exhaustion solely from counting tokens.
+  - **Recommended fix**: Change priority to: **Local Tokenizer (e.g., tiktoken, google-generativeai local)** > **Heuristic (char/4)**. Only use provider API counters if a local option is strictly impossible and the operation is infrequent (e.g., final pre-flight check, not iterative budgeting).
 
-- **[Architecture]** State vs response warning duplication is underspecified - flagged by: cursor-agent
-  - **Impact**: The plan introduces `content_fidelity[item].phases[phase].warnings`, `data.warning_details`, and `meta.warnings` without a canonical source of truth or precedence rules. Warning code drift and duplication will cause inconsistent reporting and tests that are brittle.
-  - **Recommended fix**: Define a single generation pipeline: per-item fidelity warnings → aggregated `data.warning_details` → de-duplicated `meta.warnings`. Specify de-dupe rules and which layer is authoritative.
+- **[Completeness]** No explicit plan for provider token counting availability - flagged by: cursor-agent
+  - **Impact**: Implementation risk is high; preflight logic may be unreliable or inconsistent across providers, leading to overflow regressions.
+  - **Recommended fix**: Add a provider capability matrix (per provider: native count, tokenizer, heuristic only), define an interface in `ProviderManager`, and specify fallback behavior for each provider.
 
-- **[Clarity]** Ambiguity between `model_limits.json` and Python constants - flagged by: gemini
-  - **Impact**: The plan lists `src/foundry_mcp/core/research/model_limits.json` as a file to create, but Phase 1 implementation details show a hardcoded Python dictionary `DEFAULT_MODEL_LIMITS`. Hardcoding limits in Python requires code changes/releases to update model definitions, whereas a JSON registry allows for easier updates or external overrides.
-  - **Recommended fix**: Clarify that `model_limits.json` is the source of truth loaded at runtime, and the Python dictionary is either a fallback or strictly for type definitions. Ensure the implementation loads this JSON file.
-
-- **[Feasibility]** Model limits and overhead values treated as static facts - flagged by: cursor-agent
-  - **Impact**: The plan hardcodes token limits and overhead estimates for several models/CLIs as if authoritative, but also says "limited public data" and "estimated." There is no gating to prevent unsafe defaults when these are wrong. Incorrect limits risk overflow errors and degraded outputs on production workloads.
-  - **Recommended fix**: Make defaults explicitly conservative and require runtime validation before using aggressive caps; add a "unknown/unsafe" mode that enforces smaller budgets and emits `LIMITS_DEFAULTED` until verified.
-
-- **[Risk]** Archive implementation ignores sensitive data handling and error paths - flagged by: cursor-agent
-  - **Impact**: The archive writes full content with minimal safeguards (only private permissions); TTL cleanup reads JSON and unlinks without handling parse errors or partial writes. Also no mention of file locking or concurrent writes. Potential data leakage, corruption, and runtime crashes, plus inconsistent cleanup.
-  - **Recommended fix**: Add atomic writes (write temp + rename), JSON decode error handling, and a clear "skip on corruption" policy with warnings. Explicitly note that archive is best-effort and never blocks the workflow.
+- **[Risk]** Content archive privacy boundary not fully defined despite "out of scope" - flagged by: cursor-agent
+  - **Impact**: Potential leakage of sensitive data into disk archives, which conflicts with a security-first posture even if governance is "out of scope."
+  - **Recommended fix**: Add a minimal safety gate: allow per-item `archive_allowed` or check `ContentItem.sensitive` to skip archival and emit a warning. This is a minimal risk mitigation without defining full governance.
 
 ## Major Suggestions
 Significant improvements that enhance quality, maintainability, or design:
 
-- **[Completeness]** Missing specification for `TokenUsageObservation` persistence schema - flagged by: cursor-agent
-  - **Description**: Plan references `TokenUsageObservation` stored in `DeepResearchState` and surfaced in `meta.telemetry` but doesn't define its schema or retention policy.
-  - **Recommended fix**: Define the exact schema (fields, types, required), retention limits, and where it appears in the response envelope.
+- **[Feasibility]** `runtime_overhead` configuration risk - flagged by: cursor-agent, gemini
+  - **Description**: Both reviewers identify that relying on user-configured static values is error-prone. cursor-agent notes lack of validation/sanity checks; gemini suggests implementing a calibration command to measure actual overhead dynamically.
+  - **Recommended fix**: 
+    - Add minimum/maximum validation (e.g., 0 ≤ overhead ≤ context_window) and an informational warning when overhead exceeds a threshold (e.g., >50% of context).
+    - Consider implementing a "Calibration" command (or startup routine) that measures the *actual* system prompt + tool definition size using the configured tokenizer and suggests (or sets) the `runtime_overhead` value dynamically.
 
-- **[Architecture]** Model limits registry file format not specified - flagged by: cursor-agent
-  - **Description**: `model_limits.json` is introduced but no schema, versioning, or provenance fields are defined.
-  - **Recommended fix**: Define a JSON schema with `version`, `last_verified`, `source_url`, per-model `context_window`, `max_output_tokens`, `budgeting_mode`, and an optional `notes` field.
+- **[Completeness]** Protected content detection logic not specified - flagged by: cursor-agent, gemini
+  - **Description**: cursor-agent notes the plan relies on `ContentItem.protected: bool` but doesn't specify how it's determined; gemini asks how "key findings" are marked as protected.
+  - **Recommended fix**: Define the logic or heuristic for setting `protected=True` (e.g., "Items explicitly referenced in a 'Findings' list", "Sources with high relevance scores (>0.9)", or "User-pinned items").
 
-- **[Architecture]** Map-Reduce Partial Failure Strategy - flagged by: gemini
-  - **Description**: The plan states "Provider fallback exhausted: warning if partial data exists" but doesn't explicitly define the behavior if *one* chunk of a multi-chunk map-reduce summary fails while others succeed.
-  - **Recommended fix**: Explicitly define a "Best Effort" strategy for map-reduce: if > X% of chunks succeed, assemble the partial summary and append a specific warning (e.g., `PARTIAL_SUMMARY_INCOMPLETE`) indicating which sections are missing.
+- **[Architecture]** Map-reduce budget & "Reduce" logic missing - flagged by: gemini
+  - **Description**: The plan mentions "Map-reduce" for summarization but doesn't define the "Reduce" strategy. If "Reduce" involves another LLM call to synthesize chunks, that call itself consumes budget and time.
+  - **Recommended fix**: Explicitly define the "Reduce" strategy (concatenation vs. synthesis). If synthesis, reserve a specific token buffer for the final combination prompt and include it in the `SummarizationResult` cost calculation.
 
-- **[Feasibility]** Dynamic `runtime_id` Detection - flagged by: gemini
-  - **Description**: The plan references `runtime_id` in `ModelContextRegistry.record_token_observation` for calibration tracking, but provides no mechanism for how this ID is established at runtime.
-  - **Recommended fix**: Add a mechanism to establish the `runtime_id` at startup (e.g., via config `runtime_id = "gemini-cli-v2"` or env var `FOUNDRY_RUNTIME_ID`), ensuring token calibration is bucketed correctly per environment.
+- **[Architecture]** Model limit defaults are hardcoded and may be stale - flagged by: cursor-agent
+  - **Description**: `DEFAULT_MODEL_LIMITS` is a static dict with values that will drift. There is no plan for updates or validation.
+  - **Recommended fix**: Add a versioned source-of-truth doc or fixture, plus a validation test ensuring each provider's limits can be overridden and are documented with a date/source.
 
-- **[Sequencing]** Tests/fixtures update ordering unclear - flagged by: cursor-agent
-  - **Description**: Phase 0 says contract and fixture updates are a prerequisite to implementation, but later phases also modify schema-bearing code and tests. The plan doesn't specify whether fixtures are updated once or iteratively.
-  - **Recommended fix**: Specify a sequence: update schema + docs + golden fixtures first, then implement runtime changes, then update tests and fixtures again if necessary.
+- **[Sequencing]** Contract and fixture gating lacks explicit test order - flagged by: cursor-agent
+  - **Description**: The gate says update contracts/fixtures before implementation, but no explicit order for tests or fixture regeneration is defined.
+  - **Recommended fix**: Add a sequencing step: update schema docs → update fixtures → run schema validation tests → implement logic → update integration tests.
 
-- **[Feasibility]** Summarization output schema + prompt coupling lacks validation strategy - flagged by: cursor-agent
-  - **Description**: JSON output schema is declared but no explicit parser/validator selection is listed (e.g., strict JSON, JSON5, or model-assisted).
-  - **Recommended fix**: Define a strict parser with a permissive fallback, and specify exact failure handling (e.g., one retry → downgrade → failure).
+- **[Risk]** Summarization fallback loop could amplify costs - flagged by: cursor-agent
+  - **Description**: The plan retries per provider and re-summarizes to tighter levels without a maximum cost budget or token/call limit.
+  - **Recommended fix**: Add a per-item summarization budget cap (max tokens or max calls) and record "summary_truncated_due_to_budget" warnings.
 
-- **[Risk]** Protected content handling is underspecified for mixed-content items - flagged by: cursor-agent
-  - **Description**: "Never drop protected content" is stated, but items may contain mixed protected/unprotected sections, and map-reduce chunk IDs are not clearly tied back to "protected" status.
-  - **Recommended fix**: Define protection at the chunk or sub-item level and ensure allocation respects those units.
-
-- **[Clarity]** Conflicting guidance on defaults vs omission - flagged by: cursor-agent
-  - **Description**: The plan says "always include empty defaults" but also says "omit meta.warnings when none." It also says "warning_details empty list when no warnings" but example shows warnings in data.
-  - **Recommended fix**: Choose a single approach and document it with explicit required/optional flags per field.
+- **[Completeness]** No explicit mapping for how `content_fidelity` merges across multiple phases - flagged by: cursor-agent
+  - **Description**: The plan says "latest phase overwrites same-phase entry," but doesn't define how the aggregate `content_fidelity` is scoped per phase or per iteration.
+  - **Recommended fix**: Add explicit structure: `content_fidelity[item_id].phases[phase][iteration]` or store `last_updated` + `iteration` and define a merge rule.
 
 ## Questions for Author
 Clarifications needed (common questions across models):
 
-- **[Clarity]** How should `warning_details` be structured in the response contract? - flagged by: cursor-agent
-  - **Context**: The plan implies `warning_details` in `data` and `meta.warnings` in `meta`, but schema doesn't show location.
-  - **Needed**: Exact schema path and required/optional status for `warning_details`.
+- **[Clarity]** How are phase budgets split between items and the system prompt payload? - flagged by: cursor-agent
+  - **Context**: The budgeting logic counts content items but does not clearly include system prompt and tool schema payloads.
+  - **Needed**: Explicit accounting rules for fixed overhead vs dynamic message overhead.
 
-- **[Architecture]** What is the canonical source of truth for warnings? - flagged by: cursor-agent
-  - **Context**: Warnings appear in per-item fidelity, `data.warning_details`, and `meta.warnings`.
-  - **Needed**: Precedence and dedupe rules, plus which layer drives tests.
+- **[Architecture]** How does `content_fidelity` handle merged or derived items? - flagged by: cursor-agent
+  - **Context**: Summaries produced from multiple sources need fidelity tied to multiple `source_ids`.
+  - **Needed**: A mapping strategy for summaries that blend sources (e.g., one summary with multiple `source_ids`).
 
-- **[Feasibility]** Tokenizer Availability - flagged by: gemini
-  - **Context**: The plan mentions using "provider-native token counts -> tokenizer library".
-  - **Needed**: Does `foundry-mcp` already include heavy tokenizer libraries (like `tiktoken` or `tokenizers`)? If not, adding them increases the package size significantly. Are we assuming these are present or adding them as dependencies?
+- **[Feasibility]** What is the exact "preflight_count" API and where is it implemented? - flagged by: cursor-agent
+  - **Context**: Several phases depend on `preflight_count(payload, provider_id)` but no signature or integration location is specified.
+  - **Needed**: Define interface, return values, and which layer owns it.
 
-- **[Completeness]** How does `DeepResearchState` versioning interact with persisted telemetry? - flagged by: cursor-agent
-  - **Context**: Migrations are defined for fidelity fields, but telemetry fields like token observations are not detailed.
-  - **Needed**: Migration steps and defaulting behavior for telemetry.
+- **[Risk]** How are warnings deduplicated across phases? - flagged by: cursor-agent
+  - **Context**: The plan can emit warnings at per-item, per-phase, and response-level.
+  - **Needed**: Rule for deduplication/aggregation to avoid noisy `meta.warnings`.
 
-- **[Feasibility]** What is the exact parser/validator used for structured summarization output? - flagged by: cursor-agent
-  - **Context**: The plan assumes structured JSON but doesn't specify parsing and failure handling rules.
-  - **Needed**: Parser choice, strictness, and retry/degrade sequence.
+- **[Completeness]** Will token management be applied to all deep research tools or only the main workflow? - flagged by: cursor-agent
+  - **Context**: The contract matrix focuses on `deep-research-report`.
+  - **Needed**: Clarify whether status/list endpoints expose new fidelity metadata or remain unchanged, and if any other tools will include warnings.
 
-- **[Risk]** What is the behavior when archive JSON is corrupt or partial? - flagged by: cursor-agent
-  - **Context**: Cleanup and retrieve assume valid JSON.
-  - **Needed**: Corruption handling policy (skip with warning, delete, or quarantine).
+- **[Sequencing]** Migration trigger mechanism - flagged by: gemini
+  - **Context**: The plan mentions "Run migrations on state load."
+  - **Needed**: Clarification on where this hook exists. Is there an existing `DeepResearchState.load()` method that intercepts the raw JSON before validation? If not, `pydantic` validation might fail on schema version mismatches before migration logic runs.
 
 ## Design Strengths
 What the spec does well (areas of agreement):
 
-- **[Architecture]** Strong separation of concerns across phases and modules - noted by: cursor-agent
-  - **Why**: Token management, summarization, allocation, and integration are isolated, which reduces coupling and simplifies testing.
+- **[Architecture]** Simplification / YAGNI approach - noted by: cursor-agent, gemini
+  - **Why**: Both reviewers praise the choice of static dictionaries (`DEFAULT_MODEL_LIMITS`) and manual overrides instead of complex dynamic calibration. It makes the system predictable and easier to debug for a CLI tool.
 
-- **[Feasibility]** Calibration Strategy - noted by: cursor-agent, gemini
-  - **Why**: The use of an Exponential Moving Average (EMA) to calibrate token estimation against observed usage is a sophisticated and robust way to handle the inherent fuzziness of token counting without requiring perfect tokenizers for every model.
+- **[Architecture]** Proactive budgeting and provider-aware limits - noted by: cursor-agent
+  - **Why**: It addresses known overflow failure modes and aligns to real-world provider differences.
 
-- **[Completeness]** Fidelity Tracking - noted by: cursor-agent, gemini
-  - **Why**: Explicitly tracking `dropped_content_ids` and `content_fidelity` per phase is excellent. It ensures the system is transparent about what it "forgot" or compressed, which is critical for trust in AI research tools.
+- **[Clarity]** Fidelity & warning taxonomy - noted by: gemini
+  - **Why**: The breakdown of warning codes (`CONTENT_TRUNCATED`, `PROTECTED_OVERFLOW`) and the explicit `content_fidelity` schema provide excellent visibility into *what* the system did to the user's data, addressing the "silent failure" problem effectively.
 
-- **[Completeness]** Good contract and fixture awareness - noted by: cursor-agent
-  - **Why**: The plan explicitly ties schema changes to fixtures, docs, and changelog, aligning with spec-driven development.
+- **[Design]** Combined vs. input-only budgeting - noted by: gemini
+  - **Why**: Distinguishing between models that share input/output limits (OpenAI/Anthropic) and those with separate buckets (Gemini) is a crucial detail that prevents "budget math" errors.
 
-- **[Risk]** Thoughtful degradation strategy - noted by: cursor-agent
-  - **Why**: The summarization → headline → truncate → drop chain with guardrails provides predictable behavior under pressure.
+- **[Sequencing]** Contract/fixtures gate before implementation - noted by: cursor-agent
+  - **Why**: It reduces integration risk and ensures schema discipline.
 
-- **[Testing]** Integration Approach - noted by: gemini
-  - **Why**: The strategy of running integration tests with "artificially low model limits" to force degradation paths is a smart, high-leverage way to verify complex fallback logic without spending massive amounts of tokens.
+- **[Risk]** Graceful degradation hierarchy is well structured - noted by: cursor-agent
+  - **Why**: Summarize → truncate → drop with warnings makes failure modes observable and recoverable.
 
-- **[Clarity]** Detailed configuration surface - noted by: cursor-agent
-  - **Why**: Config options are enumerated with sensible defaults and clear intent, making the system tunable without code changes.
+- **[Completeness]** Coverage of tests is thorough - noted by: cursor-agent
+  - **Why**: The verification checklist touches unit, integration, and schema propagation paths.
 
 ## Points of Agreement
-- Both reviewers praise the calibration strategy using EMA for token estimation drift correction
-- Both reviewers praise the explicit fidelity tracking (`dropped_content_ids`, `content_fidelity`)
-- Both reviewers identify concerns about warning location/structure (though cursor-agent is more detailed)
-- Both reviewers identify concerns about model limits configuration (cursor-agent focuses on validation/safety, gemini on JSON vs Python)
-- Both reviewers appreciate the thoughtful degradation strategy and integration testing approach
-- Both reviewers note the specification is comprehensive and well-structured overall
+
+- **Runtime overhead configuration is risky**: Both reviewers identify that user-configured `runtime_overhead` values are error-prone and need validation or calibration mechanisms.
+- **Protected content detection needs specification**: Both reviewers note that the `protected` flag logic is undefined and needs explicit rules.
+- **YAGNI approach is appropriate**: Both reviewers praise the simplification choices and static configuration approach.
+- **Token counting strategy needs refinement**: Both reviewers identify issues with the token counting approach, though from different angles (cursor-agent focuses on provider availability, gemini focuses on network dependency).
+- **Fidelity tracking is valuable**: Both reviewers acknowledge the value of explicit fidelity metadata and warning taxonomy.
 
 ## Points of Disagreement
-- **Focus areas**: cursor-agent provides more granular feedback on contract consistency, schema completeness, and data integrity (6 critical blockers, 6 major suggestions), while gemini focuses more on runtime architecture and configuration clarity (2 critical blockers, 2 major suggestions). This is not a true disagreement but rather complementary perspectives.
 
-- **Criticality assessment**: cursor-agent flags more issues as "critical blockers" (4 vs 2), suggesting a more conservative approach to contract/schema issues. gemini prioritizes runtime correctness (overhead inference) and configuration clarity as the most critical issues.
+- **Token counting priority**: 
+  - **cursor-agent** focuses on the lack of a provider capability matrix and explicit fallback behavior per provider.
+  - **gemini** focuses on the performance risk of network-dependent token counting APIs and recommends prioritizing local tokenizers.
+  - **Assessment**: These are complementary concerns. The spec should address both: define provider capabilities AND prioritize local tokenizers to avoid network calls in hot paths.
 
-- **No fundamental disagreements**: The reviews don't contradict each other on core design decisions. They identify different aspects of the same underlying concerns (e.g., both worry about model limits, but cursor-agent focuses on validation/safety while gemini focuses on JSON vs Python representation).
+- **Critical blocker prioritization**:
+  - **cursor-agent** identifies 3 critical blockers (warning schema, provider token counting, archive privacy).
+  - **gemini** identifies 1 critical blocker (network-dependent token estimation).
+  - **Assessment**: All identified blockers are valid. The warning schema inconsistency and token counting strategy (both network dependency and provider availability) should be addressed before implementation. Archive privacy is a valid security concern but may be acceptable as a "minimal safety gate" rather than full governance.
 
 ## Synthesis Notes
-- **Overall themes**: The reviews reveal three major themes:
-  1. **Contract consistency**: Multiple warning fields and response schema locations need explicit definition and precedence rules
-  2. **Runtime architecture**: Overhead calculation and model limits configuration need clearer separation between runtime environment and model provider
-  3. **Data integrity**: Archive implementation, telemetry persistence, and state migrations need more robust error handling and schema definitions
 
-- **Actionable next steps**:
-  1. **Immediate**: Resolve the runtime overhead vs provider ID confusion (gemini's critical blocker) - this affects core budget calculations
-  2. **Immediate**: Clarify warning field locations and presence rules (cursor-agent's critical blocker) - this affects contract compliance
-  3. **High priority**: Define canonical warning generation pipeline and deduplication rules
-  4. **High priority**: Specify `model_limits.json` schema and clarify JSON vs Python constants relationship
-  5. **High priority**: Add archive corruption handling and atomic write patterns
-  6. **Medium priority**: Define `TokenUsageObservation` schema and telemetry migration behavior
-  7. **Medium priority**: Specify summarization parser/validator and partial failure strategy for map-reduce
-  8. **Medium priority**: Clarify protected content handling at chunk/sub-item level
-  9. **Low priority**: Address minor suggestions around priority weights, safety margins, and cache invalidation
+### Overall Themes
 
-- **Review quality**: Both reviews are thorough and identify legitimate issues. cursor-agent's review is more exhaustive on contract/schema details, while gemini's review is more focused on runtime correctness. Together they provide comprehensive coverage of potential issues.
+1. **Token Counting Strategy Needs Clarification**: Both reviewers identify issues with token counting, but from different perspectives. The spec should:
+   - Prioritize local tokenizers over network APIs for performance
+   - Define a provider capability matrix for fallback behavior
+   - Specify the exact `preflight_count` API signature and location
+
+2. **Configuration Validation is Critical**: The `runtime_overhead` configuration is flagged by both reviewers as high-risk. The spec should add:
+   - Validation bounds (min/max)
+   - Warning thresholds
+   - Optional calibration mechanism
+
+3. **Protected Content Logic Must Be Defined**: Both reviewers note that `protected` flag determination is unspecified. The spec should explicitly define:
+   - How items are marked as protected
+   - What criteria determine protection
+   - How protection interacts with summarization/dropping logic
+
+4. **Warning Schema Consistency**: cursor-agent identifies a critical inconsistency between `meta.warnings` (omitted when empty) and `data.warning_details` (empty list when no warnings). This needs resolution before implementation.
+
+5. **Map-Reduce Budget Accounting**: gemini identifies that the "Reduce" step budget is not accounted for. If synthesis is used, this needs explicit token reservation.
+
+### Actionable Next Steps
+
+1. **Immediate (Before Implementation)**:
+   - Resolve warning schema inconsistency (always include both with empty defaults OR document explicit omission rules)
+   - Define token counting priority: Local Tokenizer > Heuristic > Provider API (only for infrequent pre-flight)
+   - Add provider capability matrix for token counting
+   - Specify `preflight_count` API signature and implementation location
+   - Define protected content detection logic
+
+2. **High Priority (During Implementation)**:
+   - Add `runtime_overhead` validation (bounds + warnings)
+   - Implement map-reduce budget accounting for "Reduce" step
+   - Add content fidelity merge rules for multi-phase/iteration scenarios
+   - Define warning deduplication strategy across phases
+   - Add minimal archive privacy gate (per-item `archive_allowed` or `sensitive` check)
+
+3. **Medium Priority (Before Release)**:
+   - Add versioned source-of-truth for model limits
+   - Define explicit test sequencing for contract/fixture updates
+   - Add summarization budget caps to prevent cost amplification
+   - Clarify migration trigger mechanism (where `DeepResearchState.load()` intercepts)
+   - Document which tools expose fidelity metadata (beyond `deep-research-report`)
+
+4. **Documentation**:
+   - Clarify phase budget split between items and system prompt payload
+   - Document how `content_fidelity` handles merged/derived items
+   - Specify archive permissions enforcement (`os.chmod(path, 0o600)`)
+   - Define chunk ID format for `content_fidelity` keys
+
+### Consensus Areas to Preserve
+
+- Keep the YAGNI simplification approach (static config, manual overrides)
+- Maintain the graceful degradation hierarchy (summarize → truncate → drop)
+- Preserve the contract/fixtures gate before implementation
+- Continue with provider-aware budgeting (combined vs input-only)
+- Keep the comprehensive test coverage plan

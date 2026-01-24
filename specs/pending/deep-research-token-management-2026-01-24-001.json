@@ -1,0 +1,1537 @@
+{
+  "spec_id": "deep-research-token-management-2026-01-24-001",
+  "title": "deep-research-token-management",
+  "generated": "2026-01-24T23:08:25.813920Z",
+  "last_updated": "2026-01-24T23:11:17.684972Z",
+  "metadata": {
+    "description": "Replaces reactive context management with proactive token budgeting. Adds LLM-based summarization with 4 compression levels, priority-based content allocation, graceful degradation with configurable guardrails, and optional content archival. Implements fidelity tracking in response schema for transparency about what content was compressed or dropped.",
+    "mission": "Transform deep research to use proactive token management with intelligent summarization, provider-aware budgeting, and graceful degradation",
+    "objectives": [],
+    "complexity": "low",
+    "estimated_hours": 0,
+    "assumptions": [
+      "Fixed 15% safety margin instead of EMA-based calibration (YAGNI)",
+      "User-configured runtime_overhead instead of inferred CLI overhead",
+      "Python dict (DEFAULT_MODEL_LIMITS) as single source of truth for model limits",
+      "Content archive security governance (encryption/redaction/retention) is out of scope"
+    ],
+    "owner": "",
+    "category": "implementation",
+    "template": "empty"
+  },
+  "progress_percentage": 0,
+  "status": "pending",
+  "current_phase": null,
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "deep-research-token-management",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5",
+        "phase-6",
+        "phase-7",
+        "phase-8"
+      ],
+      "total_tasks": 53,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Contract + State Versioning",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "verify-1-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Define response schema changes for fidelity metadata, warning semantics, and state migrations for backwards compatibility"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Update response schema documentation",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add content_fidelity_schema_version, content_fidelity, dropped_content_ids, content_archive_hashes, and warning_details fields to response-v2 schema",
+        "file_path": "dev_docs/codebase_standards/mcp_response_schema.md",
+        "acceptance_criteria": [
+          "Schema fragments documented with full JSON schema",
+          "Field placement clarified (data vs meta)",
+          "Required/optional status defined per field"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Document warning taxonomy",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add warning codes: CONTENT_TRUNCATED, CONTENT_DROPPED, PRIORITY_SUMMARIZED, SUMMARY_PROVIDER_FAILED, TOKEN_BUDGET_FLOORED, LIMITS_DEFAULTED, ARCHIVE_WRITE_FAILED, PROTECTED_OVERFLOW, STATE_MIGRATION_RECOVERED, TOKEN_COUNT_ESTIMATE_USED",
+        "file_path": "dev_docs/mcp_best_practices/07-error-semantics.md",
+        "acceptance_criteria": [
+          "Warning taxonomy table with codes and descriptions",
+          "Per-phase warning matrix documented",
+          "Warning/error decision table included"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Create state migration module",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement state versioning with migrations for DeepResearchState. v0\u2192v1 migration adds empty content_fidelity, dropped_content_ids. Include recovery with STATE_MIGRATION_RECOVERED warning on failure.",
+        "file_path": "src/foundry_mcp/core/research/state_migrations.py",
+        "acceptance_criteria": [
+          "Migration function for v0\u2192v1",
+          "Recovery behavior with warning on migration failure",
+          "Cross-version load test"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Update golden fixtures",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add fidelity fields with empty defaults to deep-research-report fixtures. Ensure fields present even when token_management_enabled=false.",
+        "file_path": "tests/fixtures/golden/deep-research-report.json",
+        "acceptance_criteria": [
+          "Fixtures include content_fidelity_schema_version",
+          "Fixtures include empty content_fidelity, dropped_content_ids",
+          "warning_details as empty list when no warnings"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Verify contract changes",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Review schema documentation, warning taxonomy, and fixtures for consistency",
+        "verification_type": "manual"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Token Management Foundation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4",
+        "task-2-5",
+        "verify-2-1"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Create centralized token utilities with model limits, budget calculations, and token estimation"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Create token management module",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement ModelContextLimits dataclass, DEFAULT_MODEL_LIMITS dict with provider entries (claude, gemini, codex, cursor-agent, opencode), BudgetingMode enum (input_only, combined), get_model_limits() and get_effective_context() functions",
+        "file_path": "src/foundry_mcp/core/research/token_management.py",
+        "acceptance_criteria": [
+          "ModelContextLimits with context_window, max_output_tokens, budgeting_mode, output_reserved",
+          "DEFAULT_MODEL_LIMITS covers claude:opus/sonnet/haiku, gemini:flash/pro, codex:gpt-5.2-codex/gpt-4.1/o3/o4-mini",
+          "Conservative _default fallback (128K context, 8K output)",
+          "get_model_limits resolves config overrides \u2192 defaults \u2192 fallback"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Implement TokenBudget class",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add TokenBudget dataclass with total_budget, reserved_output, safety_margin, used_tokens. Implement effective_budget(), can_fit(), allocate() methods.",
+        "file_path": "src/foundry_mcp/core/research/token_management.py",
+        "acceptance_criteria": [
+          "effective_budget applies safety margin",
+          "can_fit checks against remaining budget",
+          "allocate tracks used tokens and returns success/failure"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "Implement token estimation",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add estimate_tokens() function with priority: provider-native \u2192 tiktoken \u2192 char/4 heuristic. Cache by content hash + provider. Emit TOKEN_COUNT_ESTIMATE_USED warning when using heuristic.",
+        "file_path": "src/foundry_mcp/core/research/token_management.py",
+        "acceptance_criteria": [
+          "Falls back gracefully through estimation methods",
+          "Caches results by content hash + provider",
+          "Emits warning on heuristic fallback"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "Add preflight validation",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add preflight_count() function to validate payload size before provider dispatch. Hard-fail only after final-fit adjustments fail.",
+        "file_path": "src/foundry_mcp/core/research/token_management.py",
+        "acceptance_criteria": [
+          "Validates payload against effective budget",
+          "Returns validation result with token counts",
+          "Supports final-fit revalidation"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-5": {
+      "type": "task",
+      "title": "Create token management tests",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Unit tests for model limits resolution, budget math with safety margin, token estimation fallbacks, preflight validation",
+        "file_path": "tests/core/research/test_token_management.py",
+        "acceptance_criteria": [
+          "Tests get_model_limits resolution order",
+          "Tests budget allocation with safety margin",
+          "Tests estimation fallback chain",
+          "Tests preflight validation scenarios"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Verify token management",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run token management unit tests",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Summarization Layer",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3",
+        "task-3-4",
+        "task-3-5",
+        "task-3-6",
+        "task-3-7",
+        "verify-3-1"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "LLM-based content compression with configurable provider, retry/fallback, and caching"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-4"
+        ],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Create summarization module",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement SummarizationLevel enum (RAW, CONDENSED, KEY_POINTS, HEADLINE), ContentSummarizer class with provider chain from config, retry logic (MAX_RETRIES=2, RETRY_DELAY=3.0)",
+        "file_path": "src/foundry_mcp/core/research/summarization.py",
+        "acceptance_criteria": [
+          "SummarizationLevel enum with 4 levels",
+          "ContentSummarizer uses summarization_provider as primary",
+          "Falls back through summarization_providers list",
+          "Retry 2 times with 3s delay per provider"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Implement summarize method",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add async summarize() method with chunking/map-reduce for large content, post-check output length, step down to more aggressive levels if needed, truncate fallback as last resort",
+        "file_path": "src/foundry_mcp/core/research/summarization.py",
+        "acceptance_criteria": [
+          "Chunks content exceeding summarizer model context",
+          "Uses map-reduce for multi-chunk content",
+          "Re-summarizes at tighter levels when over budget",
+          "Truncates with warning as last resort"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "Implement batch summarization",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add batch_summarize() method for processing multiple items against a target budget",
+        "file_path": "src/foundry_mcp/core/research/summarization.py",
+        "acceptance_criteria": [
+          "Processes multiple items efficiently",
+          "Respects target budget across batch",
+          "Returns list of SummarizationResult"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-4": {
+      "type": "task",
+      "title": "Create summarization prompt",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Versioned summarization prompt template that treats content as untrusted, ignores embedded instructions, preserves source provenance",
+        "file_path": "src/foundry_mcp/core/research/prompts/summarization_v1.txt",
+        "acceptance_criteria": [
+          "Prompt explicitly treats content as untrusted",
+          "Ignores embedded instructions in content",
+          "Preserves source_id for provenance",
+          "Supports all summarization levels"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-5": {
+      "type": "task",
+      "title": "Implement SummarizationResult schema",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add SummarizationResult dataclass with level, summary, key_points, source_ids, token_count, provider_id, warnings. Validate per-level requirements.",
+        "file_path": "src/foundry_mcp/core/research/summarization.py",
+        "acceptance_criteria": [
+          "SummarizationResult with all fields",
+          "headline level requires summary only",
+          "key_points level requires summary + key_points",
+          "Validation on malformed output with retry"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-6": {
+      "type": "task",
+      "title": "Implement summary caching",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add SummaryCache with cache keys including content hash + context hash + level + provider. Honor summarization_cache_enabled config.",
+        "file_path": "src/foundry_mcp/core/research/summarization.py",
+        "acceptance_criteria": [
+          "Cache keys include all relevant factors",
+          "Cache disabled when summarization_cache_enabled=false",
+          "Cache invalidates on context/provider change"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-7": {
+      "type": "task",
+      "title": "Create summarization tests",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Tests for chunking/map-reduce, re-summarization to tighter levels, truncation fallback, schema validation, cache hit/miss",
+        "file_path": "tests/core/research/test_summarization.py",
+        "acceptance_criteria": [
+          "Tests chunking for large content",
+          "Tests level stepping (condensed\u2192key_points\u2192headline)",
+          "Tests truncation fallback behavior",
+          "Tests cache key factors"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Verify summarization",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run summarization unit tests",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Context Budget Manager",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1",
+        "task-4-2",
+        "task-4-3",
+        "task-4-4",
+        "task-4-5",
+        "verify-4-1"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Priority-based budget allocation with content prioritization and allocation strategies"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-5"
+        ],
+        "blocked_by": [
+          "phase-3"
+        ],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Create context budget module",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement ContextBudgetManager class with allocate_budget() method that orchestrates token allocation by priority",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "ContextBudgetManager class with allocate_budget method",
+          "Takes items, budget, and strategy as parameters",
+          "Returns AllocationResult with items, tokens, fidelity, warnings, dropped_ids"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "Implement priority scoring",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add compute_priority() function with scoring: source quality (40%), finding confidence (30%), recency (15%), relevance (15%). Priority 0.0-1.0 scale.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Priority score between 0.0 and 1.0",
+          "Source quality: HIGH=1.0, MEDIUM=0.7, LOW=0.4",
+          "Finding confidence: CONFIRMED=1.0, HIGH=0.9, etc.",
+          "Recency and relevance factors included"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-3": {
+      "type": "task",
+      "title": "Implement ContentItem model",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add ContentItem dataclass with content, token_count, priority, source_id, protected flag. Protected items must not be dropped.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "ContentItem with all required fields",
+          "protected flag for citations/key findings",
+          "Stable id for fidelity tracking"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-4": {
+      "type": "task",
+      "title": "Implement allocation strategy",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement allocation algorithm: sort by priority, allocate highest priority at full fidelity, summarize lower-priority items to fit budget, apply graceful degradation",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Sorts items by priority (highest first)",
+          "Allocates full fidelity to high-priority items",
+          "Summarizes lower-priority items to fit",
+          "Tracks fidelity metadata per item"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-5": {
+      "type": "task",
+      "title": "Create context budget tests",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Tests for priority scoring, allocation with various budgets, protected content handling, fidelity metadata accuracy",
+        "file_path": "tests/core/research/test_context_budget.py",
+        "acceptance_criteria": [
+          "Tests priority computation",
+          "Tests allocation under tight budget",
+          "Tests protected content preservation",
+          "Tests fidelity metadata accuracy"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Verify context budget",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run context budget unit tests",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Deep Research Integration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3",
+        "task-5-4",
+        "task-5-5",
+        "task-5-6",
+        "verify-5-1"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Integrate token management into analysis, synthesis, and refinement phases of deep research workflow"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-6"
+        ],
+        "blocked_by": [
+          "phase-4"
+        ],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "Integrate budget in analysis phase",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Modify _execute_analysis_async to compute phase budget (80% of effective context), convert sources to prioritized ContentItems, allocate budget with summarization, track fidelity in state",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Phase budget = effective_context * 0.80",
+          "Sources converted to ContentItems with priority",
+          "Budget allocation with summarization as needed",
+          "state.content_fidelity updated with allocation metadata"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "Integrate budget in synthesis phase",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Modify synthesis phase to prioritize findings (typically small, full fidelity), compress source references more aggressively, apply 85% budget percentage",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Phase budget = effective_context * 0.85",
+          "Findings get priority (full fidelity)",
+          "Source references compressed more aggressively",
+          "state.content_fidelity updated"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "Integrate budget in refinement phase",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Modify refinement phase to summarize previous iteration context to prevent unbounded growth",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Previous iteration context summarized",
+          "Prevents unbounded context growth",
+          "Fidelity tracked for summarized context"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-4": {
+      "type": "task",
+      "title": "Add final-fit validation",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Before provider dispatch, assemble full payload, re-count tokens, reallocate/summarize if needed. Cap final-fit loop to 2 iterations.",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Final-fit pass before provider dispatch",
+          "Re-counts tokens on assembled payload",
+          "Reallocates/summarizes if over budget",
+          "Loop capped to 2 iterations"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-5": {
+      "type": "task",
+      "title": "Propagate metadata to response",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Update deep-research-report to include content_fidelity, dropped_content_ids, content_archive_hashes in data payload. Route warnings through success_response to meta.warnings.",
+        "file_path": "src/foundry_mcp/tools/unified/research.py",
+        "acceptance_criteria": [
+          "data includes content_fidelity_schema_version",
+          "data includes content_fidelity, dropped_content_ids",
+          "data includes warning_details",
+          "meta.warnings populated via success_response"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-6": {
+      "type": "task",
+      "title": "Create integration tests",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Integration tests running deep research with artificially low model limits, verifying graceful degradation across analysis\u2192synthesis\u2192refinement, checking min item guardrails",
+        "file_path": "tests/core/research/test_deep_research_token_integration.py",
+        "acceptance_criteria": [
+          "Tests with artificially low model limits",
+          "Verifies graceful degradation",
+          "Checks min 3 items per phase guardrail",
+          "Validates fidelity metadata accuracy"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Verify deep research integration",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run integration tests for deep research token management",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-6": {
+      "type": "phase",
+      "title": "Graceful Degradation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-6-1",
+        "task-6-2",
+        "task-6-3",
+        "task-6-4",
+        "task-6-5",
+        "verify-6-1"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Centralized fallback chain with priority guardrails and protected content handling"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-7"
+        ],
+        "blocked_by": [
+          "phase-5"
+        ],
+        "depends": []
+      }
+    },
+    "task-6-1": {
+      "type": "task",
+      "title": "Implement degradation pipeline",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add centralized fallback chain: summarize to KEY_POINTS \u2192 summarize to HEADLINE \u2192 truncate with warnings \u2192 drop lowest priority (if allow_content_dropping). Min 3 items per phase.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Fallback chain: KEY_POINTS \u2192 HEADLINE \u2192 truncate \u2192 drop",
+          "Truncate fallback always enabled (hardcoded)",
+          "Drop only when allow_content_dropping=true",
+          "Min 3 items per phase enforced"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-2": {
+      "type": "task",
+      "title": "Implement priority guardrails",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Preserve minimum fidelity (condensed) for top-5 priority items. Emit distinct warning codes for priority items summarized vs low-priority drops.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Top-5 priority items never below condensed",
+          "PRIORITY_SUMMARIZED warning for priority item degradation",
+          "CONTENT_DROPPED warning for low-priority drops",
+          "Never drop protected content"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-3": {
+      "type": "task",
+      "title": "Handle protected content overflow",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "If protected content alone exceeds budget, fallback to HEADLINE and emit PROTECTED_OVERFLOW warning. Fail only if still over budget after headline.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Protected content summarized to headline as last resort",
+          "PROTECTED_OVERFLOW warning emitted",
+          "Error only when headline still exceeds budget",
+          "Error includes remediation guidance"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-4": {
+      "type": "task",
+      "title": "Handle chunk-level failures",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Retry failed chunks with more aggressive summarization level. Preserve successful chunk summaries. Emit warnings with item_id + chunk_id.",
+        "file_path": "src/foundry_mcp/core/research/context_budget.py",
+        "acceptance_criteria": [
+          "Failed chunks retried at tighter level",
+          "Successful chunks preserved",
+          "Warnings include item_id and chunk_id",
+          "Partial results used when possible"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-5": {
+      "type": "task",
+      "title": "Create degradation tests",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Tests for fallback chain, priority guardrails, protected content handling, chunk-level failure recovery",
+        "file_path": "tests/core/research/test_graceful_degradation.py",
+        "acceptance_criteria": [
+          "Tests full fallback chain",
+          "Tests priority guardrails (top-5)",
+          "Tests protected content never dropped",
+          "Tests chunk failure recovery"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-6-1": {
+      "type": "verify",
+      "title": "Verify graceful degradation",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run degradation unit tests",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-7": {
+      "type": "phase",
+      "title": "Fidelity Tracking & Content Archive",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-7-1",
+        "task-7-2",
+        "task-7-3",
+        "task-7-4",
+        "task-7-5",
+        "task-7-6",
+        "verify-7-1"
+      ],
+      "total_tasks": 7,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "State fields for fidelity tracking and optional file-based content archive with TTL cleanup"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-8"
+        ],
+        "blocked_by": [
+          "phase-6"
+        ],
+        "depends": []
+      }
+    },
+    "task-7-1": {
+      "type": "task",
+      "title": "Add fidelity fields to state",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add content_fidelity (Dict[str, ContentFidelityRecord]) and dropped_content_ids (List[str]) to DeepResearchState. Structure: content_fidelity[item_id].phases[phase] = {level, reason, warnings, timestamp}",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "content_fidelity field added to DeepResearchState",
+          "dropped_content_ids field added",
+          "ContentFidelityRecord with phases dict",
+          "Per-phase record with level, reason, warnings, timestamp"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-2": {
+      "type": "task",
+      "title": "Implement fidelity merge rules",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Latest phase overwrites same-phase entry, preserve prior phases for history. Use stable ContentItem.id (source IDs, append #fragment-N for chunked).",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "Latest phase overwrites same-phase entry",
+          "Prior phases preserved for history",
+          "Stable ID with #fragment-N for chunks"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-3": {
+      "type": "task",
+      "title": "Create content archive module",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement ContentArchive class with archive(), retrieve(), cleanup_expired() methods. File-based storage with JSON records, private permissions, TTL cleanup.",
+        "file_path": "src/foundry_mcp/core/research/content_archive.py",
+        "acceptance_criteria": [
+          "ContentArchive with archive/retrieve/cleanup methods",
+          "Stores content with SHA256 hash as filename",
+          "Records include content, metadata, archived_at",
+          "Private permissions on storage directory"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-4": {
+      "type": "task",
+      "title": "Implement archive guardrails",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Disabled by default. On write failure or read-only, skip archival and emit ARCHIVE_WRITE_FAILED warning. Startup capability check, cache archive-disabled state.",
+        "file_path": "src/foundry_mcp/core/research/content_archive.py",
+        "acceptance_criteria": [
+          "Disabled by default (content_archive_enabled)",
+          "ARCHIVE_WRITE_FAILED warning on failure",
+          "Startup check for writable path",
+          "Cache archive-disabled state for session"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-5": {
+      "type": "task",
+      "title": "Implement atomic writes",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Write to temp file + rename for atomicity. Handle JSON decode errors with skip-on-corruption policy. Never block workflow on archive failures.",
+        "file_path": "src/foundry_mcp/core/research/content_archive.py",
+        "acceptance_criteria": [
+          "Atomic writes via temp + rename",
+          "JSON decode error handling with skip",
+          "Never blocks workflow",
+          "Logs corruption with warning"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-6": {
+      "type": "task",
+      "title": "Create archive tests",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Tests for archive storage, retrieval, TTL cleanup, private permissions, corrupted JSON handling, read-only filesystem handling",
+        "file_path": "tests/core/research/test_content_archive.py",
+        "acceptance_criteria": [
+          "Tests archive/retrieve cycle",
+          "Tests TTL cleanup",
+          "Tests private permissions",
+          "Tests corrupted JSON handling",
+          "Tests read-only filesystem graceful handling"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-7-1": {
+      "type": "verify",
+      "title": "Verify fidelity and archive",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run fidelity and archive unit tests",
+        "verification_type": "run-tests"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-8": {
+      "type": "phase",
+      "title": "Configuration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-8-1",
+        "task-8-2",
+        "task-8-3",
+        "task-8-4",
+        "task-8-5",
+        "task-8-6",
+        "verify-8-1",
+        "verify-8-2"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Add token management configuration options to ResearchConfig and sample TOML"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-7"
+        ],
+        "depends": []
+      }
+    },
+    "task-8-1": {
+      "type": "task",
+      "title": "Add config options to ResearchConfig",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add ~12 token management options: token_management_enabled, token_safety_margin, runtime_overhead, model_context_overrides, summarization_provider, summarization_providers, summarization_timeout, summarization_cache_enabled, allow_content_dropping, content_archive_enabled, content_archive_ttl_hours, research_archive_dir",
+        "file_path": "src/foundry_mcp/config.py",
+        "acceptance_criteria": [
+          "token_management_enabled=True default",
+          "token_safety_margin=0.15 default",
+          "runtime_overhead=60000 default (Claude Code)",
+          "model_context_overrides as Dict[str, Dict[str, Any]]",
+          "summarization_provider and summarization_providers",
+          "content_archive_enabled=False default"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-2": {
+      "type": "task",
+      "title": "Add TOML configuration section",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add Token Management section with all options documented, including comments explaining runtime_overhead values for different CLIs",
+        "file_path": "samples/foundry-mcp.toml",
+        "acceptance_criteria": [
+          "Token Management section with all options",
+          "Comments explaining each option",
+          "runtime_overhead values for Claude Code, Gemini CLI, Cursor, Codex, OpenCode",
+          "Content Archive section with options"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-3": {
+      "type": "task",
+      "title": "Update deep research workflow docs",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Document new token management flow, fidelity metadata, configuration options, and troubleshooting guidance",
+        "file_path": "docs/concepts/deep_research_workflow.md",
+        "acceptance_criteria": [
+          "Token management flow documented",
+          "Fidelity metadata explained",
+          "Configuration options listed",
+          "Troubleshooting section for common issues"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-4": {
+      "type": "task",
+      "title": "Update CLI output docs",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Align CLI warning output with response schema warning codes and formats",
+        "file_path": "dev_docs/codebase_standards/cli-output.md",
+        "acceptance_criteria": [
+          "CLI output aligns with meta.warnings format",
+          "Warning codes documented",
+          "Example CLI output included"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-5": {
+      "type": "task",
+      "title": "Update responses helper",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Surface meta.warnings consistently for degraded outputs",
+        "file_path": "src/foundry_mcp/core/responses.py",
+        "acceptance_criteria": [
+          "success_response supports warnings parameter",
+          "Warnings appear in meta.warnings",
+          "Empty warnings list omitted from response"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-6": {
+      "type": "task",
+      "title": "Update CHANGELOG",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Record response schema additions for fidelity fields and warning taxonomy",
+        "file_path": "CHANGELOG.md",
+        "acceptance_criteria": [
+          "New section for token management feature",
+          "Response schema changes documented",
+          "Breaking changes noted (if any)"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-8-1": {
+      "type": "verify",
+      "title": "Verify configuration",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Manually verify config loading and TOML parsing with new options",
+        "verification_type": "manual"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-8-2": {
+      "type": "verify",
+      "title": "Final end-to-end verification",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Run full deep research with token_management_enabled=true and verify report quality, fidelity metadata, and warnings",
+        "verification_type": "manual"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": []
+}
