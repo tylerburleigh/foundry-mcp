@@ -100,6 +100,110 @@ Use warnings for issues that didn't prevent the operation:
 }
 ```
 
+## Warning Taxonomy
+
+Standard warning codes enable machine-readable classification of non-fatal issues. Use these codes in `meta.warning_details[].code` for structured warnings.
+
+### Warning Code Registry
+
+| Code | Severity | Description | When to Use |
+|------|----------|-------------|-------------|
+| `CONTENT_TRUNCATED` | info | Response content was truncated to fit token/size limits | Large responses exceeding soft limits |
+| `CONTENT_DROPPED` | info | Specific content items were omitted entirely | Individual items dropped for size |
+| `PRIORITY_SUMMARIZED` | info | Low-priority content replaced with summaries | Tiered content compression applied |
+| `SUMMARY_PROVIDER_FAILED` | warning | AI summarization failed, using fallback | Summarization service unavailable |
+| `TOKEN_BUDGET_FLOORED` | warning | Token budget hit minimum threshold | Budget too low for meaningful content |
+| `LIMITS_DEFAULTED` | info | Using default limits (config not found) | Missing or invalid limit configuration |
+| `ARCHIVE_WRITE_FAILED` | warning | Failed to archive dropped content for retrieval | Content may not be recoverable |
+| `PROTECTED_OVERFLOW` | warning | Protected content exceeded allocated budget | Essential content squeezed other content |
+| `STATE_MIGRATION_RECOVERED` | info | State recovered from older schema version | Automatic migration applied |
+| `TOKEN_COUNT_ESTIMATE_USED` | info | Actual token count unavailable, using estimate | Tokenizer not available |
+
+### Warning Severity Definitions
+
+| Severity | Description | Consumer Action |
+|----------|-------------|-----------------|
+| `info` | Informational notice, operation succeeded fully | Log for debugging; no user action needed |
+| `warning` | Potential issue that may affect results | Consider displaying to user; evaluate impact |
+| `error` | Significant issue, results may be degraded | Alert user; consider retry or alternative |
+
+### Per-Phase Warning Matrix
+
+Different processing phases emit specific warnings. Use this matrix to understand warning origins:
+
+| Phase | Possible Warnings | Trigger Condition |
+|-------|-------------------|-------------------|
+| **Token Estimation** | `TOKEN_COUNT_ESTIMATE_USED` | Tokenizer unavailable; heuristic used |
+| **Budget Allocation** | `TOKEN_BUDGET_FLOORED`, `LIMITS_DEFAULTED` | Budget below minimum or config missing |
+| **Content Prioritization** | `PROTECTED_OVERFLOW` | Protected content exceeds allocation |
+| **Summarization** | `SUMMARY_PROVIDER_FAILED`, `PRIORITY_SUMMARIZED` | AI provider error or tiered compression |
+| **Content Assembly** | `CONTENT_TRUNCATED`, `CONTENT_DROPPED` | Final content exceeds output limits |
+| **Archival** | `ARCHIVE_WRITE_FAILED` | Storage write failure |
+| **State Management** | `STATE_MIGRATION_RECOVERED` | Loaded state from older schema version |
+
+### Warning vs Error Decision Table
+
+Use this table to determine whether an issue should be a warning (success=true) or an error (success=false):
+
+| Scenario | Warning or Error? | Rationale |
+|----------|-------------------|-----------|
+| Content truncated but core results present | **Warning** | Primary operation succeeded |
+| All content dropped, nothing to return | **Error** | Cannot provide meaningful response |
+| Summarization failed, raw content used | **Warning** | Fallback provides usable result |
+| Token budget too low to process anything | **Error** | Cannot complete operation |
+| Archive write failed, content still returned | **Warning** | Primary response succeeded |
+| Archive write failed, content not returned | **Error** | Content unrecoverable |
+| Config missing, using safe defaults | **Warning** | Operation proceeds with defaults |
+| Config invalid, cannot determine behavior | **Error** | Cannot safely proceed |
+| State migration succeeded automatically | **Warning** | Operation completed with recovery |
+| State migration failed, data corrupted | **Error** | Cannot recover valid state |
+| Some items processed, others failed | **Warning** | Partial success (see Partial Success) |
+| All items failed to process | **Error** | Complete failure |
+
+### Warning Response Example
+
+```json
+{
+    "success": true,
+    "data": {
+        "research_id": "research-001",
+        "findings": [...],
+        "total_findings": 15,
+        "returned_findings": 10
+    },
+    "error": null,
+    "meta": {
+        "version": "response-v2",
+        "content_fidelity": "partial",
+        "warnings": [
+            "5 findings omitted due to token limits",
+            "Using estimated token counts"
+        ],
+        "warning_details": [
+            {
+                "code": "CONTENT_DROPPED",
+                "severity": "info",
+                "message": "5 findings omitted due to token limits",
+                "context": {
+                    "dropped_count": 5,
+                    "dropped_ids": ["finding-11", "finding-12", "finding-13", "finding-14", "finding-15"],
+                    "reason": "token_budget_exceeded"
+                }
+            },
+            {
+                "code": "TOKEN_COUNT_ESTIMATE_USED",
+                "severity": "info",
+                "message": "Using estimated token counts",
+                "context": {
+                    "estimation_method": "character_ratio",
+                    "accuracy_estimate": "±10%"
+                }
+            }
+        ]
+    }
+}
+```
+
 ### Errors (success=false)
 
 Use errors when the primary operation failed:

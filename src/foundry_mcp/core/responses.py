@@ -201,9 +201,13 @@ def _build_meta(
     *,
     request_id: Optional[str] = None,
     warnings: Optional[Sequence[str]] = None,
+    warning_details: Optional[Sequence[Mapping[str, Any]]] = None,
     pagination: Optional[Mapping[str, Any]] = None,
     rate_limit: Optional[Mapping[str, Any]] = None,
     telemetry: Optional[Mapping[str, Any]] = None,
+    content_fidelity: Optional[str] = None,
+    dropped_content_ids: Optional[Sequence[str]] = None,
+    content_archive_hashes: Optional[Mapping[str, str]] = None,
     extra: Optional[Mapping[str, Any]] = None,
     auto_inject_request_id: bool = True,
 ) -> Dict[str, Any]:
@@ -211,10 +215,14 @@ def _build_meta(
 
     Args:
         request_id: Explicit correlation ID (takes precedence if provided)
-        warnings: Non-fatal issues to surface
+        warnings: Non-fatal issues to surface (string array)
+        warning_details: Structured warnings with code, severity, message, context
         pagination: Cursor metadata for list results
         rate_limit: Rate limit state
         telemetry: Timing/performance metadata
+        content_fidelity: Response completeness level (full|partial|summary|reference_only)
+        dropped_content_ids: IDs of content items omitted from response
+        content_archive_hashes: Map of archive IDs to content hashes for retrieval
         extra: Arbitrary extra metadata to merge
         auto_inject_request_id: If True (default), auto-inject correlation_id
             from context when request_id is not explicitly provided
@@ -230,12 +238,22 @@ def _build_meta(
         meta["request_id"] = effective_request_id
     if warnings:
         meta["warnings"] = list(warnings)
+    if warning_details:
+        meta["warning_details"] = [dict(w) for w in warning_details]
     if pagination:
         meta["pagination"] = dict(pagination)
     if rate_limit:
         meta["rate_limit"] = dict(rate_limit)
     if telemetry:
         meta["telemetry"] = dict(telemetry)
+    # Content fidelity metadata (for token management)
+    if content_fidelity:
+        meta["content_fidelity"] = content_fidelity
+        meta["content_fidelity_schema_version"] = "1.0"
+    if dropped_content_ids:
+        meta["dropped_content_ids"] = list(dropped_content_ids)
+    if content_archive_hashes:
+        meta["content_archive_hashes"] = dict(content_archive_hashes)
     if extra:
         meta.update(dict(extra))
 
@@ -246,9 +264,13 @@ def success_response(
     data: Optional[Mapping[str, Any]] = None,
     *,
     warnings: Optional[Sequence[str]] = None,
+    warning_details: Optional[Sequence[Mapping[str, Any]]] = None,
     pagination: Optional[Mapping[str, Any]] = None,
     rate_limit: Optional[Mapping[str, Any]] = None,
     telemetry: Optional[Mapping[str, Any]] = None,
+    content_fidelity: Optional[str] = None,
+    dropped_content_ids: Optional[Sequence[str]] = None,
+    content_archive_hashes: Optional[Mapping[str, str]] = None,
     request_id: Optional[str] = None,
     meta: Optional[Mapping[str, Any]] = None,
     **fields: Any,
@@ -257,13 +279,37 @@ def success_response(
 
     Args:
         data: Optional mapping used as the base payload.
-        warnings: Non-fatal issues to surface in ``meta.warnings``.
+        warnings: Non-fatal issues to surface in ``meta.warnings`` (string array).
+        warning_details: Structured warnings with code, severity, message, and context.
+            Each warning should have: code (str), severity (info|warning|error),
+            message (str), and optional context (dict).
         pagination: Cursor metadata for list results.
         rate_limit: Rate limit state (limit, remaining, reset_at, etc.).
         telemetry: Timing/performance metadata.
+        content_fidelity: Response completeness level (full|partial|summary|reference_only).
+            When set to anything other than "full", indicates content was truncated
+            or summarized due to token limits.
+        dropped_content_ids: IDs of content items omitted from response.
+            Use with content_fidelity to enable targeted retrieval of dropped items.
+        content_archive_hashes: Map of archive IDs to content hashes for retrieval.
+            Enables consumers to retrieve dropped content from the archive.
         request_id: Correlation identifier propagated through logs/traces.
         meta: Arbitrary extra metadata to merge into ``meta``.
         **fields: Additional payload fields (shorthand for ``data.update``).
+
+    Example with content fidelity (token management):
+        >>> success_response(
+        ...     data={"findings": [...]},
+        ...     warnings=["CONTENT_TRUNCATED: 3 findings compressed"],
+        ...     warning_details=[{
+        ...         "code": "CONTENT_TRUNCATED",
+        ...         "severity": "info",
+        ...         "message": "3 findings compressed to fit budget",
+        ...         "context": {"dropped_count": 3, "reason": "token_limit"}
+        ...     }],
+        ...     content_fidelity="partial",
+        ...     dropped_content_ids=["finding-003", "finding-004"],
+        ... )
     """
     payload: Dict[str, Any] = {}
     if data:
@@ -274,9 +320,13 @@ def success_response(
     meta_payload = _build_meta(
         request_id=request_id,
         warnings=warnings,
+        warning_details=warning_details,
         pagination=pagination,
         rate_limit=rate_limit,
         telemetry=telemetry,
+        content_fidelity=content_fidelity,
+        dropped_content_ids=dropped_content_ids,
+        content_archive_hashes=content_archive_hashes,
         extra=meta,
     )
 

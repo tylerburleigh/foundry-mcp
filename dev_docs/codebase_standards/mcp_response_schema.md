@@ -15,9 +15,14 @@ All tool responses **must** serialize to the following structure ("response-v2")
     "version": "response-v2",
     "request_id": "req_abc123"?,
     "warnings": ["..."]?,
+    "warning_details": [{ "code": "...", "severity": "...", "message": "..." }]?,
     "pagination": { ... }?,
     "rate_limit": { ... }?,
-    "telemetry": { ... }?
+    "telemetry": { ... }?,
+    "content_fidelity": "full" | "partial" | "summary" | "reference_only"?,
+    "content_fidelity_schema_version": "1.0"?,
+    "dropped_content_ids": ["..."]?,
+    "content_archive_hashes": { ... }?
   }
 }
 ```
@@ -37,6 +42,11 @@ All tool responses **must** serialize to the following structure ("response-v2")
 | `pagination`     | MAY      | Cursor-based pagination object containing `cursor`, `has_more`, `total_count`, etc. |
 | `rate_limit`     | MAY      | Remaining quota, reset time, and retry hints when throttling occurs. |
 | `telemetry`      | MAY      | Timing/performance metrics such as `duration_ms` or downstream call counts. |
+| `content_fidelity` | MAY    | Content fidelity level indicating completeness of the response (see [Content Fidelity Metadata](#content-fidelity-metadata)). |
+| `content_fidelity_schema_version` | MAY | Schema version for content fidelity metadata (e.g., `"1.0"`). |
+| `dropped_content_ids` | MAY  | Array of content identifiers that were dropped due to size constraints. |
+| `content_archive_hashes` | MAY | Object mapping archive identifiers to content hashes for retrieval. |
+| `warning_details` | MAY      | Structured warning objects with severity and context (see [Warning Details](#warning-details)). |
 
 > Do **not** invent new top-level keys under `data` to convey metadata. Attach operational context through `meta` so every tool shares the same envelope semantics.
 
@@ -48,6 +58,176 @@ All tool responses **must** serialize to the following structure ("response-v2")
 | Missing resource / invalid input | `success: false`, `data` contains structured error info, descriptive `error` string. |
 | Blocked or partial work    | `success: true`, describe state inside `data`, add `meta.warnings` if applicable. |
 | Multi-payload operations   | Nest each payload under a named key inside `data` (e.g., `{ "spec": {...}, "tasks": [...] }`). |
+
+## Content Fidelity Metadata
+
+When responses may be truncated, summarized, or have content dropped due to token limits or size constraints, include content fidelity metadata in `meta` to inform consumers about response completeness.
+
+### Content Fidelity Schema
+
+```json
+{
+  "meta": {
+    "version": "response-v2",
+    "content_fidelity_schema_version": "1.0",
+    "content_fidelity": "full" | "partial" | "summary" | "reference_only",
+    "dropped_content_ids": ["finding-003", "source-015"],
+    "content_archive_hashes": {
+      "archive-001": "sha256:abc123..."
+    }
+  }
+}
+```
+
+### Content Fidelity Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `content_fidelity_schema_version` | string | SHOULD (when fidelity < full) | Schema version for content fidelity metadata. Current version: `"1.0"`. |
+| `content_fidelity` | string | SHOULD (when fidelity < full) | Level of content completeness in the response. |
+| `dropped_content_ids` | array\<string\> | MAY | Identifiers of content items that were omitted. Enables targeted retrieval. |
+| `content_archive_hashes` | object | MAY | Map of archive IDs to content hashes for retrieving dropped content. |
+
+### Content Fidelity Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `full` | Complete response with all content included | Default when no truncation occurs |
+| `partial` | Some content omitted but structure preserved | Large responses exceeding soft limits |
+| `summary` | Condensed representation of full content | Token-constrained contexts |
+| `reference_only` | Only identifiers/references, no content bodies | Extreme token constraints |
+
+### Content Fidelity Example
+
+Response with partial fidelity due to dropped findings:
+
+```json
+{
+  "success": true,
+  "data": {
+    "research_id": "research-001",
+    "findings": [
+      {"id": "finding-001", "title": "Primary result", "content": "..."},
+      {"id": "finding-002", "title": "Secondary result", "content": "..."}
+    ],
+    "total_findings": 5
+  },
+  "error": null,
+  "meta": {
+    "version": "response-v2",
+    "content_fidelity_schema_version": "1.0",
+    "content_fidelity": "partial",
+    "dropped_content_ids": ["finding-003", "finding-004", "finding-005"],
+    "content_archive_hashes": {
+      "findings-archive": "sha256:e3b0c44298fc1c149afbf4c8996fb924..."
+    },
+    "warnings": ["3 findings omitted due to token limits"]
+  }
+}
+```
+
+### Content Retrieval Pattern
+
+When `dropped_content_ids` is present, consumers can retrieve omitted content:
+
+1. Check `dropped_content_ids` for missing item identifiers
+2. Use `content_archive_hashes` to verify archive availability
+3. Call appropriate retrieval endpoint with the archive hash or content IDs
+
+## Warning Details
+
+For structured warnings with severity and context beyond simple string messages, use `warning_details` alongside or instead of the `warnings` array.
+
+### Warning Details Schema
+
+```json
+{
+  "meta": {
+    "version": "response-v2",
+    "warnings": ["3 findings omitted due to token limits"],
+    "warning_details": [
+      {
+        "code": "CONTENT_TRUNCATED",
+        "severity": "info",
+        "message": "3 findings omitted due to token limits",
+        "context": {
+          "dropped_count": 3,
+          "total_count": 5,
+          "reason": "token_limit_exceeded"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Warning Detail Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `code` | string | SHOULD | Machine-readable warning classification (e.g., `CONTENT_TRUNCATED`, `STALE_CACHE`). |
+| `severity` | string | SHOULD | Warning severity level: `info`, `warning`, `error`. |
+| `message` | string | YES | Human-readable warning description. |
+| `context` | object | MAY | Additional context specific to the warning type. |
+
+### Warning Severity Levels
+
+| Severity | Description | Consumer Action |
+|----------|-------------|-----------------|
+| `info` | Informational, no action needed | Log/display as appropriate |
+| `warning` | Potential issue, consider action | Evaluate context and decide |
+| `error` | Significant issue, action recommended | Address before proceeding |
+
+### Standard Warning Codes
+
+| Code | Severity | Description |
+|------|----------|-------------|
+| `CONTENT_TRUNCATED` | info | Response content was truncated due to size limits |
+| `STALE_CACHE` | warning | Cached data may be outdated |
+| `PARTIAL_FAILURE` | warning | Some sub-operations failed but overall succeeded |
+| `DEPRECATED_FIELD` | info | Response includes deprecated fields |
+| `RATE_LIMIT_APPROACHING` | warning | Approaching rate limit threshold |
+| `FALLBACK_USED` | info | Primary source unavailable, fallback used |
+
+### Warning Details Example
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [...]
+  },
+  "error": null,
+  "meta": {
+    "version": "response-v2",
+    "warnings": [
+      "3 sources failed to respond",
+      "Cache data is 2 hours old"
+    ],
+    "warning_details": [
+      {
+        "code": "PARTIAL_FAILURE",
+        "severity": "warning",
+        "message": "3 sources failed to respond",
+        "context": {
+          "failed_sources": ["source-a", "source-b", "source-c"],
+          "successful_sources": 7,
+          "total_sources": 10
+        }
+      },
+      {
+        "code": "STALE_CACHE",
+        "severity": "warning",
+        "message": "Cache data is 2 hours old",
+        "context": {
+          "cache_age_seconds": 7200,
+          "max_freshness_seconds": 3600
+        }
+      }
+    ]
+  }
+}
+```
 
 ## Error Response Fields
 

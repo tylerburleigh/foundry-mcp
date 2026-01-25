@@ -532,12 +532,20 @@ def _handle_deep_research_report(
     )
 
     if result.success:
+        # Extract warnings from metadata for routing to meta.warnings
+        metadata = result.metadata or {}
+        warnings = metadata.pop("warnings", None)
+
+        # Build response data with all fields
+        response_data = {
+            "report": result.content,
+            **metadata,
+        }
+
         return asdict(
             success_response(
-                data={
-                    "report": result.content,
-                    **result.metadata,
-                }
+                data=response_data,
+                warnings=warnings,  # Route warnings to meta.warnings
             )
         )
     else:
