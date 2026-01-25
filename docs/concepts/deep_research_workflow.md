@@ -1258,6 +1258,253 @@ When cancellation or timeout occurs:
 
 ---
 
+## Token Management
+
+Deep research workflows operate within model context limits. The token management system ensures content fits within available budget through intelligent compression and graceful degradation.
+
+### Overview
+
+Token management addresses the challenge of fitting potentially large research content (sources, findings, reports) into bounded LLM context windows. The system uses a priority-based allocation strategy with fallback compression.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TOKEN BUDGET FLOW                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Model Context Limit (e.g., 200K tokens)
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                                                                         │
+  │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────────────┐ │
+  │  │   Runtime    │  │    Safety    │  │      Available Budget         │ │
+  │  │  Overhead    │  │    Margin    │  │   (for research content)      │ │
+  │  │   (~60K)     │  │   (~15%)     │  │                               │ │
+  │  └──────────────┘  └──────────────┘  └───────────────────────────────┘ │
+  │                                                                         │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Available Budget Allocation:
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  1. Protected Items (critical findings, user-specified)                 │
+  │  2. Priority Items (top-5 sources, high-confidence findings)            │
+  │  3. Regular Items (remaining sources, lower-priority findings)          │
+  └─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration Options
+
+Token management is configured in the `[research]` section of `foundry-mcp.toml`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `token_management_enabled` | `true` | Master switch for all token management |
+| `token_safety_margin` | `0.15` | Fraction of budget reserved as buffer (0.0-1.0) |
+| `runtime_overhead` | `60000` | Tokens reserved for CLI/IDE context |
+| `summarization_provider` | `null` | Primary LLM for content summarization |
+| `summarization_providers` | `[]` | Fallback providers for summarization |
+| `summarization_timeout` | `60.0` | Timeout per summarization request (seconds) |
+| `summarization_cache_enabled` | `true` | Cache summarization results |
+| `allow_content_dropping` | `false` | Allow dropping low-priority content |
+| `content_archive_enabled` | `false` | Archive dropped content to disk |
+| `content_archive_ttl_hours` | `168` | TTL for archived content (7 days) |
+| `research_archive_dir` | `null` | Custom archive directory path |
+
+**Runtime Overhead by Environment:**
+
+| Environment | Recommended Value | Notes |
+|-------------|-------------------|-------|
+| Claude Code | 60000 | System prompts + tools + conversation history |
+| Cursor Agent | 40000 | Less overhead than Claude Code |
+| Codex/OpenCode | 30000 | Minimal IDE integration |
+| Gemini CLI | 20000 | Lightweight CLI |
+| Direct API | 10000 | Minimal overhead |
+
+### Graceful Degradation Strategy
+
+When content exceeds available budget, the system applies degradation in order:
+
+```
+Full Content ──► Condensed ──► Compressed ──► Key Points ──► Headline ──► Drop
+
+     100%          70%           40%           20%           10%         0%
+     ────          ────          ────          ────          ────        ────
+   Original    Summarized    Heavily      Critical      Single       Removed
+   content     preserving    compressed   bullets       sentence     (archived)
+              key details    summary      only          only
+```
+
+**Degradation Levels:**
+
+| Level | Fidelity | Description |
+|-------|----------|-------------|
+| FULL | 100% | Original content, no compression |
+| CONDENSED | ~70% | Light summarization, key details preserved |
+| COMPRESSED | ~40% | Heavy summarization, main points only |
+| KEY_POINTS | ~20% | Bullet points of critical information |
+| HEADLINE | ~10% | Single sentence summary |
+| DROPPED | 0% | Content removed (optionally archived) |
+
+### Fidelity Tracking
+
+The system tracks content fidelity throughout the workflow to provide transparency about information loss:
+
+```json
+{
+  "content_fidelity": {
+    "src-001": {
+      "original_tokens": 5000,
+      "current_tokens": 3500,
+      "current_level": "condensed",
+      "compression_ratio": 0.70
+    },
+    "src-002": {
+      "original_tokens": 8000,
+      "current_tokens": 1600,
+      "current_level": "key_points",
+      "compression_ratio": 0.20
+    }
+  },
+  "content_allocation_metadata": {
+    "fidelity": 0.65,
+    "tokens_used": 45000,
+    "tokens_available": 50000,
+    "utilization": 0.90,
+    "items_dropped": 2,
+    "items_summarized": 5
+  }
+}
+```
+
+**Fidelity Metadata in Reports:**
+
+The final research report includes fidelity information:
+
+| Fidelity Score | Level | Interpretation |
+|----------------|-------|----------------|
+| 0.90 - 1.00 | Full | All content at original fidelity |
+| 0.60 - 0.89 | Condensed | Some content summarized |
+| 0.30 - 0.59 | Compressed | Significant summarization applied |
+| 0.00 - 0.29 | Minimal | Heavy compression, some content dropped |
+
+### Priority System
+
+Content is prioritized to ensure important information survives budget pressure:
+
+**Priority Guardrails:**
+- Top 5 sources are protected at minimum 30% fidelity
+- User-marked protected items get headline allocation (10% minimum)
+- High-confidence findings are prioritized over speculation
+
+**Priority Calculation:**
+
+```python
+priority = (
+    relevance_score * 0.4 +      # How relevant to query (0-1)
+    recency_score * 0.3 +        # How recent (0-1, newer = higher)
+    quality_score * 0.2 +        # Source quality (0-1)
+    user_priority * 0.1          # User-specified boost (0-1)
+)
+```
+
+### Content Archive
+
+When content is dropped or heavily compressed, the original can be archived for potential restoration:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CONTENT ARCHIVE FLOW                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Content Dropped ──► Compute SHA256 Hash ──► Write to Archive File
+         │                    │                        │
+         │                    │              ┌─────────┴─────────┐
+         │                    │              │ ~/.foundry-mcp/   │
+         │                    │              │   research-archive│
+         │                    │              │     /{hash}.json  │
+         │                    │              └───────────────────┘
+         │                    │
+         ▼                    ▼
+  State Updated ◄──── Hash Stored in State
+  (dropped_content_ids,       │
+   content_archive_hashes)    │
+                              │
+                              ▼
+                    TTL Cleanup (7 days default)
+```
+
+**Archive Record Structure:**
+
+```json
+{
+  "content_hash": "sha256:abc123...",
+  "content": "Original full text content...",
+  "item_id": "src-001",
+  "item_type": "source",
+  "archived_at": "2024-01-15T10:30:00Z",
+  "archive_reason": "dropped",
+  "original_tokens": 5000,
+  "metadata": {
+    "url": "https://example.com/article",
+    "title": "Article Title"
+  }
+}
+```
+
+### Phase-Specific Token Management
+
+Token budgets are allocated differently per phase:
+
+| Phase | Budget Fraction | Typical Use |
+|-------|-----------------|-------------|
+| Planning | 10% | Sub-query context, research brief |
+| Gathering | N/A | No LLM tokens (search operations) |
+| Analysis | 40% | Source content for finding extraction |
+| Synthesis | 35% | Findings + sources for report generation |
+| Refinement | 15% | Gap analysis and iteration planning |
+
+### Troubleshooting
+
+**Common Issues and Solutions:**
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| Content dropped unexpectedly | Report missing expected sources | Increase `runtime_overhead` or reduce sources |
+| "Context exceeded" errors | Workflow fails with token error | Increase `token_safety_margin` |
+| Summarization failures | Degradation skips to drop | Configure `summarization_providers` fallbacks |
+| Archive disk usage growing | Archive directory large | Reduce `content_archive_ttl_hours` |
+| Low fidelity warnings | Report shows fidelity < 0.5 | Reduce `max_sources` or increase model context |
+
+**Diagnostic Commands:**
+
+```bash
+# Check token management configuration
+foundry-mcp research action="deep-research-status" research_id="..."
+
+# View fidelity metadata in completed research
+foundry-mcp research action="deep-research-report" research_id="..." --include-metadata
+
+# Clean up expired archives
+# (automatic, but can force via TTL adjustment)
+```
+
+**Tuning Tips:**
+
+1. **If content is being dropped unnecessarily:**
+   - Decrease `runtime_overhead` (if using lightweight CLI)
+   - Decrease `token_safety_margin` (accept more risk)
+   - Increase model context via `model_context_overrides`
+
+2. **If seeing context exceeded errors:**
+   - Increase `runtime_overhead`
+   - Increase `token_safety_margin`
+   - Reduce `deep_research_max_sources`
+
+3. **If summarization is slow:**
+   - Use faster models in `summarization_provider` (e.g., `gemini:flash`)
+   - Enable `summarization_cache_enabled`
+   - Reduce `summarization_timeout` to fail fast
+
+---
+
 ## External Provider Constraints
 
 > **Read-Only Operations:** All external provider calls (search APIs, web fetches) are **read-only** operations. The workflow does not require write capabilities to external systems.

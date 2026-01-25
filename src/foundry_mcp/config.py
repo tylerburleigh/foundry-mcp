@@ -427,6 +427,18 @@ class ResearchConfig:
         google_api_key: API key for Google Custom Search (optional, reads from GOOGLE_API_KEY env var)
         google_cse_id: Google Custom Search Engine ID (optional, reads from GOOGLE_CSE_ID env var)
         semantic_scholar_api_key: API key for Semantic Scholar (optional, reads from SEMANTIC_SCHOLAR_API_KEY env var)
+        token_management_enabled: Master switch for token management features
+        token_safety_margin: Fraction of budget to reserve as safety buffer (0.0-1.0)
+        runtime_overhead: Tokens reserved for runtime overhead (e.g., Claude Code context)
+        model_context_overrides: Per-model context/output limit overrides
+        summarization_provider: Primary LLM provider for content summarization
+        summarization_providers: Fallback providers for summarization (tried in order)
+        summarization_timeout: Timeout per summarization request in seconds
+        summarization_cache_enabled: Whether to cache summarization results
+        allow_content_dropping: Allow dropping low-priority content when budget exhausted
+        content_archive_enabled: Archive dropped/compressed content to disk
+        content_archive_ttl_hours: TTL for archived content in hours (default: 168 = 7 days)
+        research_archive_dir: Directory for content archive storage (default: research_dir/.archive)
     """
 
     enabled: bool = True
@@ -490,6 +502,21 @@ class ResearchConfig:
     google_api_key: Optional[str] = None
     google_cse_id: Optional[str] = None
     semantic_scholar_api_key: Optional[str] = None
+    # Token management configuration
+    token_management_enabled: bool = True  # Master switch for token management
+    token_safety_margin: float = 0.15  # Fraction of budget to reserve as buffer
+    runtime_overhead: int = 60000  # Tokens for Claude Code runtime overhead
+    model_context_overrides: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # Summarization configuration
+    summarization_provider: Optional[str] = None  # Primary provider for summarization
+    summarization_providers: List[str] = field(default_factory=list)  # Fallback providers
+    summarization_timeout: float = 60.0  # Timeout per summarization request (seconds)
+    summarization_cache_enabled: bool = True  # Cache summarization results
+    # Content dropping and archival configuration
+    allow_content_dropping: bool = False  # Allow dropping low-priority content
+    content_archive_enabled: bool = False  # Archive dropped content to disk
+    content_archive_ttl_hours: int = 168  # TTL for archived content (7 days)
+    research_archive_dir: Optional[str] = None  # Directory for archive storage
 
     @classmethod
     def from_toml_dict(cls, data: Dict[str, Any]) -> "ResearchConfig":
@@ -597,6 +624,29 @@ class ResearchConfig:
             google_api_key=data.get("google_api_key"),
             google_cse_id=data.get("google_cse_id"),
             semantic_scholar_api_key=data.get("semantic_scholar_api_key"),
+            # Token management configuration
+            token_management_enabled=_parse_bool(
+                data.get("token_management_enabled", True)
+            ),
+            token_safety_margin=float(data.get("token_safety_margin", 0.15)),
+            runtime_overhead=int(data.get("runtime_overhead", 60000)),
+            model_context_overrides=data.get("model_context_overrides", {}),
+            # Summarization configuration
+            summarization_provider=data.get("summarization_provider"),
+            summarization_providers=_parse_provider_list("summarization_providers"),
+            summarization_timeout=float(data.get("summarization_timeout", 60.0)),
+            summarization_cache_enabled=_parse_bool(
+                data.get("summarization_cache_enabled", True)
+            ),
+            # Content dropping and archival configuration
+            allow_content_dropping=_parse_bool(
+                data.get("allow_content_dropping", False)
+            ),
+            content_archive_enabled=_parse_bool(
+                data.get("content_archive_enabled", False)
+            ),
+            content_archive_ttl_hours=int(data.get("content_archive_ttl_hours", 168)),
+            research_archive_dir=data.get("research_archive_dir"),
         )
 
     def get_provider_rate_limit(self, provider: str) -> int:
@@ -809,6 +859,93 @@ class ResearchConfig:
         """Parse consensus_providers into ProviderSpec list."""
         from foundry_mcp.core.llm_config import ProviderSpec
         return [ProviderSpec.parse_flexible(p) for p in self.consensus_providers]
+
+    def get_model_context_override(
+        self,
+        provider: str,
+        model: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Get context/output limit overrides for a specific model.
+
+        Looks up overrides in model_context_overrides using the format:
+        - "{provider}" for provider-wide overrides
+        - "{provider}:{model}" for model-specific overrides (takes precedence)
+
+        Args:
+            provider: Provider identifier (e.g., "claude", "gemini")
+            model: Optional model identifier (e.g., "opus", "flash")
+
+        Returns:
+            Dict with override values (context_window, max_output_tokens, etc.)
+            or None if no overrides configured
+
+        Example:
+            # Config in TOML:
+            # [research.model_context_overrides."claude:opus"]
+            # context_window = 150000
+            # max_output_tokens = 16000
+
+            overrides = config.research.get_model_context_override("claude", "opus")
+            # Returns {"context_window": 150000, "max_output_tokens": 16000}
+        """
+        if not self.model_context_overrides:
+            return None
+
+        # Try model-specific key first (e.g., "claude:opus")
+        if model:
+            model_key = f"{provider}:{model}"
+            if model_key in self.model_context_overrides:
+                return self.model_context_overrides[model_key]
+
+        # Fall back to provider-wide key (e.g., "claude")
+        if provider in self.model_context_overrides:
+            return self.model_context_overrides[provider]
+
+        return None
+
+    def get_summarization_provider_chain(self) -> List[str]:
+        """Get the ordered list of summarization providers to try.
+
+        Returns providers in order: primary provider first (if set),
+        then fallback providers, with duplicates removed.
+
+        Returns:
+            List of provider IDs to try for summarization
+        """
+        chain: List[str] = []
+        seen: set[str] = set()
+
+        if self.summarization_provider:
+            chain.append(self.summarization_provider)
+            seen.add(self.summarization_provider)
+
+        for provider in self.summarization_providers:
+            if provider not in seen:
+                chain.append(provider)
+                seen.add(provider)
+
+        return chain
+
+    def get_archive_dir(self, research_dir: Optional[Path] = None) -> Path:
+        """Get the resolved content archive directory path.
+
+        Priority:
+        1. Explicitly configured research_archive_dir
+        2. Default: research_dir/.archive
+
+        Args:
+            research_dir: Optional research directory to use for default path.
+                         If not provided, uses specs/.research/.archive
+
+        Returns:
+            Path to content archive directory
+        """
+        if self.research_archive_dir:
+            return Path(self.research_archive_dir).expanduser()
+
+        # Fall back to default: research_dir/.archive
+        base_research = research_dir or Path("specs/.research")
+        return base_research / ".archive"
 
 
 _VALID_COMMIT_CADENCE = {"manual", "task", "phase"}
