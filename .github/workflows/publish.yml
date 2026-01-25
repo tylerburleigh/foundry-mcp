@@ -1,11 +1,47 @@
-name: Publish to PyPI
+name: Publish Stable to PyPI
+
+# This workflow publishes STABLE releases to PyPI.
+# For beta/pre-releases, see publish-beta.yml
 
 on:
   release:
     types: [published]
+    # Note: This triggers on full releases only, not pre-releases
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      is_stable: ${{ steps.check.outputs.is_stable }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate stable version
+        id: check
+        run: |
+          # Get version from pyproject.toml
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if it's a pre-release version (contains a, b, dev, rc)
+          if [[ "$VERSION" =~ (a|alpha|b|beta|dev|rc)[0-9]* ]]; then
+            echo "is_stable=false" >> $GITHUB_OUTPUT
+            echo "❌ Pre-release version detected: $VERSION"
+            echo "Use publish-beta.yml workflow for pre-releases"
+            exit 1
+          else
+            echo "is_stable=true" >> $GITHUB_OUTPUT
+            echo "✅ Stable version: $VERSION"
+          fi
+
   publish:
+    needs: validate
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -23,6 +59,14 @@ jobs:
 
       - name: Build package
         run: hatch build
+
+      - name: Verify build artifacts
+        run: |
+          echo "📦 Built packages:"
+          ls -la dist/
+
+          VERSION="${{ needs.validate.outputs.version }}"
+          echo "📋 Publishing version: $VERSION"
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
