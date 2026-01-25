@@ -10,7 +10,19 @@ from foundry_mcp.config import ServerConfig
 
 
 class TestConfigHierarchy:
-    """Test layered configuration loading (home -> project -> env)."""
+    """Test layered configuration loading (XDG -> home -> project -> env)."""
+
+    @pytest.fixture
+    def xdg_config_content(self):
+        """XDG config directory content (system-wide user defaults)."""
+        return """
+[logging]
+level = "NOTSET"
+structured = true
+
+[tools]
+disabled_tools = ["environment"]
+"""
 
     @pytest.fixture
     def home_config_content(self):
@@ -363,5 +375,134 @@ level = "INFO"
                     assert config.structured_logging is False
                     assert config.research.default_timeout == 500.0
                     assert set(config.disabled_tools) == {"health", "error"}
+                finally:
+                    os.chdir(original_cwd)
+
+    def test_xdg_config_loaded_as_base_layer(self, tmp_path, xdg_config_content):
+        """XDG config (~/.config/foundry-mcp/config.toml) is loaded as the base layer."""
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+        xdg_config_dir = home_dir / ".config" / "foundry-mcp"
+        xdg_config_dir.mkdir(parents=True)
+        xdg_config = xdg_config_dir / "config.toml"
+        xdg_config.write_text(xdg_config_content)
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        with patch.object(Path, "home", return_value=home_dir):
+            with patch.dict(os.environ, {}, clear=True):
+                original_cwd = os.getcwd()
+                os.chdir(project_dir)
+                try:
+                    config = ServerConfig.from_env()
+                    assert config.log_level == "NOTSET"
+                    assert config.structured_logging is True
+                    assert config.disabled_tools == ["environment"]
+                finally:
+                    os.chdir(original_cwd)
+
+    def test_home_config_overrides_xdg_config(
+        self, tmp_path, xdg_config_content, home_config_content
+    ):
+        """Home config (~/.foundry-mcp.toml) overrides XDG config."""
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+
+        # XDG config (lowest priority of user configs)
+        xdg_config_dir = home_dir / ".config" / "foundry-mcp"
+        xdg_config_dir.mkdir(parents=True)
+        xdg_config = xdg_config_dir / "config.toml"
+        xdg_config.write_text(xdg_config_content)
+
+        # Home config (overrides XDG)
+        home_config = home_dir / ".foundry-mcp.toml"
+        home_config.write_text(home_config_content)
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        with patch.object(Path, "home", return_value=home_dir):
+            with patch.dict(os.environ, {}, clear=True):
+                original_cwd = os.getcwd()
+                os.chdir(project_dir)
+                try:
+                    config = ServerConfig.from_env()
+                    # Home overrides XDG
+                    assert config.log_level == "DEBUG"
+                    assert config.structured_logging is False
+                    assert config.disabled_tools == ["health"]
+                finally:
+                    os.chdir(original_cwd)
+
+    def test_xdg_config_home_env_var_respected(self, tmp_path, xdg_config_content):
+        """XDG_CONFIG_HOME environment variable is respected."""
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+
+        # Custom XDG config location
+        custom_xdg = tmp_path / "custom-config"
+        custom_xdg.mkdir()
+        xdg_config_dir = custom_xdg / "foundry-mcp"
+        xdg_config_dir.mkdir()
+        xdg_config = xdg_config_dir / "config.toml"
+        xdg_config.write_text(xdg_config_content)
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        with patch.object(Path, "home", return_value=home_dir):
+            with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(custom_xdg)}, clear=True):
+                original_cwd = os.getcwd()
+                os.chdir(project_dir)
+                try:
+                    config = ServerConfig.from_env()
+                    # XDG config loaded from custom location
+                    assert config.log_level == "NOTSET"
+                    assert config.disabled_tools == ["environment"]
+                finally:
+                    os.chdir(original_cwd)
+
+    def test_full_hierarchy_xdg_home_project_env(
+        self, tmp_path, xdg_config_content, home_config_content, project_config_content
+    ):
+        """Full config hierarchy: XDG < home < project < env."""
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+
+        # XDG config (base layer)
+        xdg_config_dir = home_dir / ".config" / "foundry-mcp"
+        xdg_config_dir.mkdir(parents=True)
+        xdg_config = xdg_config_dir / "config.toml"
+        xdg_config.write_text(xdg_config_content)
+
+        # Home config (overrides XDG)
+        home_config = home_dir / ".foundry-mcp.toml"
+        home_config.write_text(home_config_content)
+
+        # Project config (overrides home)
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config = project_dir / "foundry-mcp.toml"
+        project_config.write_text(project_config_content)
+
+        with patch.object(Path, "home", return_value=home_dir):
+            with patch.dict(
+                os.environ,
+                {"FOUNDRY_MCP_LOG_LEVEL": "CRITICAL"},
+                clear=True,
+            ):
+                original_cwd = os.getcwd()
+                os.chdir(project_dir)
+                try:
+                    config = ServerConfig.from_env()
+                    # Env var overrides everything
+                    assert config.log_level == "CRITICAL"
+                    # Project overrides home
+                    assert config.specs_dir == Path("./my-specs")
+                    # Home overrides XDG (structured=false from home)
+                    assert config.structured_logging is False
+                    # Home value (disabled_tools from home, not XDG)
+                    assert config.disabled_tools == ["health"]
                 finally:
                     os.chdir(original_cwd)

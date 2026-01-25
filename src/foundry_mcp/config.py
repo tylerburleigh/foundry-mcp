@@ -1,10 +1,12 @@
 """
 Server configuration for foundry-mcp.
 
-Supports configuration via:
-1. Environment variables (highest priority)
-2. TOML config file (foundry-mcp.toml)
-3. Default values (lowest priority)
+Supports configuration via (highest to lowest priority):
+1. Environment variables
+2. Project TOML config (./foundry-mcp.toml or ./.foundry-mcp.toml)
+3. User TOML config (~/.foundry-mcp.toml)
+4. XDG config (~/.config/foundry-mcp/config.toml or $XDG_CONFIG_HOME/foundry-mcp/config.toml)
+5. Default values
 
 Environment variables:
 - FOUNDRY_MCP_WORKSPACE_ROOTS: Comma-separated list of workspace root paths
@@ -1063,7 +1065,8 @@ class ServerConfig:
         1. Environment variables
         2. Project TOML config (./foundry-mcp.toml or ./.foundry-mcp.toml)
         3. User TOML config (~/.foundry-mcp.toml)
-        4. Default values
+        4. XDG config (~/.config/foundry-mcp/config.toml)
+        5. Default values
         """
         config = cls()
 
@@ -1072,14 +1075,22 @@ class ServerConfig:
         if toml_path:
             config._load_toml(Path(toml_path))
         else:
-            # Layered config loading:
-            # 1. Home directory config (user defaults)
+            # Layered config loading (lowest to highest priority):
+            # 1. XDG config directory (system-wide user defaults)
+            # Follows XDG Base Directory Specification
+            xdg_config_home = os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
+            xdg_config = Path(xdg_config_home) / "foundry-mcp" / "config.toml"
+            if xdg_config.exists():
+                config._load_toml(xdg_config)
+                logger.debug(f"Loaded XDG config from {xdg_config}")
+
+            # 2. Home directory config (user defaults, legacy location)
             home_config = Path.home() / ".foundry-mcp.toml"
             if home_config.exists():
                 config._load_toml(home_config)
                 logger.debug(f"Loaded user config from {home_config}")
 
-            # 2. Project directory config (project overrides)
+            # 3. Project directory config (project overrides)
             # Try foundry-mcp.toml first, fall back to .foundry-mcp.toml for compatibility
             project_config = Path("foundry-mcp.toml")
             if project_config.exists():
