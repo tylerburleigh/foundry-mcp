@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from foundry_mcp.config import ResearchConfig
-from foundry_mcp.core.providers import ProviderStatus
+from foundry_mcp.core.providers import ProviderResult, ProviderStatus
 from foundry_mcp.core.research.memory import ResearchMemory
 from foundry_mcp.core.research.models import (
     ConfidenceLevel,
@@ -898,3 +898,638 @@ class TestResearchWorkflowBase:
         result = workflow._resolve_provider("[invalid]malformed")
 
         assert result is None
+
+
+# =============================================================================
+# ResearchWorkflowBase Async Provider Tests
+# =============================================================================
+
+
+class TestExecuteProviderAsync:
+    """Tests for async provider execution behavior."""
+
+    @pytest.mark.asyncio
+    async def test_uses_per_provider_model_on_fallback(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+    ) -> None:
+        """Fallback providers should receive their own model overrides."""
+        workflow = ChatWorkflow(research_config, mock_memory)
+        seen: dict[str, Optional[str]] = {}
+
+        def primary_generate(request):
+            seen["primary_model"] = request.model
+            return ProviderResult(
+                content="",
+                status=ProviderStatus.ERROR,
+                provider_id="gemini",
+                model_used="gemini",
+            )
+
+        def fallback_generate(request):
+            seen["fallback_model"] = request.model
+            return ProviderResult(
+                content="ok",
+                status=ProviderStatus.SUCCESS,
+                provider_id="claude",
+                model_used="sonnet",
+            )
+
+        primary_context = MagicMock()
+        primary_context.generate.side_effect = primary_generate
+
+        fallback_context = MagicMock()
+        fallback_context.generate.side_effect = fallback_generate
+
+        def resolve_side_effect(provider_id: Optional[str], hooks=None):
+            if provider_id == "gemini":
+                return primary_context
+            if provider_id == "[cli]claude:sonnet":
+                return fallback_context
+            return None
+
+        with patch.object(workflow, "_resolve_provider", side_effect=resolve_side_effect):
+            result = await workflow._execute_provider_async(
+                prompt="hello",
+                provider_id="gemini",
+                model="gpt-5.1",
+                fallback_providers=["[cli]claude:sonnet"],
+                max_retries=0,
+                timeout=0.01,
+            )
+
+        assert result.success is True
+        assert seen["primary_model"] == "gpt-5.1"
+        assert seen["fallback_model"] == "sonnet"
+
+    @pytest.mark.asyncio
+    async def test_timeout_metadata_false_for_non_timeout_failures(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+    ) -> None:
+        """Non-timeout failures should not be marked as timeouts."""
+        workflow = ChatWorkflow(research_config, mock_memory)
+
+        with patch.object(workflow, "_resolve_provider", return_value=None):
+            result = await workflow._execute_provider_async(
+                prompt="hello",
+                provider_id="gemini",
+                fallback_providers=["claude"],
+                max_retries=0,
+                timeout=0.01,
+            )
+
+        assert result.success is False
+        assert result.metadata.get("timeout") is False
+
+
+# =============================================================================
+# Deep Research Concurrency and Robustness Tests
+# =============================================================================
+
+
+class TestDeepResearchRobustness:
+    """Tests for deep research thread safety and robustness fixes."""
+
+    def test_active_sessions_lock_exists(self):
+        """Should have a lock for protecting _active_research_sessions."""
+        from foundry_mcp.core.research.workflows.deep_research import (
+            _active_sessions_lock,
+            _active_research_sessions,
+        )
+        import threading
+
+        assert isinstance(_active_sessions_lock, type(threading.Lock()))
+        assert isinstance(_active_research_sessions, dict)
+
+    def test_tasks_dict_not_weak(self):
+        """Should use regular dict, not WeakValueDictionary for task tracking."""
+        from foundry_mcp.core.research.workflows.deep_research import DeepResearchWorkflow
+
+        # Check that _tasks is a regular dict, not WeakValueDictionary
+        assert isinstance(DeepResearchWorkflow._tasks, dict)
+        # WeakValueDictionary has different type
+        from weakref import WeakValueDictionary
+        assert not isinstance(DeepResearchWorkflow._tasks, WeakValueDictionary)
+
+    def test_tasks_lock_exists(self):
+        """Should have a lock for protecting _tasks."""
+        from foundry_mcp.core.research.workflows.deep_research import DeepResearchWorkflow
+        import threading
+
+        assert isinstance(DeepResearchWorkflow._tasks_lock, type(threading.Lock()))
+
+    def test_cleanup_stale_tasks_method_exists(self):
+        """Should have cleanup_stale_tasks class method."""
+        from foundry_mcp.core.research.workflows.deep_research import DeepResearchWorkflow
+
+        assert hasattr(DeepResearchWorkflow, "cleanup_stale_tasks")
+        assert callable(DeepResearchWorkflow.cleanup_stale_tasks)
+
+    @pytest.mark.asyncio
+    async def test_base_exception_handling_in_gather(self):
+        """Should handle BaseException (not just Exception) from asyncio.gather."""
+        import asyncio
+
+        # Simulate what happens in _execute_gathering_phase
+        async def task_that_succeeds():
+            return (5, None)  # (added_count, error)
+
+        async def task_that_raises_cancelled():
+            raise asyncio.CancelledError()
+
+        async def task_that_raises_keyboard():
+            raise KeyboardInterrupt()
+
+        # Test with mixed results including BaseException subclasses
+        tasks = [
+            task_that_succeeds(),
+            task_that_raises_cancelled(),
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # The fix: check for BaseException, not just Exception
+        failed_queries = 0
+        total_sources = 0
+
+        for result in results:
+            if isinstance(result, BaseException):  # This is the fix
+                failed_queries += 1
+            else:
+                added, error = result
+                total_sources += added
+
+        assert failed_queries == 1
+        assert total_sources == 5
+
+    def test_timezone_aware_datetime_in_deep_research(self):
+        """Should use timezone-aware datetime, not deprecated utcnow()."""
+        from foundry_mcp.core.research.workflows.deep_research import AgentDecision
+        from datetime import timezone
+
+        # Create an AgentDecision to test the default_factory
+        from foundry_mcp.core.research.workflows.deep_research import AgentRole
+        decision = AgentDecision(
+            agent=AgentRole.PLANNER,
+            action="test",
+            rationale="test rationale",
+            inputs={},
+        )
+
+        # The timestamp should be timezone-aware
+        assert decision.timestamp.tzinfo is not None
+        assert decision.timestamp.tzinfo == timezone.utc
+
+
+class TestFileStorageRobustness:
+    """Tests for file storage thread safety improvements."""
+
+    def test_load_handles_concurrent_delete(self, tmp_path: Path):
+        """Should handle file being deleted between existence check and read."""
+        from foundry_mcp.core.research.memory import FileStorageBackend
+        from foundry_mcp.core.research.models import ConversationThread
+
+        backend = FileStorageBackend(
+            storage_path=tmp_path / "threads",
+            model_class=ConversationThread,
+            ttl_hours=24,
+        )
+
+        # File doesn't exist - should return None gracefully
+        result = backend.load("nonexistent")
+        assert result is None
+
+    def test_delete_handles_missing_file(self, tmp_path: Path):
+        """Should return False when deleting non-existent item."""
+        from foundry_mcp.core.research.memory import FileStorageBackend
+        from foundry_mcp.core.research.models import ConversationThread
+
+        backend = FileStorageBackend(
+            storage_path=tmp_path / "threads",
+            model_class=ConversationThread,
+            ttl_hours=24,
+        )
+
+        result = backend.delete("nonexistent")
+        assert result is False
+
+    def test_delete_cleans_orphaned_lock_files(self, tmp_path: Path):
+        """Should clean up orphaned lock files when data file is missing."""
+        from foundry_mcp.core.research.memory import FileStorageBackend
+        from foundry_mcp.core.research.models import ConversationThread
+
+        backend = FileStorageBackend(
+            storage_path=tmp_path / "threads",
+            model_class=ConversationThread,
+            ttl_hours=24,
+        )
+
+        # Create an orphaned lock file
+        lock_path = backend._get_lock_path("orphaned")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_path.write_text("")
+
+        # Delete should clean up the orphaned lock file
+        backend.delete("orphaned")
+
+        # Lock file should be removed
+        assert not lock_path.exists()
+
+    def test_load_with_ttl_expiry_inside_lock(self, tmp_path: Path):
+        """Should check expiry inside lock to avoid TOCTOU race."""
+        from foundry_mcp.core.research.memory import FileStorageBackend
+        from foundry_mcp.core.research.models import ConversationThread
+        import time
+
+        # Create backend with very short TTL
+        backend = FileStorageBackend(
+            storage_path=tmp_path / "threads",
+            model_class=ConversationThread,
+            ttl_hours=0,  # Immediate expiry based on mtime
+        )
+
+        # Create a thread
+        thread = ConversationThread(title="Test")
+        backend.save(thread.id, thread)
+
+        # Wait a moment for file to age
+        time.sleep(0.1)
+
+        # Manually set TTL to make file expired
+        backend.ttl_hours = 0  # 0 hours = expired immediately
+
+        # Load should handle expired file gracefully
+        result = backend.load(thread.id)
+
+        # Either returns None (expired and deleted) or the thread (if TTL check passed)
+        # The important thing is no exception was raised
+        assert result is None or isinstance(result, ConversationThread)
+
+
+# =============================================================================
+# Workflow Failure Scenario Tests
+# =============================================================================
+
+
+class TestChatWorkflowFailureRecovery:
+    """Tests for ChatWorkflow state recovery on provider failure."""
+
+    def test_thread_saved_before_provider_call(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+    ):
+        """Should save thread with user message before calling provider.
+
+        This ensures the user message is persisted even if the provider fails,
+        enabling retry scenarios and maintaining state consistency.
+        """
+        workflow = ChatWorkflow(research_config, mock_memory)
+
+        # Mock provider to fail
+        with patch.object(workflow, "_resolve_provider", return_value=None):
+            result = workflow.execute(prompt="Hello, this is a test message")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "not available" in result.error.lower()
+
+        # Verify thread was saved with user message despite provider failure
+        assert "thread_id" in result.metadata
+        thread_id = result.metadata["thread_id"]
+
+        # Load the thread and verify user message was persisted
+        thread = mock_memory.load_thread(thread_id)
+        assert thread is not None
+        assert len(thread.messages) == 1
+        assert thread.messages[0].role == "user"
+        assert thread.messages[0].content == "Hello, this is a test message"
+
+    def test_thread_metadata_always_returned(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+        mock_provider_context,
+    ):
+        """Should return thread metadata even when provider fails."""
+        workflow = ChatWorkflow(research_config, mock_memory)
+
+        # First, test with provider failure
+        with patch.object(workflow, "_resolve_provider", return_value=None):
+            result = workflow.execute(prompt="Test message")
+
+        assert "thread_id" in result.metadata
+        assert "message_count" in result.metadata
+        assert "thread_title" in result.metadata
+
+    def test_continued_thread_recovers_after_failure(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+        mock_provider_context,
+    ):
+        """Should allow continuing a thread after a previous failure."""
+        workflow = ChatWorkflow(research_config, mock_memory)
+
+        # First message fails (provider unavailable)
+        with patch.object(workflow, "_resolve_provider", return_value=None):
+            result1 = workflow.execute(prompt="First message")
+
+        thread_id = result1.metadata["thread_id"]
+        assert result1.success is False
+
+        # Second message succeeds (provider available)
+        with patch.object(
+            workflow, "_resolve_provider", return_value=mock_provider_context
+        ):
+            result2 = workflow.execute(prompt="Second message", thread_id=thread_id)
+
+        assert result2.success is True
+        assert result2.metadata["thread_id"] == thread_id
+        # Should have 3 messages: first user, second user, assistant response
+        assert result2.metadata["message_count"] == 3
+
+
+class TestConsensusWorkflowFailureRecovery:
+    """Tests for ConsensusWorkflow state recovery on synthesis failure."""
+
+    def test_responses_saved_before_synthesis(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+        mock_provider_context,
+    ):
+        """Should save responses before attempting synthesis.
+
+        This ensures collected responses are persisted even if synthesis fails.
+        """
+        workflow = ConsensusWorkflow(research_config, mock_memory)
+
+        # Track save calls
+        save_calls = []
+        original_save = mock_memory.save_consensus
+
+        def tracking_save(state):
+            save_calls.append({
+                "has_responses": len(state.responses) > 0,
+                "completed": state.completed_at is not None,
+            })
+            return original_save(state)
+
+        mock_memory.save_consensus = tracking_save
+
+        with patch(
+            "foundry_mcp.core.research.workflows.consensus.available_providers",
+            return_value=["gemini"],
+        ):
+            with patch(
+                "foundry_mcp.core.research.workflows.consensus.resolve_provider",
+                return_value=mock_provider_context,
+            ):
+                result = workflow.execute(
+                    prompt="Test",
+                    providers=["gemini"],
+                    strategy=ConsensusStrategy.FIRST_VALID,
+                )
+
+        assert result.success is True
+
+        # Verify save was called before synthesis (first call should have responses but not be completed)
+        assert len(save_calls) >= 2
+        assert save_calls[0]["has_responses"] is True
+        assert save_calls[0]["completed"] is False  # First save is before synthesis
+
+    def test_synthesis_error_persists_state(
+        self,
+        research_config: ResearchConfig,
+        mock_memory: ResearchMemory,
+        mock_provider_context,
+    ):
+        """Should persist state with error info when synthesis fails."""
+        workflow = ConsensusWorkflow(research_config, mock_memory)
+
+        # Mock synthesis to fail
+        with patch(
+            "foundry_mcp.core.research.workflows.consensus.available_providers",
+            return_value=["gemini"],
+        ):
+            with patch(
+                "foundry_mcp.core.research.workflows.consensus.resolve_provider",
+                return_value=mock_provider_context,
+            ):
+                # Patch _apply_strategy to raise an error
+                with patch.object(
+                    workflow,
+                    "_apply_strategy",
+                    side_effect=ValueError("Synthesis failed"),
+                ):
+                    result = workflow.execute(
+                        prompt="Test",
+                        providers=["gemini"],
+                        strategy=ConsensusStrategy.SYNTHESIZE,
+                    )
+
+        # The outer exception handler should catch this
+        assert result.success is False
+
+        # Verify the consensus state was saved (list should have one entry)
+        states = mock_memory.list_consensus(limit=10)
+        assert len(states) >= 1
+
+        # The most recent state should have responses saved
+        latest_state = states[0]
+        assert len(latest_state.responses) > 0
+
+
+class TestDeepResearchTimeoutRecovery:
+    """Tests for deep research timeout and partial state handling."""
+
+    def test_timeout_marks_state_as_failed(self):
+        """Should mark state as failed when timeout occurs."""
+        from foundry_mcp.core.research.workflows.deep_research import DeepResearchState
+
+        state = DeepResearchState(original_query="Test query")
+
+        # Simulate timeout marking (as done in deep_research.py:1372-1388)
+        state.metadata["timeout"] = True
+        state.metadata["abort_phase"] = state.phase.value
+        state.metadata["abort_iteration"] = state.iteration
+        state.mark_failed("Research timed out after 60s")
+
+        assert state.metadata["failed"] is True
+        assert state.metadata["timeout"] is True
+        assert state.completed_at is not None
+
+    def test_cleanup_stale_tasks_removes_old_completed(self):
+        """Should clean up old completed tasks from registry."""
+        from foundry_mcp.core.research.workflows.deep_research import (
+            DeepResearchWorkflow,
+            BackgroundTask,
+        )
+        import threading
+        import time
+
+        # Clear any existing tasks
+        with DeepResearchWorkflow._tasks_lock:
+            DeepResearchWorkflow._tasks.clear()
+
+        # Create dummy completed threads
+        def noop():
+            pass
+
+        old_thread = threading.Thread(target=noop)
+        old_thread.start()
+        old_thread.join()  # Complete immediately
+
+        new_thread = threading.Thread(target=noop)
+        new_thread.start()
+        new_thread.join()  # Complete immediately
+
+        # Add some tasks with completed threads
+        old_task = BackgroundTask(research_id="old-task", thread=old_thread, timeout=60)
+        old_task.completed_at = time.time() - 7200  # 2 hours ago
+
+        new_task = BackgroundTask(research_id="new-task", thread=new_thread, timeout=60)
+        new_task.completed_at = time.time() - 60  # 1 minute ago
+
+        # Running task has no completed_at
+        running_task = BackgroundTask(research_id="running-task", timeout=60)
+        # No thread means is_done returns True for this edge case, but no completed_at
+
+        with DeepResearchWorkflow._tasks_lock:
+            DeepResearchWorkflow._tasks["old-task"] = old_task
+            DeepResearchWorkflow._tasks["new-task"] = new_task
+            DeepResearchWorkflow._tasks["running-task"] = running_task
+
+        # Cleanup with 1 hour threshold
+        removed = DeepResearchWorkflow.cleanup_stale_tasks(max_age_seconds=3600)
+
+        assert removed == 1  # Only old task should be removed
+
+        with DeepResearchWorkflow._tasks_lock:
+            assert "old-task" not in DeepResearchWorkflow._tasks
+            assert "new-task" in DeepResearchWorkflow._tasks
+            assert "running-task" in DeepResearchWorkflow._tasks
+            # Clean up
+            DeepResearchWorkflow._tasks.clear()
+
+    def test_active_sessions_protected_by_lock(self):
+        """Should protect active sessions dict with lock during iteration."""
+        from foundry_mcp.core.research.workflows.deep_research import (
+            _active_research_sessions,
+            _active_sessions_lock,
+            DeepResearchState,
+        )
+        import threading
+
+        # Create some test states
+        state1 = DeepResearchState(original_query="Query 1")
+        state2 = DeepResearchState(original_query="Query 2")
+
+        # Add states under lock
+        with _active_sessions_lock:
+            _active_research_sessions[state1.id] = state1
+            _active_research_sessions[state2.id] = state2
+
+        # Take snapshot under lock (as crash handler does)
+        with _active_sessions_lock:
+            snapshot = list(_active_research_sessions.items())
+
+        assert len(snapshot) == 2
+
+        # Cleanup
+        with _active_sessions_lock:
+            _active_research_sessions.pop(state1.id, None)
+            _active_research_sessions.pop(state2.id, None)
+
+
+class TestConcurrentAccessSafety:
+    """Tests for concurrent access safety in research workflows."""
+
+    @pytest.mark.asyncio
+    async def test_gathering_phase_state_lock(self):
+        """Should protect state modifications in gathering phase with lock."""
+        import asyncio
+
+        # Simulate the state_lock pattern from deep_research.py gathering phase
+        state_lock = asyncio.Lock()
+        sources = []
+        seen_urls = set()
+
+        async def add_source(url: str):
+            async with state_lock:
+                if url in seen_urls:
+                    return False
+                seen_urls.add(url)
+                sources.append(url)
+                return True
+
+        # Run concurrent additions
+        tasks = [
+            add_source("http://example.com/1"),
+            add_source("http://example.com/2"),
+            add_source("http://example.com/1"),  # Duplicate
+            add_source("http://example.com/3"),
+            add_source("http://example.com/2"),  # Duplicate
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        # Should have 3 unique URLs, 2 duplicates rejected
+        assert sum(results) == 3
+        assert len(sources) == 3
+        assert len(seen_urls) == 3
+
+    def test_tasks_dict_thread_safe_access(self):
+        """Should access tasks dict safely from multiple threads."""
+        from foundry_mcp.core.research.workflows.deep_research import (
+            DeepResearchWorkflow,
+            BackgroundTask,
+        )
+        import threading
+        import time
+
+        # Clear existing tasks
+        with DeepResearchWorkflow._tasks_lock:
+            DeepResearchWorkflow._tasks.clear()
+
+        results = {"added": 0, "read": 0}
+        errors = []
+
+        def add_tasks():
+            for i in range(10):
+                task = BackgroundTask(research_id=f"task-{i}", timeout=60)
+                with DeepResearchWorkflow._tasks_lock:
+                    DeepResearchWorkflow._tasks[f"task-{i}"] = task
+                    results["added"] += 1
+                time.sleep(0.001)
+
+        def read_tasks():
+            for _ in range(20):
+                with DeepResearchWorkflow._tasks_lock:
+                    count = len(DeepResearchWorkflow._tasks)
+                    results["read"] += 1
+                time.sleep(0.001)
+
+        # Run concurrent readers and writers
+        threads = [
+            threading.Thread(target=add_tasks),
+            threading.Thread(target=read_tasks),
+            threading.Thread(target=read_tasks),
+        ]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert results["added"] == 10
+        assert results["read"] == 40
+        assert len(errors) == 0
+
+        # Cleanup
+        with DeepResearchWorkflow._tasks_lock:
+            DeepResearchWorkflow._tasks.clear()

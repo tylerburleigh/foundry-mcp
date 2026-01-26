@@ -173,10 +173,20 @@ class ConsensusWorkflow(ResearchWorkflowBase):
                     error=f"Not all providers succeeded (require_all=True). Failed: {[r.provider_id for r in state.failed_responses()]}",
                 )
 
-            # Apply synthesis strategy
-            result = self._apply_strategy(state)
+            # Save state with responses BEFORE applying strategy
+            # This ensures responses are persisted even if synthesis fails
+            self.memory.save_consensus(state)
 
-            # Persist state
+            # Apply synthesis strategy
+            try:
+                result = self._apply_strategy(state)
+            except Exception as strategy_exc:
+                # Mark state as failed and save before re-raising
+                state.metadata["synthesis_error"] = str(strategy_exc)
+                self.memory.save_consensus(state)
+                raise
+
+            # Persist final state with synthesis result
             state.mark_completed(synthesis=result.content if result.success else None)
             self.memory.save_consensus(state)
 

@@ -87,6 +87,11 @@ class ChatWorkflow(ResearchWorkflowBase):
             # Build context for provider
             context = self._build_context(thread)
 
+            # Save thread with user message BEFORE calling provider
+            # This ensures the user message is persisted even if the provider fails
+            # (important for retry scenarios and state consistency)
+            self.memory.save_thread(thread)
+
             # Execute provider
             result = self._execute_provider(
                 prompt=context,
@@ -107,13 +112,13 @@ class ChatWorkflow(ResearchWorkflowBase):
                     tokens_used=result.tokens_used,
                 )
 
-                # Persist thread
+                # Persist thread with assistant response
                 self.memory.save_thread(thread)
 
-                # Add thread info to result metadata
-                result.metadata["thread_id"] = thread.id
-                result.metadata["message_count"] = len(thread.messages)
-                result.metadata["thread_title"] = thread.title
+            # Add thread info to result metadata (always, for error recovery)
+            result.metadata["thread_id"] = thread.id
+            result.metadata["message_count"] = len(thread.messages)
+            result.metadata["thread_title"] = thread.title
 
             return result
         except Exception as exc:

@@ -100,15 +100,23 @@ class FileStorageBackend(Generic[T]):
         file_path = self._get_file_path(item_id)
         lock_path = self._get_lock_path(item_id)
 
+        # Quick existence check (non-atomic, but avoids lock contention)
         if not file_path.exists():
             return None
 
-        if self._is_expired(file_path):
-            logger.debug("Item %s has expired, removing", item_id)
-            self.delete(item_id)
-            return None
-
         with FileLock(lock_path, timeout=10):
+            # Re-check existence and expiry inside lock to avoid TOCTOU race
+            if not file_path.exists():
+                return None
+
+            if self._is_expired(file_path):
+                logger.debug("Item %s has expired, removing", item_id)
+                try:
+                    file_path.unlink()
+                except OSError:
+                    pass  # Already deleted by another process
+                return None
+
             try:
                 data = json.loads(file_path.read_text())
                 return self.model_class.model_validate(data)
@@ -128,20 +136,38 @@ class FileStorageBackend(Generic[T]):
         file_path = self._get_file_path(item_id)
         lock_path = self._get_lock_path(item_id)
 
+        # Quick existence check (non-atomic, but avoids lock contention for missing files)
         if not file_path.exists():
+            # Clean up orphaned lock file if present
+            if lock_path.exists():
+                try:
+                    lock_path.unlink()
+                except OSError:
+                    pass
             return False
 
+        deleted = False
         with FileLock(lock_path, timeout=10):
             try:
                 file_path.unlink()
                 logger.debug("Deleted %s", item_id)
-                # Clean up lock file
-                if lock_path.exists():
-                    lock_path.unlink()
-                return True
+                deleted = True
+            except FileNotFoundError:
+                # Already deleted by another process - that's fine
+                deleted = False
             except OSError as exc:
                 logger.warning("Failed to delete %s: %s", item_id, exc)
-                return False
+                deleted = False
+
+        # Clean up lock file AFTER releasing the lock (outside the context manager)
+        # This avoids issues with FileLock still having a reference
+        if deleted:
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass  # Lock file may already be gone or still in use
+
+        return deleted
 
     def list_ids(self) -> list[str]:
         """List all item IDs in storage.
@@ -453,7 +479,10 @@ class ResearchMemory:
                     filtered_states.append(state)
                 elif state.id == cursor:
                     cursor_found = True
-            states = filtered_states
+            if cursor_found:
+                states = filtered_states
+            else:
+                logger.warning("Cursor '%s' not found in deep research list", cursor)
 
         if limit is not None:
             states = states[:limit]

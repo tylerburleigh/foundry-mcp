@@ -322,7 +322,8 @@ class ResearchWorkflowBase(ABC):
             WorkflowResult with response, error, or timeout metadata
         """
         effective_timeout = timeout or self.config.default_timeout
-        providers_to_try = [provider_id or self.config.default_provider]
+        primary_provider = provider_id or self.config.default_provider
+        providers_to_try = [primary_provider]
 
         # Add fallback providers if configured
         if fallback_providers:
@@ -333,8 +334,15 @@ class ResearchWorkflowBase(ABC):
         providers_tried: List[str] = []
         total_retries = 0
         last_error: Optional[str] = None
+        saw_timeout = False
+        saw_non_timeout = False
 
         for current_provider_id in providers_to_try:
+            current_spec: Optional[ProviderSpec] = None
+            try:
+                current_spec = ProviderSpec.parse_flexible(current_provider_id)
+            except ValueError:
+                current_spec = None
             # Try this provider with retries
             for attempt in range(max_retries + 1):
                 start_time = time.perf_counter()
@@ -344,6 +352,7 @@ class ResearchWorkflowBase(ABC):
                     provider = self._resolve_provider(current_provider_id, hooks)
                     if provider is None:
                         last_error = f"Provider '{current_provider_id}' is not available"
+                        saw_non_timeout = True
                         logger.warning(
                             "%s phase: Provider resolution failed for '%s' (attempt %d)",
                             phase or "unknown",
@@ -352,10 +361,16 @@ class ResearchWorkflowBase(ABC):
                         )
                         break  # Don't retry if provider can't be resolved
 
+                    request_model = None
+                    if current_spec and current_spec.model:
+                        request_model = current_spec.model
+                    elif model is not None and current_provider_id == primary_provider:
+                        request_model = model
+
                     request = ProviderRequest(
                         prompt=prompt,
                         system_prompt=system_prompt,
-                        model=model,
+                        model=request_model,
                         timeout=effective_timeout,
                         temperature=temperature,
                         max_tokens=max_tokens,
@@ -372,6 +387,7 @@ class ResearchWorkflowBase(ABC):
 
                     if result.status != ProviderStatus.SUCCESS:
                         last_error = f"Provider returned status: {result.status.value}"
+                        saw_non_timeout = True
                         logger.warning(
                             "%s phase: Provider %s returned %s (attempt %d)",
                             phase or "unknown",
@@ -408,6 +424,7 @@ class ResearchWorkflowBase(ABC):
                 except asyncio.TimeoutError:
                     duration_ms = (time.perf_counter() - start_time) * 1000
                     last_error = f"Timed out after {effective_timeout}s"
+                    saw_timeout = True
                     logger.warning(
                         "%s phase: Provider %s timed out after %.1fs (attempt %d)",
                         phase or "unknown",
@@ -451,6 +468,7 @@ class ResearchWorkflowBase(ABC):
                         ) from exc
 
                     last_error = str(exc)
+                    saw_non_timeout = True
                     logger.warning(
                         "%s phase: Provider %s failed with %s (attempt %d): %s",
                         phase or "unknown",
@@ -477,13 +495,14 @@ class ResearchWorkflowBase(ABC):
             last_error,
         )
 
+        timed_out = saw_timeout and not saw_non_timeout
         return WorkflowResult(
             success=False,
             content="",
             error=last_error or "All providers exhausted",
             metadata={
                 "phase": phase,
-                "timeout": True,
+                "timeout": timed_out,
                 "retries": total_retries,
                 "providers_tried": providers_tried,
             },
