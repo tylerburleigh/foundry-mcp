@@ -14,6 +14,107 @@ from pydantic import BaseModel, Field
 
 
 # =============================================================================
+# Fragment ID Utilities
+# =============================================================================
+
+
+def make_fragment_id(base_id: str, fragment_index: int) -> str:
+    """Generate a stable fragment ID for chunked content.
+
+    Creates a predictable ID for content fragments by appending a
+    fragment index to the base item ID. This enables tracking fidelity
+    at the chunk level while maintaining parent item relationships.
+
+    Args:
+        base_id: Base item ID (e.g., "src-abc123")
+        fragment_index: Zero-based index of the fragment/chunk
+
+    Returns:
+        Fragment ID in format "{base_id}#fragment-{N}"
+
+    Examples:
+        >>> make_fragment_id("src-abc123", 0)
+        'src-abc123#fragment-0'
+        >>> make_fragment_id("src-abc123", 3)
+        'src-abc123#fragment-3'
+    """
+    return f"{base_id}#fragment-{fragment_index}"
+
+
+def parse_fragment_id(fragment_id: str) -> tuple[str, Optional[int]]:
+    """Parse a fragment ID into base ID and fragment index.
+
+    Extracts the base item ID and optional fragment index from a
+    fragment ID. If the ID doesn't contain a fragment suffix, returns
+    the original ID with None for the fragment index.
+
+    Args:
+        fragment_id: ID that may contain fragment suffix
+
+    Returns:
+        Tuple of (base_id, fragment_index) where fragment_index is
+        None if no fragment suffix was present
+
+    Examples:
+        >>> parse_fragment_id("src-abc123#fragment-0")
+        ('src-abc123', 0)
+        >>> parse_fragment_id("src-abc123")
+        ('src-abc123', None)
+    """
+    if "#fragment-" not in fragment_id:
+        return fragment_id, None
+
+    base_id, suffix = fragment_id.rsplit("#fragment-", 1)
+    try:
+        fragment_index = int(suffix)
+        return base_id, fragment_index
+    except ValueError:
+        # Invalid fragment suffix, return original as-is
+        return fragment_id, None
+
+
+def is_fragment_id(item_id: str) -> bool:
+    """Check if an ID is a fragment ID.
+
+    Args:
+        item_id: ID to check
+
+    Returns:
+        True if the ID contains a fragment suffix
+
+    Examples:
+        >>> is_fragment_id("src-abc123#fragment-0")
+        True
+        >>> is_fragment_id("src-abc123")
+        False
+    """
+    _, fragment_index = parse_fragment_id(item_id)
+    return fragment_index is not None
+
+
+def get_base_id(item_id: str) -> str:
+    """Get the base ID from a potentially fragment ID.
+
+    Strips the fragment suffix if present, returning the original
+    item ID.
+
+    Args:
+        item_id: ID that may contain fragment suffix
+
+    Returns:
+        Base item ID without fragment suffix
+
+    Examples:
+        >>> get_base_id("src-abc123#fragment-0")
+        'src-abc123'
+        >>> get_base_id("src-abc123")
+        'src-abc123'
+    """
+    base_id, _ = parse_fragment_id(item_id)
+    return base_id
+
+
+# =============================================================================
 # Enums
 # =============================================================================
 
@@ -536,6 +637,239 @@ class DeepResearchPhase(str, Enum):
     REFINEMENT = "refinement"
 
 
+class FidelityLevel(str, Enum):
+    """Content fidelity levels for token budget management.
+
+    Defines how much content has been preserved or compressed during
+    budget allocation. Each level represents a progressively more
+    aggressive compression applied to fit within token constraints.
+
+    Levels (ordered from highest to lowest fidelity):
+        FULL: Content unchanged - original content preserved
+        CONDENSED: Light summarization (~50-70% of original)
+        KEY_POINTS: Bullet point extraction (~20-40% of original)
+        HEADLINE: Single sentence summary (~5-10% of original)
+        TRUNCATED: Hard cut with marker (arbitrary %)
+        DROPPED: Content completely removed (0%)
+    """
+
+    FULL = "full"
+    CONDENSED = "condensed"
+    KEY_POINTS = "key_points"
+    HEADLINE = "headline"
+    TRUNCATED = "truncated"
+    DROPPED = "dropped"
+
+    @property
+    def is_degraded(self) -> bool:
+        """Check if this level represents degraded content."""
+        return self != FidelityLevel.FULL
+
+    @property
+    def is_available(self) -> bool:
+        """Check if content is still available (not dropped)."""
+        return self != FidelityLevel.DROPPED
+
+
+class PhaseContentFidelityRecord(BaseModel):
+    """Record of fidelity for a specific content item in a specific phase.
+
+    Tracks when and why content was degraded during a particular
+    workflow phase, along with any warnings generated.
+
+    Attributes:
+        level: Fidelity level applied in this phase
+        reason: Why degradation was applied (e.g., "budget_exceeded")
+        warnings: Any warnings generated during processing
+        timestamp: When this fidelity was applied
+        original_tokens: Token count before degradation
+        final_tokens: Token count after degradation
+    """
+
+    level: FidelityLevel = Field(
+        default=FidelityLevel.FULL,
+        description="Fidelity level applied in this phase",
+    )
+    reason: str = Field(
+        default="",
+        description="Why degradation was applied (e.g., 'budget_exceeded', 'priority_low')",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Any warnings generated during processing",
+    )
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="When this fidelity was applied",
+    )
+    original_tokens: Optional[int] = Field(
+        default=None,
+        description="Token count before degradation",
+    )
+    final_tokens: Optional[int] = Field(
+        default=None,
+        description="Token count after degradation",
+    )
+
+
+class ContentFidelityRecord(BaseModel):
+    """Tracks fidelity history for a single content item across all phases.
+
+    Maintains a per-phase record of how content fidelity changed throughout
+    the workflow. This enables auditing of content degradation decisions
+    and supports potential future content restoration.
+
+    The `phases` dict is keyed by phase name (e.g., "analysis", "synthesis")
+    and contains the fidelity record for that phase.
+
+    Attributes:
+        item_id: Unique identifier for the content item (source/finding/gap ID)
+        item_type: Type of content ("source", "finding", "gap")
+        phases: Per-phase fidelity records, keyed by phase name
+        current_level: Most recent fidelity level (convenience field)
+        created_at: When tracking began for this item
+        updated_at: Last time any phase record was updated
+    """
+
+    item_id: str = Field(
+        ...,
+        description="Unique identifier for the content item",
+    )
+    item_type: str = Field(
+        default="source",
+        description="Type of content: 'source', 'finding', 'gap'",
+    )
+    phases: dict[str, PhaseContentFidelityRecord] = Field(
+        default_factory=dict,
+        description="Per-phase fidelity records, keyed by phase name",
+    )
+    current_level: FidelityLevel = Field(
+        default=FidelityLevel.FULL,
+        description="Most recent fidelity level (convenience field)",
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="When tracking began for this item",
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Last time any phase record was updated",
+    )
+
+    def record_phase(
+        self,
+        phase: str,
+        level: FidelityLevel,
+        reason: str = "",
+        warnings: Optional[list[str]] = None,
+        original_tokens: Optional[int] = None,
+        final_tokens: Optional[int] = None,
+    ) -> None:
+        """Record fidelity for a specific phase.
+
+        Args:
+            phase: Phase name (e.g., "analysis", "synthesis")
+            level: Fidelity level applied
+            reason: Why degradation was applied
+            warnings: Any warnings generated
+            original_tokens: Token count before degradation
+            final_tokens: Token count after degradation
+        """
+        self.phases[phase] = PhaseContentFidelityRecord(
+            level=level,
+            reason=reason,
+            warnings=warnings or [],
+            original_tokens=original_tokens,
+            final_tokens=final_tokens,
+        )
+        self.current_level = level
+        self.updated_at = datetime.utcnow()
+
+    def get_phase(self, phase: str) -> Optional[PhaseContentFidelityRecord]:
+        """Get fidelity record for a specific phase.
+
+        Args:
+            phase: Phase name to look up
+
+        Returns:
+            PhaseContentFidelityRecord if exists, None otherwise
+        """
+        return self.phases.get(phase)
+
+    def merge_phases_from(self, other: "ContentFidelityRecord") -> None:
+        """Merge phase records from another ContentFidelityRecord.
+
+        Implements the fidelity merge rules:
+        - Latest phase overwrites same-phase entry (by timestamp)
+        - Prior phases are preserved for history
+
+        For each phase in `other`:
+        - If phase doesn't exist in self, add it
+        - If phase exists, keep the one with the later timestamp
+
+        This enables reconstructing fidelity history after content
+        re-processing or migration scenarios.
+
+        Args:
+            other: Another ContentFidelityRecord to merge from
+        """
+        for phase_name, other_record in other.phases.items():
+            if phase_name not in self.phases:
+                # New phase - add it
+                self.phases[phase_name] = other_record
+            else:
+                # Existing phase - keep the latest by timestamp
+                self_record = self.phases[phase_name]
+                if other_record.timestamp > self_record.timestamp:
+                    self.phases[phase_name] = other_record
+
+        # Update current_level to the most recent phase's level
+        if self.phases:
+            latest_phase = max(
+                self.phases.values(),
+                key=lambda r: r.timestamp,
+            )
+            self.current_level = latest_phase.level
+
+        self.updated_at = datetime.utcnow()
+
+    def get_phases_for_item(self) -> list[str]:
+        """Get all phase names recorded for this item.
+
+        Returns:
+            List of phase names in chronological order (by timestamp)
+        """
+        sorted_phases = sorted(
+            self.phases.items(),
+            key=lambda kv: kv[1].timestamp,
+        )
+        return [phase_name for phase_name, _ in sorted_phases]
+
+    def get_fidelity_history(self) -> list[dict[str, Any]]:
+        """Get the fidelity history across all phases.
+
+        Returns a list of records showing how fidelity changed over time,
+        ordered chronologically. Useful for debugging and auditing.
+
+        Returns:
+            List of dicts with phase, level, reason, timestamp
+        """
+        history = []
+        for phase_name, record in sorted(
+            self.phases.items(),
+            key=lambda kv: kv[1].timestamp,
+        ):
+            history.append({
+                "phase": phase_name,
+                "level": record.level.value,
+                "reason": record.reason,
+                "timestamp": record.timestamp.isoformat(),
+                "original_tokens": record.original_tokens,
+                "final_tokens": record.final_tokens,
+            })
+        return history
+
+
 class PhaseMetrics(BaseModel):
     """Metrics for a single phase execution.
 
@@ -979,6 +1313,21 @@ class DeepResearchState(BaseModel):
         description="Timestamp of last status check",
     )
 
+    # Content fidelity tracking (for token budget management)
+    # Per-item fidelity records: content_fidelity[item_id].phases[phase] = {level, reason, warnings, timestamp}
+    content_fidelity: dict[str, ContentFidelityRecord] = Field(
+        default_factory=dict,
+        description="Per-item fidelity records tracking degradation across phases",
+    )
+    dropped_content_ids: list[str] = Field(
+        default_factory=list,
+        description="IDs of sources dropped during budget allocation",
+    )
+    content_allocation_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Aggregate metadata: total_tokens_used, overall_fidelity_score, phase_budgets, warnings",
+    )
+
     # Configuration
     source_types: list[SourceType] = Field(
         default_factory=lambda: [SourceType.WEB, SourceType.ACADEMIC],
@@ -1242,3 +1591,274 @@ class DeepResearchState(BaseModel):
         self.updated_at = datetime.utcnow()
         self.metadata["failed"] = True
         self.metadata["failure_error"] = error
+
+    # ==========================================================================
+    # Content Fidelity Tracking Methods
+    # ==========================================================================
+
+    def record_item_fidelity(
+        self,
+        item_id: str,
+        phase: str,
+        level: FidelityLevel,
+        item_type: str = "source",
+        reason: str = "",
+        warnings: Optional[list[str]] = None,
+        original_tokens: Optional[int] = None,
+        final_tokens: Optional[int] = None,
+    ) -> ContentFidelityRecord:
+        """Record fidelity for a content item in a specific phase.
+
+        Creates or updates the ContentFidelityRecord for the item and
+        adds the phase-specific record.
+
+        Args:
+            item_id: Unique identifier for the content item
+            phase: Phase name (e.g., "analysis", "synthesis")
+            level: Fidelity level applied
+            item_type: Type of content ("source", "finding", "gap")
+            reason: Why degradation was applied
+            warnings: Any warnings generated
+            original_tokens: Token count before degradation
+            final_tokens: Token count after degradation
+
+        Returns:
+            The ContentFidelityRecord for the item
+        """
+        # Create or get existing record
+        if item_id not in self.content_fidelity:
+            self.content_fidelity[item_id] = ContentFidelityRecord(
+                item_id=item_id,
+                item_type=item_type,
+            )
+
+        record = self.content_fidelity[item_id]
+        record.record_phase(
+            phase=phase,
+            level=level,
+            reason=reason,
+            warnings=warnings,
+            original_tokens=original_tokens,
+            final_tokens=final_tokens,
+        )
+
+        # Track dropped items
+        if level == FidelityLevel.DROPPED and item_id not in self.dropped_content_ids:
+            self.dropped_content_ids.append(item_id)
+
+        self.updated_at = datetime.utcnow()
+        return record
+
+    def get_item_fidelity(self, item_id: str) -> Optional[ContentFidelityRecord]:
+        """Get fidelity record for a content item.
+
+        Args:
+            item_id: ID of the content item
+
+        Returns:
+            ContentFidelityRecord if exists, None otherwise
+        """
+        return self.content_fidelity.get(item_id)
+
+    def get_items_at_fidelity(self, level: FidelityLevel) -> list[str]:
+        """Get all item IDs currently at a specific fidelity level.
+
+        Args:
+            level: Fidelity level to filter by
+
+        Returns:
+            List of item IDs at that fidelity level
+        """
+        return [
+            item_id
+            for item_id, record in self.content_fidelity.items()
+            if record.current_level == level
+        ]
+
+    def get_overall_fidelity_score(self) -> float:
+        """Calculate an overall fidelity score for the session.
+
+        Returns a value between 0.0 and 1.0 representing the average
+        content preservation across all tracked items.
+
+        Returns:
+            Overall fidelity score (1.0 = all full fidelity, 0.0 = all dropped)
+        """
+        if not self.content_fidelity:
+            return 1.0
+
+        level_scores = {
+            FidelityLevel.FULL: 1.0,
+            FidelityLevel.CONDENSED: 0.7,
+            FidelityLevel.KEY_POINTS: 0.4,
+            FidelityLevel.HEADLINE: 0.2,
+            FidelityLevel.TRUNCATED: 0.3,
+            FidelityLevel.DROPPED: 0.0,
+        }
+
+        total_score = sum(
+            level_scores.get(record.current_level, 0.5)
+            for record in self.content_fidelity.values()
+        )
+        return total_score / len(self.content_fidelity)
+
+    def has_degraded_content(self) -> bool:
+        """Check if any content has been degraded from full fidelity.
+
+        Returns:
+            True if any content is below FULL fidelity
+        """
+        return any(
+            record.current_level != FidelityLevel.FULL
+            for record in self.content_fidelity.values()
+        )
+
+    def record_chunk_fidelity(
+        self,
+        base_id: str,
+        chunk_index: int,
+        phase: str,
+        level: FidelityLevel,
+        item_type: str = "source",
+        reason: str = "",
+        warnings: Optional[list[str]] = None,
+        original_tokens: Optional[int] = None,
+        final_tokens: Optional[int] = None,
+    ) -> ContentFidelityRecord:
+        """Record fidelity for a specific chunk of a content item.
+
+        Creates a fidelity record with a stable fragment ID in the format
+        "{base_id}#fragment-{N}". This allows tracking fidelity at the
+        chunk level while maintaining the parent item relationship.
+
+        Args:
+            base_id: Base item ID (e.g., "src-abc123")
+            chunk_index: Zero-based index of the chunk
+            phase: Phase name (e.g., "analysis", "synthesis")
+            level: Fidelity level applied
+            item_type: Type of content ("source", "finding", "gap")
+            reason: Why degradation was applied
+            warnings: Any warnings generated
+            original_tokens: Token count before degradation
+            final_tokens: Token count after degradation
+
+        Returns:
+            The ContentFidelityRecord for the chunk
+        """
+        fragment_id = make_fragment_id(base_id, chunk_index)
+        return self.record_item_fidelity(
+            item_id=fragment_id,
+            phase=phase,
+            level=level,
+            item_type=item_type,
+            reason=reason,
+            warnings=warnings,
+            original_tokens=original_tokens,
+            final_tokens=final_tokens,
+        )
+
+    def get_chunk_fidelity(
+        self, base_id: str, chunk_index: int
+    ) -> Optional[ContentFidelityRecord]:
+        """Get fidelity record for a specific chunk.
+
+        Args:
+            base_id: Base item ID (e.g., "src-abc123")
+            chunk_index: Zero-based index of the chunk
+
+        Returns:
+            ContentFidelityRecord if exists, None otherwise
+        """
+        fragment_id = make_fragment_id(base_id, chunk_index)
+        return self.get_item_fidelity(fragment_id)
+
+    def get_all_chunks_for_item(self, base_id: str) -> dict[int, ContentFidelityRecord]:
+        """Get all chunk fidelity records for a base item.
+
+        Finds all fragment IDs that derive from the given base ID and
+        returns their fidelity records indexed by chunk number.
+
+        Args:
+            base_id: Base item ID (e.g., "src-abc123")
+
+        Returns:
+            Dict mapping chunk_index to ContentFidelityRecord
+        """
+        chunks = {}
+        prefix = f"{base_id}#fragment-"
+        for item_id, record in self.content_fidelity.items():
+            if item_id.startswith(prefix):
+                _, fragment_index = parse_fragment_id(item_id)
+                if fragment_index is not None:
+                    chunks[fragment_index] = record
+        return chunks
+
+    def merge_fidelity_record(
+        self, item_id: str, other_record: ContentFidelityRecord
+    ) -> ContentFidelityRecord:
+        """Merge another fidelity record into the state.
+
+        Implements the fidelity merge rules:
+        - Latest phase overwrites same-phase entry (by timestamp)
+        - Prior phases are preserved for history
+
+        If the item doesn't exist in state, adds it directly.
+        If the item exists, merges phases from the other record.
+
+        Args:
+            item_id: ID of the content item
+            other_record: ContentFidelityRecord to merge
+
+        Returns:
+            The merged ContentFidelityRecord
+        """
+        if item_id not in self.content_fidelity:
+            # New item - add directly
+            self.content_fidelity[item_id] = other_record
+        else:
+            # Existing item - merge phases
+            self.content_fidelity[item_id].merge_phases_from(other_record)
+
+        # Track dropped items
+        record = self.content_fidelity[item_id]
+        if (
+            record.current_level == FidelityLevel.DROPPED
+            and item_id not in self.dropped_content_ids
+        ):
+            self.dropped_content_ids.append(item_id)
+
+        self.updated_at = datetime.utcnow()
+        return record
+
+    def get_aggregate_chunk_fidelity(self, base_id: str) -> Optional[FidelityLevel]:
+        """Get the aggregate fidelity level across all chunks of an item.
+
+        Returns the lowest (most degraded) fidelity level among all
+        chunks. This represents the "worst case" fidelity for the item.
+
+        Args:
+            base_id: Base item ID
+
+        Returns:
+            Lowest FidelityLevel among chunks, or None if no chunks exist
+        """
+        chunks = self.get_all_chunks_for_item(base_id)
+        if not chunks:
+            return None
+
+        # Order: FULL > CONDENSED > KEY_POINTS > HEADLINE > TRUNCATED > DROPPED
+        level_order = [
+            FidelityLevel.FULL,
+            FidelityLevel.CONDENSED,
+            FidelityLevel.KEY_POINTS,
+            FidelityLevel.HEADLINE,
+            FidelityLevel.TRUNCATED,
+            FidelityLevel.DROPPED,
+        ]
+
+        worst_level = FidelityLevel.FULL
+        for record in chunks.values():
+            if level_order.index(record.current_level) > level_order.index(worst_level):
+                worst_level = record.current_level
+
+        return worst_level

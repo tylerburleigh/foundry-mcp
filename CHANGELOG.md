@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.36] - 2026-01-25
+## [0.9.0b4] - 2026-01-25
 
 ### Added
 
@@ -67,6 +67,72 @@ tavily_extract_include_images = false
 tavily_extract_in_deep_research = false  # enable extract follow-up
 tavily_extract_max_urls = 5              # max URLs per deep research run
 ```
+
+## [0.9.0b3] - 2026-01-25
+
+### Added
+
+- **XDG Base Directory support**: Config loading now checks `~/.config/foundry-mcp/config.toml` (or `$XDG_CONFIG_HOME/foundry-mcp/config.toml`) as the lowest-priority user config location, following the XDG Base Directory Specification common on Linux systems
+
+### Changed
+
+- **Config loading priority** (highest to lowest):
+  1. Environment variables
+  2. Project config (`./foundry-mcp.toml`)
+  3. User config (`~/.foundry-mcp.toml`)
+  4. XDG config (`~/.config/foundry-mcp/config.toml`) - NEW
+  5. Built-in defaults
+
+## [0.9.0b2] - 2026-01-25
+
+### Fixed
+
+- **Deep research timezone crash**: Fixed `TypeError: can't subtract offset-naive and offset-aware datetimes` in `_allocate_source_budget` when Tavily returns timezone-naive `discovered_at` timestamps
+
+## [0.9.0b1] - 2026-01-25
+
+### Added
+
+- **Deep research token management**: Intelligent content compression and graceful degradation for large research workflows
+  - New `ContextBudgetAllocator` manages token budget allocation with priority-based content selection
+  - New `ContentArchive` enables file-based storage of dropped content with TTL cleanup
+  - New `GracefulDegradationManager` applies progressive content compression (FULL → CONDENSED → COMPRESSED → KEY_POINTS → HEADLINE → DROPPED)
+  - Fidelity tracking with per-item compression ratios and overall fidelity score
+  - Top-5 source protection guardrail ensures minimum 30% fidelity for high-priority items
+  - Content summarization via configurable LLM providers with fallback chain
+
+- **Token management configuration** (`ResearchConfig`):
+  - `token_management_enabled` - Master switch for token management (default: true)
+  - `token_safety_margin` - Budget safety buffer fraction (default: 0.15)
+  - `runtime_overhead` - Tokens reserved for CLI/IDE context (default: 60000 for Claude Code)
+  - `model_context_overrides` - Per-model context/output limit overrides
+  - `summarization_provider` / `summarization_providers` - LLM providers for content summarization
+  - `summarization_timeout` / `summarization_cache_enabled` - Summarization performance settings
+  - `allow_content_dropping` - Allow dropping low-priority content (default: false)
+  - `content_archive_enabled` / `content_archive_ttl_hours` / `research_archive_dir` - Archive settings
+
+- **Response schema extensions** for content fidelity:
+  - `meta.content_fidelity` - Response completeness level (full|partial|summary|reference_only)
+  - `meta.content_fidelity_schema_version` - Schema version for fidelity metadata ("1.0")
+  - `meta.dropped_content_ids` - IDs of content items omitted from response
+  - `meta.content_archive_hashes` - Map of archive IDs to content hashes for retrieval
+  - `meta.warning_details` - Structured warnings with code, severity, message, and context
+
+- **Token management warning codes**:
+  - `CONTENT_TRUNCATED` - Content summarized/compressed to fit budget
+  - `CONTENT_DROPPED` - Low-priority content removed
+  - `TOKEN_BUDGET_FLOORED` - Item preserved due to min items guardrail
+  - `ARCHIVE_WRITE_FAILED` / `ARCHIVE_DISABLED` / `ARCHIVE_READ_CORRUPT` - Archive status
+  - `TOKEN_COUNT_ESTIMATE_USED` - Character-based heuristic fallback (tiktoken unavailable)
+
+- **Documentation**:
+  - Token Management section in `docs/concepts/deep_research_workflow.md`
+  - Token Management Warnings section (17.4) in `dev_docs/codebase_standards/cli-output.md`
+  - Sample TOML configuration with runtime overhead values for different CLIs
+
+### Changed
+
+- **`success_response` helper** now accepts content fidelity parameters (`content_fidelity`, `dropped_content_ids`, `content_archive_hashes`, `warning_details`)
 
 ## [0.8.35] - 2026-01-24
 

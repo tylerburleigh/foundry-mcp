@@ -63,8 +63,42 @@ from foundry_mcp.core.research.providers import (
     TavilyExtractProvider,
 )
 from foundry_mcp.core.research.workflows.base import ResearchWorkflowBase, WorkflowResult
+from foundry_mcp.core.research.token_management import (
+    get_model_limits,
+    get_effective_context,
+    estimate_tokens,
+    get_provider_model_from_spec,
+    preflight_count,
+    PreflightResult,
+    TokenBudget,
+)
+from foundry_mcp.core.research.context_budget import (
+    AllocationResult,
+    AllocationStrategy,
+    ContentItem,
+    ContextBudgetManager,
+    compute_priority,
+    compute_recency_score,
+)
+# Note: ContentSummarizer and SummarizationLevel are available for async summarization
+# but refinement phase uses synchronous heuristic truncation for now to avoid
+# complexity of async summarization within the refinement flow.
 
 logger = logging.getLogger(__name__)
+
+# Budget allocation constants
+ANALYSIS_PHASE_BUDGET_FRACTION = 0.80  # 80% of effective context for analysis
+ANALYSIS_OUTPUT_RESERVED = 4000  # Reserve tokens for findings/gaps JSON output
+SYNTHESIS_PHASE_BUDGET_FRACTION = 0.85  # 85% of effective context for synthesis
+SYNTHESIS_OUTPUT_RESERVED = 8000  # Reserve tokens for comprehensive markdown report
+REFINEMENT_PHASE_BUDGET_FRACTION = 0.70  # 70% of effective context for refinement
+REFINEMENT_OUTPUT_RESERVED = 2000  # Reserve tokens for follow-up queries JSON
+REFINEMENT_REPORT_BUDGET_FRACTION = 0.50  # 50% of phase budget for report summary
+
+# Final-fit validation constants
+FINAL_FIT_MAX_ITERATIONS = 2  # Max attempts to fit payload within budget
+FINAL_FIT_COMPRESSION_FACTOR = 0.85  # Reduce budget target by 15% on retry
+FINAL_FIT_SAFETY_MARGIN = 0.10  # 10% safety margin for token estimation uncertainty
 
 
 # =============================================================================
@@ -1755,6 +1789,26 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 error="Research report not yet generated",
             )
 
+        # Build warnings list from allocation metadata
+        warnings: list[str] = []
+        allocation_meta = state.content_allocation_metadata or {}
+
+        # Add warning if content was dropped
+        if state.dropped_content_ids:
+            warnings.append(
+                f"Content truncated: {len(state.dropped_content_ids)} source(s) dropped for context limits"
+            )
+
+        # Add warning if fidelity is degraded
+        if state.content_fidelity not in ("full", ""):
+            warnings.append(
+                f"Content fidelity: {state.content_fidelity} (some sources may be summarized)"
+            )
+
+        # Add any warnings from allocation metadata
+        if allocation_meta.get("warnings"):
+            warnings.extend(allocation_meta["warnings"])
+
         return WorkflowResult(
             success=True,
             content=state.report,
@@ -1765,6 +1819,18 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 "finding_count": len(state.findings),
                 "iteration": state.iteration,
                 "is_complete": state.completed_at is not None,
+                # Token management metadata
+                "content_fidelity_schema_version": "1.0",
+                "content_fidelity": state.content_fidelity,
+                "dropped_content_ids": state.dropped_content_ids,
+                "content_allocation_summary": {
+                    "tokens_used": allocation_meta.get("tokens_used"),
+                    "tokens_budget": allocation_meta.get("tokens_budget"),
+                    "fidelity_score": allocation_meta.get("fidelity"),
+                    "items_allocated": allocation_meta.get("items_allocated"),
+                    "items_dropped": allocation_meta.get("items_dropped"),
+                },
+                "warnings": warnings,
             },
         )
 
@@ -2945,9 +3011,46 @@ Generate the research plan as JSON."""
             len(state.sources),
         )
 
-        # Build the analysis prompt
+        # Allocate token budget for sources
+        allocation_result = self._allocate_source_budget(
+            state=state,
+            provider_id=provider_id,
+        )
+
+        # Update state with allocation metadata
+        # Store overall fidelity in metadata (content_fidelity is now per-item dict)
+        state.dropped_content_ids = allocation_result.dropped_ids
+        allocation_dict = allocation_result.to_dict()
+        allocation_dict["overall_fidelity_level"] = self._fidelity_level_from_score(
+            allocation_result.fidelity
+        )
+        state.content_allocation_metadata = allocation_dict
+
+        logger.info(
+            "Budget allocation: %d sources allocated, %d dropped, fidelity=%.1f%%",
+            len(allocation_result.items),
+            len(allocation_result.dropped_ids),
+            allocation_result.fidelity * 100,
+        )
+
+        # Build the analysis prompt with allocated sources
         system_prompt = self._build_analysis_system_prompt(state)
-        user_prompt = self._build_analysis_user_prompt(state)
+        user_prompt = self._build_analysis_user_prompt(state, allocation_result)
+
+        # Final-fit validation before provider dispatch
+        valid, preflight, system_prompt, user_prompt = self._final_fit_validate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            provider_id=provider_id or state.analysis_provider,
+            model=state.analysis_model,
+            output_reserved=ANALYSIS_OUTPUT_RESERVED,
+            phase="analysis",
+        )
+
+        if not valid:
+            logger.warning(
+                "Analysis phase final-fit validation failed, proceeding with truncated prompts"
+            )
 
         # Execute LLM call with context window error handling and timeout protection
         try:
@@ -3172,15 +3275,529 @@ Guidelines for quality_updates:
 
 IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
 
-    def _build_analysis_user_prompt(self, state: DeepResearchState) -> str:
+    def _allocate_source_budget(
+        self,
+        state: DeepResearchState,
+        provider_id: Optional[str],
+    ) -> AllocationResult:
+        """Allocate token budget across sources for analysis phase.
+
+        Computes phase budget (80% of effective context), converts sources to
+        prioritized ContentItems, and allocates budget with PRIORITY_FIRST strategy.
+
+        Args:
+            state: Current research state with sources
+            provider_id: LLM provider to use for model limits
+
+        Returns:
+            AllocationResult with allocated items and fidelity metadata
+        """
+
+        # Get model limits for the analysis provider
+        provider_spec = provider_id or state.analysis_provider or "claude"
+        provider, model = get_provider_model_from_spec(provider_spec)
+        limits = get_model_limits(provider, model)
+
+        # Calculate effective context and phase budget
+        effective_context = get_effective_context(limits, output_budget=ANALYSIS_OUTPUT_RESERVED)
+        phase_budget = int(effective_context * ANALYSIS_PHASE_BUDGET_FRACTION)
+
+        logger.debug(
+            "Analysis budget: effective_context=%d, phase_budget=%d (%.0f%%)",
+            effective_context,
+            phase_budget,
+            ANALYSIS_PHASE_BUDGET_FRACTION * 100,
+        )
+
+        # Convert sources to ContentItems with priority scores
+        content_items: list[ContentItem] = []
+        for source in state.sources:
+            # Compute recency score from discovered_at
+            recency = 0.5  # Default if no timestamp
+            if source.discovered_at:
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                discovered = source.discovered_at
+                # Handle timezone-naive datetimes (legacy data)
+                if discovered.tzinfo is None:
+                    discovered = discovered.replace(tzinfo=timezone.utc)
+                age_hours = (now - discovered).total_seconds() / 3600
+                recency = compute_recency_score(age_hours, max_age_hours=720.0)
+
+            # Compute overall priority (0-1 scale, higher = higher priority)
+            priority_score = compute_priority(
+                source_quality=source.quality,
+                confidence=ConfidenceLevel.MEDIUM,  # Default for sources
+                recency_score=recency,
+                relevance_score=0.7,  # Assume sources are generally relevant
+            )
+
+            # Convert 0-1 score to integer priority (1=highest)
+            # 0.9+ -> priority 1, 0.7-0.9 -> priority 2, etc.
+            int_priority = max(1, min(5, int((1.0 - priority_score) * 5) + 1))
+
+            # Build content for token estimation
+            content = source.content or source.snippet or ""
+
+            content_items.append(ContentItem(
+                id=source.id,
+                content=content,
+                priority=int_priority,
+                source_id=source.id,
+                protected=source.quality == SourceQuality.HIGH,  # Protect high-quality sources
+            ))
+
+        # Allocate budget using ContextBudgetManager
+        manager = ContextBudgetManager(provider=provider, model=model)
+        result = manager.allocate_budget(
+            items=content_items,
+            budget=phase_budget,
+            strategy=AllocationStrategy.PRIORITY_FIRST,
+        )
+
+        return result
+
+    def _fidelity_level_from_score(self, fidelity_score: float) -> str:
+        """Convert fidelity score (0-1) to fidelity level string.
+
+        Args:
+            fidelity_score: Numeric fidelity from 0.0 to 1.0
+
+        Returns:
+            Fidelity level: 'full', 'condensed', 'compressed', or 'minimal'
+        """
+        if fidelity_score >= 0.9:
+            return "full"
+        elif fidelity_score >= 0.6:
+            return "condensed"
+        elif fidelity_score >= 0.3:
+            return "compressed"
+        else:
+            return "minimal"
+
+    def _allocate_synthesis_budget(
+        self,
+        state: DeepResearchState,
+        provider_id: Optional[str],
+    ) -> AllocationResult:
+        """Allocate token budget for synthesis phase.
+
+        Prioritizes findings (full fidelity) over source references (compressed).
+        Uses 85% of effective context as phase budget.
+
+        Args:
+            state: Current research state with findings and sources
+            provider_id: LLM provider to use for model limits
+
+        Returns:
+            AllocationResult with allocated items and fidelity metadata
+        """
+        # Get model limits for the synthesis provider
+        provider_spec = provider_id or state.synthesis_provider or "claude"
+        provider, model = get_provider_model_from_spec(provider_spec)
+        limits = get_model_limits(provider, model)
+
+        # Calculate effective context and phase budget
+        effective_context = get_effective_context(limits, output_budget=SYNTHESIS_OUTPUT_RESERVED)
+        phase_budget = int(effective_context * SYNTHESIS_PHASE_BUDGET_FRACTION)
+
+        logger.debug(
+            "Synthesis budget: effective_context=%d, phase_budget=%d (%.0f%%)",
+            effective_context,
+            phase_budget,
+            SYNTHESIS_PHASE_BUDGET_FRACTION * 100,
+        )
+
+        # Build content items: findings first (protected, priority 1),
+        # then sources (not protected, lower priority)
+        content_items: list[ContentItem] = []
+
+        # Add findings - they get priority and are protected
+        for finding in state.findings:
+            # Compute confidence-based priority
+            confidence_scores = {
+                ConfidenceLevel.CONFIRMED: 1,
+                ConfidenceLevel.HIGH: 1,
+                ConfidenceLevel.MEDIUM: 2,
+                ConfidenceLevel.LOW: 3,
+                ConfidenceLevel.SPECULATION: 4,
+            }
+            int_priority = confidence_scores.get(finding.confidence, 2)
+
+            # Build finding content for token estimation
+            confidence_label = finding.confidence.value if hasattr(finding.confidence, 'value') else str(finding.confidence)
+            source_refs = ", ".join(finding.source_ids) if finding.source_ids else "no sources"
+            content = f"[{confidence_label.upper()}] {finding.content}\nSources: {source_refs}"
+
+            content_items.append(ContentItem(
+                id=finding.id,
+                content=content,
+                priority=int_priority,
+                source_id=None,
+                protected=True,  # Findings get full fidelity
+            ))
+
+        # Add sources - they get compressed more aggressively
+        for source in state.sources:
+            # Compute recency score from discovered_at
+            recency = 0.5  # Default if no timestamp
+            if source.discovered_at:
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                discovered = source.discovered_at
+                # Handle timezone-naive datetimes (legacy data)
+                if discovered.tzinfo is None:
+                    discovered = discovered.replace(tzinfo=timezone.utc)
+                age_hours = (now - discovered).total_seconds() / 3600
+                recency = compute_recency_score(age_hours, max_age_hours=720.0)
+
+            # Compute overall priority (0-1 scale, higher = higher priority)
+            priority_score = compute_priority(
+                source_quality=source.quality,
+                confidence=ConfidenceLevel.MEDIUM,  # Default for sources
+                recency_score=recency,
+                relevance_score=0.5,  # Lower relevance for synthesis (sources are secondary)
+            )
+
+            # Convert 0-1 score to integer priority (1=highest)
+            # Start at priority 5 (after findings) and add based on score
+            # 0.9+ -> priority 5, 0.7-0.9 -> priority 6, etc.
+            int_priority = 5 + max(0, min(4, int((1.0 - priority_score) * 5)))
+
+            # Build source reference content (more compressed than analysis)
+            content_parts = [f"{source.id}: {source.title}"]
+            if source.url:
+                content_parts.append(f"URL: {source.url}")
+            # Include only snippet for sources in synthesis (not full content)
+            if source.snippet:
+                content_parts.append(f"Snippet: {source.snippet[:200]}...")
+            content = "\n".join(content_parts)
+
+            content_items.append(ContentItem(
+                id=source.id,
+                content=content,
+                priority=int_priority,
+                source_id=source.id,
+                protected=False,  # Sources can be dropped if needed
+            ))
+
+        # Allocate budget using ContextBudgetManager
+        manager = ContextBudgetManager(provider=provider, model=model)
+        result = manager.allocate_budget(
+            items=content_items,
+            budget=phase_budget,
+            strategy=AllocationStrategy.PRIORITY_FIRST,
+        )
+
+        return result
+
+    def _compute_refinement_budget(
+        self,
+        provider_id: Optional[str],
+        state: DeepResearchState,
+    ) -> tuple[int, int, int]:
+        """Compute token budgets for refinement phase.
+
+        Calculates phase budget and allocates portions for report summary,
+        gaps, and findings context.
+
+        Args:
+            provider_id: LLM provider to use for model limits
+            state: Current research state
+
+        Returns:
+            Tuple of (phase_budget, report_budget, remaining_budget)
+        """
+        # Get model limits for the refinement provider
+        provider_spec = provider_id or state.refinement_provider or "claude"
+        provider, model = get_provider_model_from_spec(provider_spec)
+        limits = get_model_limits(provider, model)
+
+        # Calculate effective context and phase budget
+        effective_context = get_effective_context(limits, output_budget=REFINEMENT_OUTPUT_RESERVED)
+        phase_budget = int(effective_context * REFINEMENT_PHASE_BUDGET_FRACTION)
+
+        # Allocate budget: 50% for report, 50% for gaps/findings
+        report_budget = int(phase_budget * REFINEMENT_REPORT_BUDGET_FRACTION)
+        remaining_budget = phase_budget - report_budget
+
+        logger.debug(
+            "Refinement budget: phase=%d, report=%d, remaining=%d",
+            phase_budget,
+            report_budget,
+            remaining_budget,
+        )
+
+        return phase_budget, report_budget, remaining_budget
+
+    def _summarize_report_for_refinement(
+        self,
+        report: str,
+        target_tokens: int,
+    ) -> tuple[str, str]:
+        """Summarize report content to fit within token budget.
+
+        Uses heuristic truncation with key section preservation.
+        Full LLM-based summarization would be async, so this method
+        uses intelligent truncation instead.
+
+        Args:
+            report: Full report content
+            target_tokens: Target token budget for report
+
+        Returns:
+            Tuple of (summarized_report, fidelity_level)
+        """
+        # Estimate current token count
+        current_tokens = estimate_tokens(report)
+
+        if current_tokens <= target_tokens:
+            return report, "full"
+
+        # Calculate compression ratio needed
+        ratio = target_tokens / current_tokens
+
+        if ratio >= 0.7:
+            fidelity = "condensed"
+        elif ratio >= 0.4:
+            fidelity = "compressed"
+        else:
+            fidelity = "minimal"
+
+        # Use character limit based on token budget (~4 chars/token)
+        char_limit = target_tokens * 4
+
+        # Extract key sections with smart truncation
+        summarized = self._extract_report_summary(report, char_limit)
+
+        logger.info(
+            "Report summarized for refinement: %d -> %d tokens (fidelity=%s)",
+            current_tokens,
+            estimate_tokens(summarized),
+            fidelity,
+        )
+
+        return summarized, fidelity
+
+    def _extract_report_summary(self, report: str, char_limit: int) -> str:
+        """Extract summary from report preserving structure.
+
+        Prioritizes:
+        1. Executive Summary section (if present)
+        2. Conclusions section (if present)
+        3. Key Findings headings
+        4. First portion of content
+
+        Args:
+            report: Full report content
+            char_limit: Maximum characters allowed
+
+        Returns:
+            Truncated/summarized report
+        """
+        if len(report) <= char_limit:
+            return report
+
+        summary_parts = []
+        remaining = char_limit
+
+        # Try to extract Executive Summary
+        exec_start = report.find("## Executive Summary")
+        if exec_start == -1:
+            exec_start = report.find("# Executive Summary")
+
+        if exec_start >= 0:
+            # Find next section
+            next_section = report.find("\n## ", exec_start + 5)
+            if next_section == -1:
+                next_section = report.find("\n# ", exec_start + 5)
+            if next_section == -1:
+                next_section = min(exec_start + 1500, len(report))
+
+            exec_content = report[exec_start:next_section].strip()
+            if len(exec_content) < remaining:
+                summary_parts.append(exec_content)
+                remaining -= len(exec_content) + 20  # Account for separators
+
+        # Try to extract Conclusions
+        concl_start = report.find("## Conclusions")
+        if concl_start == -1:
+            concl_start = report.find("# Conclusions")
+
+        if concl_start >= 0 and remaining > 200:
+            # Find next section or end
+            next_section = report.find("\n## ", concl_start + 5)
+            if next_section == -1:
+                next_section = report.find("\n# ", concl_start + 5)
+            if next_section == -1:
+                next_section = len(report)
+
+            concl_content = report[concl_start:next_section].strip()
+            if len(concl_content) < remaining:
+                summary_parts.append(concl_content)
+                remaining -= len(concl_content) + 20
+
+        # If we have space, add beginning of report
+        if remaining > 300 and not summary_parts:
+            # Take first portion
+            summary_parts.append(report[:remaining])
+        elif remaining > 300:
+            # Add note about truncation
+            summary_parts.append(f"\n\n[Report truncated - {len(report)} chars total]")
+
+        return "\n\n---\n\n".join(summary_parts)
+
+    def _final_fit_validate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        provider_id: Optional[str],
+        model: Optional[str],
+        output_reserved: int,
+        phase: str,
+    ) -> tuple[bool, PreflightResult, str, str]:
+        """Validate assembled payload fits within context budget.
+
+        Performs preflight token counting on the full payload (system + user prompts).
+        If over budget, attempts to compress prompts with capped retry loop.
+
+        Args:
+            system_prompt: System prompt content
+            user_prompt: User prompt content
+            provider_id: LLM provider to use
+            model: Model override
+            output_reserved: Tokens reserved for output
+            phase: Phase name for logging
+
+        Returns:
+            Tuple of (valid, preflight_result, final_system_prompt, final_user_prompt)
+        """
+        # Get model limits
+        provider_spec = provider_id or "claude"
+        provider, model_name = get_provider_model_from_spec(provider_spec)
+        limits = get_model_limits(provider, model_name if model is None else model)
+
+        # Create token budget
+        budget = TokenBudget(
+            total_budget=limits.context_window,
+            reserved_output=output_reserved,
+            safety_margin=FINAL_FIT_SAFETY_MARGIN,
+        )
+
+        # Combine prompts for total token count
+        full_payload = f"{system_prompt}\n\n{user_prompt}"
+
+        current_system = system_prompt
+        current_user = user_prompt
+
+        for iteration in range(FINAL_FIT_MAX_ITERATIONS):
+            # Recompute payload
+            if iteration > 0:
+                full_payload = f"{current_system}\n\n{current_user}"
+
+            # Run preflight check
+            result = preflight_count(
+                full_payload,
+                budget,
+                provider=provider,
+                model=model_name,
+                is_final_fit=(iteration > 0),
+                warn_on_heuristic=False,  # Suppress warnings during loop
+            )
+
+            if result.valid:
+                logger.info(
+                    "Final-fit validation passed for %s: %d tokens (%.1f%% of budget, iteration %d)",
+                    phase,
+                    result.estimated_tokens,
+                    result.usage_fraction * 100,
+                    iteration + 1,
+                )
+                return True, result, current_system, current_user
+
+            # Over budget - try to compress
+            if iteration + 1 >= FINAL_FIT_MAX_ITERATIONS:
+                logger.warning(
+                    "Final-fit validation failed for %s after %d iterations: "
+                    "%d tokens exceeds budget by %d",
+                    phase,
+                    iteration + 1,
+                    result.estimated_tokens,
+                    result.overflow_tokens,
+                )
+                break
+
+            # Calculate compression target
+            target_tokens = int(result.effective_budget * FINAL_FIT_COMPRESSION_FACTOR)
+            excess_tokens = result.estimated_tokens - target_tokens
+
+            logger.info(
+                "Final-fit compression needed for %s: reducing by ~%d tokens (iteration %d)",
+                phase,
+                excess_tokens,
+                iteration + 1,
+            )
+
+            # Apply compression to user prompt (preserve system prompt)
+            # Estimate character reduction needed (~4 chars/token)
+            char_reduction = excess_tokens * 4
+            current_length = len(current_user)
+            target_length = max(100, current_length - char_reduction)
+
+            if target_length >= current_length:
+                # Can't compress further
+                logger.warning("Cannot compress user prompt further for %s", phase)
+                break
+
+            # Truncate user prompt at a reasonable boundary
+            current_user = self._truncate_at_boundary(current_user, target_length)
+
+        # Return failed result with last attempt's prompts
+        return False, result, current_system, current_user
+
+    def _truncate_at_boundary(self, content: str, target_length: int) -> str:
+        """Truncate content at a natural boundary (paragraph, sentence).
+
+        Args:
+            content: Content to truncate
+            target_length: Target length in characters
+
+        Returns:
+            Truncated content with ellipsis marker
+        """
+        if len(content) <= target_length:
+            return content
+
+        truncated = content[:target_length]
+
+        # Try to find paragraph boundary in last 20%
+        search_start = int(target_length * 0.8)
+        para_break = truncated.rfind("\n\n", search_start)
+        if para_break > search_start // 2:
+            truncated = truncated[:para_break]
+        else:
+            # Try sentence boundary
+            sentence_break = truncated.rfind(". ", search_start)
+            if sentence_break > search_start // 2:
+                truncated = truncated[:sentence_break + 1]
+
+        return truncated.strip() + "\n\n[... content truncated for context limits]"
+
+    def _build_analysis_user_prompt(
+        self,
+        state: DeepResearchState,
+        allocation_result: Optional[AllocationResult] = None,
+    ) -> str:
         """Build user prompt with source summaries for analysis.
 
         Args:
             state: Current research state
+            allocation_result: Optional budget allocation result for token-aware prompts
 
         Returns:
             User prompt string
         """
+
         prompt_parts = [
             f"Original Research Query: {state.original_query}",
             "",
@@ -3191,20 +3808,54 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
             "",
         ]
 
-        # Add source summaries
-        for i, source in enumerate(state.sources[:20], 1):  # Limit to 20 sources
+        # Build source lookup for allocation info
+        allocated_map: dict[str, Any] = {}
+        if allocation_result:
+            for item in allocation_result.items:
+                allocated_map[item.id] = item
+
+        # Add source summaries based on allocation
+        sources_to_include = []
+        if allocation_result:
+            # Use allocated sources in priority order
+            for item in allocation_result.items:
+                source = next((s for s in state.sources if s.id == item.id), None)
+                if source:
+                    sources_to_include.append((source, item))
+        else:
+            # Fallback: use first 20 sources (legacy behavior)
+            for source in state.sources[:20]:
+                sources_to_include.append((source, None))
+
+        for i, (source, alloc_item) in enumerate(sources_to_include, 1):
             prompt_parts.append(f"Source {i} (ID: {source.id}):")
             prompt_parts.append(f"  Title: {source.title}")
             if source.url:
                 prompt_parts.append(f"  URL: {source.url}")
+
+            # Determine content limit based on allocation
+            if alloc_item and alloc_item.needs_summarization:
+                # Use allocated tokens to estimate character limit (~4 chars/token)
+                char_limit = max(100, alloc_item.allocated_tokens * 4)
+                snippet_limit = min(500, char_limit // 3)
+                content_limit = min(1000, char_limit - snippet_limit)
+            else:
+                # Full fidelity: use default limits
+                snippet_limit = 500
+                content_limit = 1000
+
             if source.snippet:
-                # Truncate long snippets
-                snippet = source.snippet[:500] + "..." if len(source.snippet) > 500 else source.snippet
+                snippet = source.snippet[:snippet_limit]
+                if len(source.snippet) > snippet_limit:
+                    snippet += "..."
                 prompt_parts.append(f"  Snippet: {snippet}")
+
             if source.content:
-                # Truncate long content
-                content = source.content[:1000] + "..." if len(source.content) > 1000 else source.content
+                content = source.content[:content_limit]
+                if len(source.content) > content_limit:
+                    content += "..."
                 prompt_parts.append(f"  Content: {content}")
+
             prompt_parts.append("")
 
         prompt_parts.extend([
@@ -3381,9 +4032,46 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
             len(state.sources),
         )
 
-        # Build the synthesis prompt
+        # Allocate token budget for findings and sources
+        allocation_result = self._allocate_synthesis_budget(
+            state=state,
+            provider_id=provider_id,
+        )
+
+        # Update state with allocation metadata
+        # Store overall fidelity in metadata (content_fidelity is now per-item dict)
+        state.dropped_content_ids = allocation_result.dropped_ids
+        allocation_dict = allocation_result.to_dict()
+        allocation_dict["overall_fidelity_level"] = self._fidelity_level_from_score(
+            allocation_result.fidelity
+        )
+        state.content_allocation_metadata = allocation_dict
+
+        logger.info(
+            "Synthesis budget allocation: %d items allocated, %d dropped, fidelity=%.1f%%",
+            len(allocation_result.items),
+            len(allocation_result.dropped_ids),
+            allocation_result.fidelity * 100,
+        )
+
+        # Build the synthesis prompt with allocated content
         system_prompt = self._build_synthesis_system_prompt(state)
-        user_prompt = self._build_synthesis_user_prompt(state)
+        user_prompt = self._build_synthesis_user_prompt(state, allocation_result)
+
+        # Final-fit validation before provider dispatch
+        valid, preflight, system_prompt, user_prompt = self._final_fit_validate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            provider_id=provider_id or state.synthesis_provider,
+            model=state.synthesis_model,
+            output_reserved=SYNTHESIS_OUTPUT_RESERVED,
+            phase="synthesis",
+        )
+
+        if not valid:
+            logger.warning(
+                "Synthesis phase final-fit validation failed, proceeding with truncated prompts"
+            )
 
         # Execute LLM call with context window error handling and timeout protection
         try:
@@ -3560,11 +4248,16 @@ Guidelines:
 
 IMPORTANT: Return ONLY the markdown report, no preamble or meta-commentary."""
 
-    def _build_synthesis_user_prompt(self, state: DeepResearchState) -> str:
+    def _build_synthesis_user_prompt(
+        self,
+        state: DeepResearchState,
+        allocation_result: Optional[AllocationResult] = None,
+    ) -> str:
         """Build user prompt with findings and sources for synthesis.
 
         Args:
             state: Current research state
+            allocation_result: Optional budget allocation result for token-aware prompts
 
         Returns:
             User prompt string
@@ -3580,7 +4273,6 @@ IMPORTANT: Return ONLY the markdown report, no preamble or meta-commentary."""
 
         # Group findings by category if available
         categorized: dict[str, list] = {}
-        uncategorized = []
 
         for finding in state.findings:
             category = finding.category or "General"
@@ -3588,7 +4280,7 @@ IMPORTANT: Return ONLY the markdown report, no preamble or meta-commentary."""
                 categorized[category] = []
             categorized[category].append(finding)
 
-        # Add findings by category
+        # Add findings by category - findings are protected, always included at full fidelity
         for category, findings in categorized.items():
             prompt_parts.append(f"### {category}")
             for f in findings:
@@ -3606,13 +4298,55 @@ IMPORTANT: Return ONLY the markdown report, no preamble or meta-commentary."""
                 prompt_parts.append(f"- [{status}] {gap.description}")
             prompt_parts.append("")
 
-        # Add source reference list
+        # Add source reference list - use allocation-aware content
         prompt_parts.append("## Source Reference")
-        for source in state.sources[:30]:  # Limit to 30 for context window
-            quality = source.quality.value if hasattr(source.quality, 'value') else str(source.quality)
-            prompt_parts.append(f"- {source.id}: {source.title} [{quality}]")
-            if source.url:
-                prompt_parts.append(f"  URL: {source.url}")
+
+        if allocation_result:
+            # Use allocated sources in priority order, applying token limits
+            for item in allocation_result.items:
+                # Skip findings (they're in the findings section)
+                if not item.id.startswith("src-"):
+                    continue
+
+                source = next((s for s in state.sources if s.id == item.id), None)
+                if not source:
+                    continue
+
+                quality = source.quality.value if hasattr(source.quality, 'value') else str(source.quality)
+                prompt_parts.append(f"- **{source.id}**: {source.title} [{quality}]")
+                if source.url:
+                    prompt_parts.append(f"  URL: {source.url}")
+
+                # Apply token-aware content limit for snippets
+                if item.needs_summarization:
+                    # Compressed: use allocated tokens to estimate character limit (~4 chars/token)
+                    char_limit = max(50, item.allocated_tokens * 4)
+                    if source.snippet:
+                        snippet = source.snippet[:char_limit]
+                        if len(source.snippet) > char_limit:
+                            snippet += "..."
+                        prompt_parts.append(f"  Snippet: {snippet}")
+                else:
+                    # Full fidelity: include snippet up to 200 chars
+                    if source.snippet:
+                        snippet = source.snippet[:200]
+                        if len(source.snippet) > 200:
+                            snippet += "..."
+                        prompt_parts.append(f"  Snippet: {snippet}")
+
+            # Note dropped sources if any
+            if allocation_result.dropped_ids:
+                dropped_sources = [sid for sid in allocation_result.dropped_ids if sid.startswith("src-")]
+                if dropped_sources:
+                    prompt_parts.append(f"\n*Note: {len(dropped_sources)} additional source(s) omitted for context limits*")
+        else:
+            # Fallback: use first 30 sources (legacy behavior)
+            for source in state.sources[:30]:
+                quality = source.quality.value if hasattr(source.quality, 'value') else str(source.quality)
+                prompt_parts.append(f"- {source.id}: {source.title} [{quality}]")
+                if source.url:
+                    prompt_parts.append(f"  URL: {source.url}")
+
         prompt_parts.append("")
 
         # Add synthesis instructions
@@ -3799,9 +4533,50 @@ Unfortunately, the analysis phase did not yield extractable findings from the ga
             state.max_iterations,
         )
 
-        # Build the refinement prompt
+        # Compute budget allocation to prevent unbounded context growth
+        phase_budget, report_budget, remaining_budget = self._compute_refinement_budget(
+            provider_id, state
+        )
+
+        # Summarize report if needed to fit within budget
+        report_summary = ""
+        report_fidelity = "full"
+        if state.report:
+            report_summary, report_fidelity = self._summarize_report_for_refinement(
+                state.report, report_budget
+            )
+
+        # Update state fidelity tracking for refinement phase
+        # Note: We update fidelity in metadata if we actually summarized
+        if report_fidelity != "full":
+            state.content_allocation_metadata["refinement_report_fidelity"] = report_fidelity
+            logger.info(
+                "Refinement phase using summarized context: report_fidelity=%s",
+                report_fidelity,
+            )
+
+        # Build the refinement prompt with budget-aware content
         system_prompt = self._build_refinement_system_prompt(state)
-        user_prompt = self._build_refinement_user_prompt(state)
+        user_prompt = self._build_refinement_user_prompt(
+            state,
+            report_summary=report_summary,
+            remaining_budget=remaining_budget,
+        )
+
+        # Final-fit validation before provider dispatch
+        valid, preflight, system_prompt, user_prompt = self._final_fit_validate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            provider_id=provider_id or state.refinement_provider,
+            model=state.refinement_model,
+            output_reserved=REFINEMENT_OUTPUT_RESERVED,
+            phase="refinement",
+        )
+
+        if not valid:
+            logger.warning(
+                "Refinement phase final-fit validation failed, proceeding with truncated prompts"
+            )
 
         # Execute LLM call with context window error handling and timeout protection
         try:
@@ -3981,11 +4756,18 @@ Guidelines:
 
 IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
 
-    def _build_refinement_user_prompt(self, state: DeepResearchState) -> str:
+    def _build_refinement_user_prompt(
+        self,
+        state: DeepResearchState,
+        report_summary: Optional[str] = None,
+        remaining_budget: Optional[int] = None,
+    ) -> str:
         """Build user prompt with gaps and report context for refinement.
 
         Args:
             state: Current research state
+            report_summary: Pre-summarized report content (for budget-aware prompts)
+            remaining_budget: Token budget for gaps and findings
 
         Returns:
             User prompt string
@@ -4001,8 +4783,13 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
             "",
         ]
 
-        # Add report summary (truncated for context window)
-        if state.report:
+        # Add report summary - use provided summary or fallback to legacy truncation
+        if report_summary:
+            prompt_parts.append("## Current Report Summary")
+            prompt_parts.append(report_summary)
+            prompt_parts.append("")
+        elif state.report:
+            # Legacy fallback: simple truncation at 2000 chars
             report_excerpt = state.report[:2000]
             if len(state.report) > 2000:
                 report_excerpt += "\n\n[Report truncated...]"
@@ -4010,27 +4797,63 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
             prompt_parts.append(report_excerpt)
             prompt_parts.append("")
 
-        # Add unresolved gaps
+        # Calculate character budget for gaps and findings
+        # Default to ~2000 chars for gaps, ~1000 for findings if no budget specified
+        if remaining_budget:
+            gap_char_budget = int(remaining_budget * 4 * 0.6)  # 60% for gaps
+            finding_char_budget = int(remaining_budget * 4 * 0.4)  # 40% for findings
+        else:
+            gap_char_budget = 8000
+            finding_char_budget = 4000
+
+        # Add unresolved gaps with budget awareness
         prompt_parts.append("## Unresolved Knowledge Gaps")
+        gaps_chars_used = 0
+        gaps_included = 0
         for gap in state.unresolved_gaps():
-            prompt_parts.append(f"\n### Gap: {gap.id}")
-            prompt_parts.append(f"Description: {gap.description}")
-            prompt_parts.append(f"Priority: {gap.priority}")
+            gap_text = f"\n### Gap: {gap.id}\nDescription: {gap.description}\nPriority: {gap.priority}"
             if gap.suggested_queries:
-                prompt_parts.append("Suggested queries from analysis:")
+                gap_text += "\nSuggested queries from analysis:"
                 for sq in gap.suggested_queries[:3]:
-                    prompt_parts.append(f"  - {sq}")
+                    gap_text += f"\n  - {sq}"
+
+            if gaps_chars_used + len(gap_text) <= gap_char_budget:
+                prompt_parts.append(gap_text)
+                gaps_chars_used += len(gap_text)
+                gaps_included += 1
+            else:
+                # Budget exceeded - note remaining gaps
+                remaining_gaps = len(state.unresolved_gaps()) - gaps_included
+                if remaining_gaps > 0:
+                    prompt_parts.append(f"\n*[{remaining_gaps} additional gap(s) omitted for context limits]*")
+                break
         prompt_parts.append("")
 
-        # Add high-confidence findings for context
+        # Add high-confidence findings for context with budget awareness
         high_conf_findings = [
             f for f in state.findings
             if hasattr(f.confidence, 'value') and f.confidence.value in ('high', 'confirmed')
         ]
         if high_conf_findings:
             prompt_parts.append("## High-Confidence Findings Already Established")
-            for f in high_conf_findings[:5]:
-                prompt_parts.append(f"- {f.content[:200]}")
+            findings_chars_used = 0
+            findings_included = 0
+            for f in high_conf_findings:
+                # Limit individual finding content
+                content_limit = min(200, finding_char_budget // max(1, len(high_conf_findings)))
+                finding_text = f"- {f.content[:content_limit]}"
+                if len(f.content) > content_limit:
+                    finding_text += "..."
+
+                if findings_chars_used + len(finding_text) <= finding_char_budget:
+                    prompt_parts.append(finding_text)
+                    findings_chars_used += len(finding_text)
+                    findings_included += 1
+                else:
+                    remaining = len(high_conf_findings) - findings_included
+                    if remaining > 0:
+                        prompt_parts.append(f"*[{remaining} additional finding(s) omitted]*")
+                    break
             prompt_parts.append("")
 
         # Add instructions
