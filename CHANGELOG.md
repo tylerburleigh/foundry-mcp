@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0b6] - 2026-01-26
+
 ### Added
 
 - **Deep Research Resilience**: Comprehensive resilience improvements for long-running research workflows
