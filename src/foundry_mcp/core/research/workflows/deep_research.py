@@ -31,12 +31,11 @@ import threading
 import time
 import traceback
 from dataclasses import dataclass, field as dataclass_field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 from uuid import uuid4
-from weakref import WeakValueDictionary
 
 from foundry_mcp.config import ResearchConfig
 from foundry_mcp.core.research.memory import ResearchMemory
@@ -106,7 +105,38 @@ FINAL_FIT_SAFETY_MARGIN = 0.10  # 10% safety margin for token estimation uncerta
 # =============================================================================
 
 # Track active research sessions for crash recovery
+# Protected by _active_sessions_lock to prevent race conditions during iteration
 _active_research_sessions: dict[str, "DeepResearchState"] = {}
+_active_sessions_lock = threading.Lock()
+_active_research_memory: Optional[ResearchMemory] = None
+
+
+def _persist_active_sessions() -> None:
+    """Best-effort persistence for active research sessions.
+
+    Note: Caller should hold _active_sessions_lock or call during shutdown
+    when no other threads are modifying the dict.
+    """
+    memory = _active_research_memory
+    if memory is None:
+        try:
+            memory = ResearchMemory()
+        except Exception as exc:
+            print(
+                f"Failed to initialize ResearchMemory for persistence: {exc}",
+                file=sys.stderr,
+            )
+            return
+
+    # Copy values while holding lock to avoid iteration issues
+    with _active_sessions_lock:
+        sessions_snapshot = list(_active_research_sessions.values())
+
+    for state in sessions_snapshot:
+        try:
+            memory.save_deep_research(state)
+        except Exception:
+            pass
 
 
 def _crash_handler(exc_type: type, exc_value: BaseException, exc_tb: Any) -> None:
@@ -117,13 +147,18 @@ def _crash_handler(exc_type: type, exc_value: BaseException, exc_tb: Any) -> Non
     """
     tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
 
+    # Take a snapshot of sessions under lock to avoid race conditions
+    with _active_sessions_lock:
+        session_keys = list(_active_research_sessions.keys())
+        sessions_snapshot = list(_active_research_sessions.items())
+
     # Always write to stderr for visibility
     print(
         f"\n{'='*60}\n"
         f"DEEP RESEARCH CRASH HANDLER\n"
         f"{'='*60}\n"
         f"Exception: {exc_type.__name__}: {exc_value}\n"
-        f"Active sessions: {list(_active_research_sessions.keys())}\n"
+        f"Active sessions: {session_keys}\n"
         f"Traceback:\n{tb_str}"
         f"{'='*60}\n",
         file=sys.stderr,
@@ -131,7 +166,7 @@ def _crash_handler(exc_type: type, exc_value: BaseException, exc_tb: Any) -> Non
     )
 
     # Try to save crash markers for active research sessions
-    for research_id, state in _active_research_sessions.items():
+    for research_id, state in sessions_snapshot:
         try:
             state.metadata["crash"] = True
             state.metadata["crash_error"] = str(exc_value)
@@ -147,6 +182,7 @@ def _crash_handler(exc_type: type, exc_value: BaseException, exc_tb: Any) -> Non
             crash_path.write_text(tb_str)
         except Exception:
             pass  # Best effort - don't fail the crash handler
+    _persist_active_sessions()
 
     # Call original handler
     sys.__excepthook__(exc_type, exc_value, exc_tb)
@@ -159,9 +195,14 @@ sys.excepthook = _crash_handler
 @atexit.register
 def _cleanup_on_exit() -> None:
     """Mark any active sessions as interrupted on normal exit."""
-    for research_id, state in _active_research_sessions.items():
+    # Take snapshot under lock to avoid race conditions
+    with _active_sessions_lock:
+        sessions_snapshot = list(_active_research_sessions.items())
+
+    for _research_id, state in sessions_snapshot:
         if state.completed_at is None:
             state.metadata["interrupted"] = True
+    _persist_active_sessions()
 
 
 # =============================================================================
@@ -381,7 +422,7 @@ class AgentDecision:
     rationale: str  # Why this decision was made
     inputs: dict[str, Any]  # Context provided to the agent
     outputs: Optional[dict[str, Any]] = None  # Results produced
-    timestamp: datetime = dataclass_field(default_factory=datetime.utcnow)
+    timestamp: datetime = dataclass_field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -942,7 +983,10 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
     """
 
     # Class-level task registry for background task tracking
-    _tasks: WeakValueDictionary[str, BackgroundTask] = WeakValueDictionary()
+    # Uses regular dict (not WeakValueDictionary) to prevent tasks from being GC'd while running
+    # Protected by _tasks_lock for thread safety
+    _tasks: dict[str, BackgroundTask] = {}
+    _tasks_lock = threading.Lock()
 
     def __init__(
         self,
@@ -958,6 +1002,8 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
             hooks: Optional supervisor hooks for orchestration
         """
         super().__init__(config, memory)
+        global _active_research_memory
+        _active_research_memory = self.memory
         self.hooks = hooks or SupervisorHooks()
         self.orchestrator = SupervisorOrchestrator()
         self._search_providers: dict[str, SearchProvider] = {}
@@ -984,7 +1030,7 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
 
         research_id = state.id if state else None
         payload = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "event_id": uuid4().hex,
             "event_type": event_type,
             "level": level,
@@ -1283,10 +1329,12 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
             research_id=state.id,
             timeout=task_timeout,
         )
-        self._tasks[state.id] = bg_task
+        with self._tasks_lock:
+            self._tasks[state.id] = bg_task
 
-        # Register session for crash handler visibility
-        _active_research_sessions[state.id] = state
+        # Register session for crash handler visibility (under lock)
+        with _active_sessions_lock:
+            _active_research_sessions[state.id] = state
 
         # Reference to self for use in thread
         workflow = self
@@ -1322,9 +1370,11 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                             metadata={"research_id": state.id, "cancelled": True},
                         )
                     except asyncio.TimeoutError:
+                        timeout_message = f"Research timed out after {task_timeout}s"
                         state.metadata["timeout"] = True
                         state.metadata["abort_phase"] = state.phase.value
                         state.metadata["abort_iteration"] = state.iteration
+                        state.mark_failed(timeout_message)
                         workflow.memory.save_deep_research(state)
                         workflow._write_audit_event(
                             state,
@@ -1339,7 +1389,7 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                         return WorkflowResult(
                             success=False,
                             content="",
-                            error=f"Research timed out after {task_timeout}s",
+                            error=timeout_message,
                             metadata={"research_id": state.id, "timeout": True},
                         )
                     except Exception as exc:
@@ -1393,8 +1443,9 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 except Exception:
                     pass  # Already logged above
             finally:
-                # Unregister from active sessions
-                _active_research_sessions.pop(state.id, None)
+                # Unregister from active sessions (under lock)
+                with _active_sessions_lock:
+                    _active_research_sessions.pop(state.id, None)
 
         # Create and start the daemon thread
         thread = threading.Thread(
@@ -1429,7 +1480,44 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
 
     def get_background_task(self, research_id: str) -> Optional[BackgroundTask]:
         """Get a background task by research ID."""
-        return self._tasks.get(research_id)
+        with self._tasks_lock:
+            return self._tasks.get(research_id)
+
+    def _cleanup_completed_task(self, research_id: str) -> None:
+        """Remove a completed task from the registry to free memory.
+
+        Called when a background task finishes (success, failure, or timeout).
+        """
+        with self._tasks_lock:
+            self._tasks.pop(research_id, None)
+
+    @classmethod
+    def cleanup_stale_tasks(cls, max_age_seconds: float = 3600) -> int:
+        """Remove old completed tasks from the registry.
+
+        This can be called periodically to clean up memory from completed tasks
+        that haven't been explicitly cleaned up.
+
+        Args:
+            max_age_seconds: Maximum age in seconds for completed tasks (default 1 hour)
+
+        Returns:
+            Number of tasks removed
+        """
+        import time
+        now = time.time()
+        removed = 0
+        with cls._tasks_lock:
+            stale_ids = [
+                task_id
+                for task_id, task in cls._tasks.items()
+                if task.is_done and task.completed_at
+                and (now - task.completed_at) > max_age_seconds
+            ]
+            for task_id in stale_ids:
+                del cls._tasks[task_id]
+                removed += 1
+        return removed
 
     # =========================================================================
     # Action Handlers
@@ -1660,7 +1748,11 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
         if bg_task:
             is_active = not bg_task.is_done
             # Prefer in-memory state for active tasks to avoid clobbering workflow saves.
-            state = _active_research_sessions.get(research_id) if is_active else None
+            if is_active:
+                with _active_sessions_lock:
+                    state = _active_research_sessions.get(research_id)
+            else:
+                state = None
             if state is None:
                 state = self.memory.load_deep_research(research_id)
             metadata: dict[str, Any] = {
@@ -1673,9 +1765,11 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
             if state:
                 # Track status check count for polling mitigation
                 state.status_check_count += 1
-                state.last_status_check_at = datetime.utcnow()
-                if not is_active:
+                state.last_status_check_at = datetime.now(timezone.utc)
+                try:
                     self.memory.save_deep_research(state)
+                except Exception as exc:
+                    logger.debug("Failed to save status check state: %s", exc)
 
                 metadata.update({
                     "original_query": state.original_query,
@@ -1709,7 +1803,7 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
 
         # Track status check count for polling mitigation
         state.status_check_count += 1
-        state.last_status_check_at = datetime.utcnow()
+        state.last_status_check_at = datetime.now(timezone.utc)
         self.memory.save_deep_research(state)
 
         # Determine status string
@@ -1800,9 +1894,10 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
             )
 
         # Add warning if fidelity is degraded
-        if state.content_fidelity not in ("full", ""):
+        fidelity_level = allocation_meta.get("overall_fidelity_level") or ""
+        if fidelity_level not in ("full", ""):
             warnings.append(
-                f"Content fidelity: {state.content_fidelity} (some sources may be summarized)"
+                f"Content fidelity: {fidelity_level} (some sources may be summarized)"
             )
 
         # Add any warnings from allocation metadata
@@ -2200,6 +2295,8 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 state.iteration,
                 exc,
             )
+            if not state.metadata.get("failed"):
+                state.mark_failed(str(exc))
             self.memory.save_deep_research(state)
             self._write_audit_event(
                 state,
@@ -2621,10 +2718,15 @@ Generate the research plan as JSON."""
 
         # Semaphore for concurrency control
         semaphore = asyncio.Semaphore(max_concurrent)
+        state_lock = asyncio.Lock()
 
         # Track collected sources for deduplication
-        seen_urls: set[str] = set()
-        seen_titles: dict[str, str] = {}  # normalized_title -> first source URL
+        seen_urls: set[str] = {s.url for s in state.sources if s.url}
+        seen_titles: dict[str, str] = {}
+        for source in state.sources:
+            normalized_title = _normalize_title(source.title)
+            if normalized_title and len(normalized_title) > 20:
+                seen_titles.setdefault(normalized_title, source.url or "")
         total_sources_added = 0
         failed_queries = 0
 
@@ -2654,39 +2756,43 @@ Generate the research plan as JSON."""
                             # Non-Tavily providers just get include_raw_content
                             search_kwargs["include_raw_content"] = state.follow_links
 
-                        sources = await provider.search(**search_kwargs)
+                        sources = await asyncio.wait_for(
+                            provider.search(**search_kwargs),
+                            timeout=timeout,
+                        )
 
                         # Add sources with deduplication
                         for source in sources:
-                            # URL-based deduplication
-                            if source.url and source.url in seen_urls:
-                                continue  # Skip duplicate URL
+                            async with state_lock:
+                                # URL-based deduplication
+                                if source.url and source.url in seen_urls:
+                                    continue  # Skip duplicate URL
 
-                            # Title-based deduplication (same paper from different domains)
-                            normalized_title = _normalize_title(source.title)
-                            if normalized_title and len(normalized_title) > 20:
-                                if normalized_title in seen_titles:
-                                    logger.debug(
-                                        "Skipping duplicate by title: %s (already have %s)",
-                                        source.url,
-                                        seen_titles[normalized_title],
-                                    )
-                                    continue  # Skip duplicate title
-                                seen_titles[normalized_title] = source.url or ""
+                                # Title-based deduplication (same paper from different domains)
+                                normalized_title = _normalize_title(source.title)
+                                if normalized_title and len(normalized_title) > 20:
+                                    if normalized_title in seen_titles:
+                                        logger.debug(
+                                            "Skipping duplicate by title: %s (already have %s)",
+                                            source.url,
+                                            seen_titles[normalized_title],
+                                        )
+                                        continue  # Skip duplicate title
+                                    seen_titles[normalized_title] = source.url or ""
 
-                            if source.url:
-                                seen_urls.add(source.url)
-                                # Apply domain-based quality scoring
-                                if source.quality == SourceQuality.UNKNOWN:
-                                    source.quality = get_domain_quality(
-                                        source.url, state.research_mode
-                                    )
+                                if source.url:
+                                    seen_urls.add(source.url)
+                                    # Apply domain-based quality scoring
+                                    if source.quality == SourceQuality.UNKNOWN:
+                                        source.quality = get_domain_quality(
+                                            source.url, state.research_mode
+                                        )
 
-                            # Add source to state
-                            state.sources.append(source)
-                            state.total_sources_examined += 1
-                            sub_query.source_ids.append(source.id)
-                            added += 1
+                                # Add source to state
+                                state.sources.append(source)
+                                state.total_sources_examined += 1
+                                sub_query.source_ids.append(source.id)
+                                added += 1
 
                         self._write_audit_event(
                             state,
@@ -2699,9 +2805,10 @@ Generate the research plan as JSON."""
                             },
                         )
                         # Track search provider query count
-                        state.search_provider_stats[provider_name] = (
-                            state.search_provider_stats.get(provider_name, 0) + 1
-                        )
+                        async with state_lock:
+                            state.search_provider_stats[provider_name] = (
+                                state.search_provider_stats.get(provider_name, 0) + 1
+                            )
                     except SearchProviderError as e:
                         provider_errors.append(f"{provider_name}: {e}")
                         self._write_audit_event(
@@ -2713,6 +2820,22 @@ Generate the research plan as JSON."""
                                 "sub_query": sub_query.query,
                                 "sources_added": 0,
                                 "error": str(e),
+                            },
+                            level="warning",
+                        )
+                    except asyncio.TimeoutError:
+                        provider_errors.append(
+                            f"{provider_name}: timeout after {timeout}s"
+                        )
+                        self._write_audit_event(
+                            state,
+                            "gathering_provider_result",
+                            data={
+                                "provider": provider_name,
+                                "sub_query_id": sub_query.id,
+                                "sub_query": sub_query.query,
+                                "sources_added": 0,
+                                "error": f"timeout after {timeout}s",
                             },
                             level="warning",
                         )
@@ -2757,7 +2880,9 @@ Generate the research plan as JSON."""
 
         # Aggregate results
         for result in results:
-            if isinstance(result, Exception):
+            # Check for BaseException (includes Exception, CancelledError, KeyboardInterrupt, etc.)
+            # asyncio.gather with return_exceptions=True can return any BaseException
+            if isinstance(result, BaseException):
                 failed_queries += 1
                 logger.error("Task exception: %s", result)
             else:
@@ -2767,7 +2892,7 @@ Generate the research plan as JSON."""
                     failed_queries += 1
 
         # Update state timestamp
-        state.updated_at = __import__("datetime").datetime.utcnow()
+        state.updated_at = datetime.now(timezone.utc)
 
         # Save state
         self.memory.save_deep_research(state)
