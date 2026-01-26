@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0b5] - 2026-01-26
+
+### Fixed
+
+- **TOCTOU Race Conditions**: Fixed time-of-check-time-of-use race conditions in `FileStorageBackend` by moving file existence and expiry checks inside file locks
+- **Thread Safety**: Added `_active_sessions_lock` for thread-safe session tracking in deep research, preventing race conditions during concurrent access
+- **Task Registry GC**: Replaced `WeakValueDictionary` with regular dict for background task registry to prevent premature garbage collection of running tasks
+- **Timeout Flag Accuracy**: Improved timeout metadata accuracy - only sets `timeout: true` when all failures were timeouts, not when mixed with other error types
+- **State Persistence**: Save thread/consensus state BEFORE provider calls to ensure user messages and responses persist even if provider fails
+- **Deep Research Timeout Handling**: Mark deep research state as failed on timeout instead of leaving in intermediate state
+- **Orphaned Lock Files**: Clean up orphaned lock files when data files are missing
+
+### Changed
+
+- Use timezone-aware `datetime.now(timezone.utc)` throughout instead of deprecated `datetime.utcnow()`
+- Added task cleanup methods (`cleanup_stale_tasks`, `_cleanup_completed_task`) for memory management in long-running processes
+
 ## [0.9.0b4] - 2026-01-25
 
 ### Added
