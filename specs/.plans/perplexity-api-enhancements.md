@@ -93,6 +93,8 @@ The deep research workflow never passes Perplexity-specific kwargs - it always u
    - `max_tokens_per_page` (default: 2048, now configurable)
    - `search_after_date` (format: %m/%d/%Y) - publication date filter
    - `search_before_date` (format: %m/%d/%Y) - publication date filter
+   - `last_updated_after_filter` (format: %m/%d/%Y) - modification date filter
+   - `last_updated_before_filter` (format: %m/%d/%Y) - modification date filter
 3. Update payload construction to include new parameters
 4. Update docstrings to document "-" prefix support for domain exclusion (already supported by API)
 5. Add `_validate_search_params()` function following Tavily pattern
@@ -262,7 +264,7 @@ perplexity_country = "US"
 
 ## Success Criteria
 
-- [ ] All 5 new search parameters are supported in perplexity.py
+- [ ] All 7 new search parameters are supported in perplexity.py
 - [ ] Configuration fields added to ResearchConfig with TOML support (following `tavily_` prefix pattern)
 - [ ] `search_context_size` defaults to "medium" (balanced cost/quality)
 - [ ] Deep research workflow passes Perplexity config to provider
