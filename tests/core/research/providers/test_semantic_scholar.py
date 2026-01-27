@@ -86,6 +86,7 @@ class TestSemanticScholarProviderBasics:
 
     def test_rate_limit(self, provider):
         """Test rate limit property."""
+        assert DEFAULT_RATE_LIMIT == 0.9
         assert provider.rate_limit == DEFAULT_RATE_LIMIT
 
 

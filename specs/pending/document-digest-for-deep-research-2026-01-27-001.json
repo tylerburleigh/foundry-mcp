@@ -1,0 +1,1771 @@
+{
+  "spec_id": "document-digest-for-deep-research-2026-01-27-001",
+  "title": "document-digest-for-deep-research",
+  "generated": "2026-01-27T18:06:11.985068Z",
+  "last_updated": "2026-01-27T18:21:59.092088Z",
+  "metadata": {
+    "description": "",
+    "mission": "Add an internal, provider-agnostic document digest step for deep research that compresses large HTML/PDF content into structured JSON summaries with evidence snippets, preventing context budget overflow.",
+    "objectives": [],
+    "complexity": "low",
+    "estimated_hours": 0,
+    "assumptions": [
+      "ContentSummarizer's KEY_POINTS level produces suitable digest summaries",
+      "Existing archive infrastructure can store raw content by hash",
+      "pypdf license (BSD) is compatible with project",
+      "Simple keyword overlap scoring is sufficient for evidence relevance (no embeddings required)"
+    ],
+    "owner": "",
+    "category": "implementation",
+    "template": "empty"
+  },
+  "progress_percentage": 0,
+  "status": "pending",
+  "current_phase": null,
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "document-digest-for-deep-research",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3",
+        "phase-4",
+        "phase-5",
+        "phase-6",
+        "phase-7",
+        "phase-8"
+      ],
+      "total_tasks": 64,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Foundation - Models and Configuration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3",
+        "task-1-4",
+        "task-1-5",
+        "task-1-6",
+        "task-1-7",
+        "verify-1-1",
+        "task-1-8"
+      ],
+      "total_tasks": 9,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Establish data structures, schemas, and configuration without changing existing behavior"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-2"
+        ],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Define DigestPayload dataclass",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create DigestPayload dataclass matching JSON schema v1.0 with version, content_type, query_hash, summary, key_points, evidence_snippets, original_chars, digest_chars, compression_ratio, source_text_hash fields. Include content_type and query_hash for self-describing portability.",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "DigestPayload dataclass exists with all required fields including content_type and query_hash",
+          "Fields match JSON schema types and constraints",
+          "Payload is self-describing (can be validated without surrounding metadata)"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Define EvidenceSnippet dataclass",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create EvidenceSnippet dataclass with text, locator, relevance_score fields",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "EvidenceSnippet dataclass exists",
+          "locator field supports char:{start}-{end} and page:{n}:char:{start}-{end} formats"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Add FidelityLevel.DIGEST enum value",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add DIGEST to FidelityLevel enum after KEY_POINTS, before TRUNCATED",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "FidelityLevel.DIGEST exists",
+          "Enum ordering is correct"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-4": {
+      "type": "task",
+      "title": "Add content_type field to ResearchSource",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add content_type: str = 'text/plain' field and is_digest property returning content_type == 'digest/v1'",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "content_type field exists with default 'text/plain'",
+          "is_digest property works correctly"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-5": {
+      "type": "task",
+      "title": "Add digest configuration fields to ResearchConfig",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add deep_research_digest_policy, deep_research_digest_min_chars, deep_research_digest_max_sources, deep_research_digest_timeout, deep_research_digest_max_concurrent, deep_research_digest_include_evidence, deep_research_digest_evidence_max_chars, deep_research_digest_max_evidence_snippets, deep_research_digest_fetch_pdfs fields",
+        "file_path": "src/foundry_mcp/config.py",
+        "acceptance_criteria": [
+          "All digest config fields exist with correct defaults",
+          "Fields are parsed from TOML correctly"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-6": {
+      "type": "task",
+      "title": "Add digest config validation",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add _validate_digest_config() method to validate digest policy values and numeric ranges",
+        "file_path": "src/foundry_mcp/config.py",
+        "acceptance_criteria": [
+          "Invalid policy values raise ValueError",
+          "Negative numeric values raise ValueError"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-7": {
+      "type": "task",
+      "title": "Update ResearchSource.to_dict() to filter internal keys",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Ensure to_dict() filters out _raw_content and _digest_* metadata keys",
+        "file_path": "src/foundry_mcp/core/research/models.py",
+        "acceptance_criteria": [
+          "_raw_content never appears in to_dict() output",
+          "_digest_archive_hash and similar filtered"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-1-1": {
+      "type": "verify",
+      "title": "Verify Phase 1 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify DigestPayload matches JSON schema, EvidenceSnippet has all fields, config validation rejects invalid values, _raw_content filtered from serialization",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "PDF Extraction",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2",
+        "task-2-3",
+        "task-2-4",
+        "task-2-5",
+        "task-2-6",
+        "task-2-7",
+        "verify-2-1"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Enable text extraction from PDF sources with security hardening"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-3"
+        ],
+        "blocked_by": [
+          "phase-1"
+        ],
+        "depends": []
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add pypdf dependency",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add pypdf to project dependencies",
+        "file_path": "pyproject.toml",
+        "acceptance_criteria": [
+          "pypdf listed in dependencies",
+          "Version constraint specified"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Create PDFExtractor class",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create PDFExtractor with async extract(url_or_bytes) method returning PDFExtractionResult with text, page_offsets, warnings",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "PDFExtractor class exists",
+          "extract() method is async",
+          "PDFExtractionResult has text, page_offsets, warnings fields"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-3": {
+      "type": "task",
+      "title": "Implement PDF security hardening",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add SSRF protection via hardened fetch path, magic byte validation (%PDF-), content-type check",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "URL fetching uses existing SSRF-protected fetch",
+          "Magic bytes validated before parsing",
+          "Content-type checked"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-4": {
+      "type": "task",
+      "title": "Implement PDF resource limits",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Enforce 10MB download limit, 500 page limit, 30 second timeout, page-by-page extraction for memory efficiency",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "Download aborts at 10MB",
+          "Only first 500 pages extracted",
+          "Timeout enforced",
+          "Pages loaded incrementally"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-5": {
+      "type": "task",
+      "title": "Track page boundaries for locators",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Track page offsets in extracted text for page:{n}:char:{start}-{end} locator generation",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "page_offsets list populated correctly",
+          "Offsets account for page separator strings"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-6": {
+      "type": "task",
+      "title": "Add pdfminer.six fallback",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add optional pdfminer.six fallback for complex PDFs using lazy import",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "pdfminer.six used as fallback when pypdf fails",
+          "Import is lazy (not required at module load)"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-2-7": {
+      "type": "task",
+      "title": "Add PDF extraction metrics",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add pdf_extraction_duration_seconds and pdf_extraction_pages_total metrics",
+        "file_path": "src/foundry_mcp/core/research/pdf_extractor.py",
+        "acceptance_criteria": [
+          "Metrics emitted on extraction",
+          "Labels include success/failure status"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-2-1": {
+      "type": "verify",
+      "title": "Verify Phase 2 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify SSRF protections in place, size caps enforced, page offset tracking correct, memory bounds respected, fallback behavior works",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "DocumentDigestor Core",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1",
+        "task-3-2",
+        "task-3-3",
+        "task-3-4",
+        "task-3-5",
+        "task-3-6",
+        "task-3-7",
+        "task-3-8",
+        "task-3-9",
+        "verify-3-1"
+      ],
+      "total_tasks": 10,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Implement the main digest logic with deterministic behavior"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-4"
+        ],
+        "blocked_by": [
+          "phase-2"
+        ],
+        "depends": []
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Create DocumentDigestor class structure",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Create DocumentDigestor class with __init__(summarizer, pdf_extractor, config), DigestResult dataclass with payload, cache_hit, duration_ms",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "DocumentDigestor class exists",
+          "DigestResult dataclass exists",
+          "Constructor accepts required dependencies"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-2": {
+      "type": "task",
+      "title": "Implement digest() method",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement async digest(source, query) -> DigestResult using ContentSummarizer with KEY_POINTS level",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "digest() is async",
+          "Uses ContentSummarizer.summarize()",
+          "Returns DigestResult"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-3": {
+      "type": "task",
+      "title": "Implement eligibility logic",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement is_eligible(source) checking policy (off/auto/always), size threshold, quality filter (HIGH/MEDIUM for auto)",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "off policy returns False always",
+          "always policy returns True for sources with content",
+          "auto policy checks size and quality"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-4": {
+      "type": "task",
+      "title": "Implement canonical text normalization",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement _canonicalize_text() with HTML entity decoding, tag stripping, Unicode NFC, whitespace collapse per spec",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "HTML entities decoded",
+          "Tags stripped",
+          "Unicode normalized to NFC",
+          "Whitespace collapsed"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-5": {
+      "type": "task",
+      "title": "Implement evidence chunking",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement _chunk_text() with 400 char target, 500 max, 50 min, boundary rules (paragraph > sentence > clause > word > hard cut)",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Chunks target 400 chars",
+          "Max 500 chars enforced",
+          "Min 50 chars merged",
+          "Boundaries follow priority order"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-6": {
+      "type": "task",
+      "title": "Implement evidence scoring",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement _extract_evidence() with keyword scoring formula, tie-breakers (score > position > length), empty query fallback",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Scoring uses term matching formula",
+          "Tie-breakers applied in order",
+          "Empty/short query uses positional fallback"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-7": {
+      "type": "task",
+      "title": "Implement locator generation",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Generate locators with 0-based indexing, exclusive end boundary. Format: char:{start}-{end} for text (slice equivalent: text[start:end]), page:{n}:char:{start}-{end} for PDFs (page is 1-based). Offsets reference canonical text positions. No text mutation - store exact substring, apply display truncation at render time only.",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Text locators use char:{start}-{end} format",
+          "PDF locators include 1-based page number",
+          "Offsets are 0-based with exclusive end",
+          "canonical_text[start:end] == snippet.text",
+          "No ... or truncation markers stored in snippet text"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-8": {
+      "type": "task",
+      "title": "Implement source_text_hash computation",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Compute SHA256 hash of canonical text as sha256:{hex}",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Hash computed on canonical text",
+          "Format is sha256:{64 hex chars}"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-3-9": {
+      "type": "task",
+      "title": "Implement payload serialization",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Implement serialize_payload() and deserialize_payload() with JSON schema validation",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Serialization produces valid JSON",
+          "Deserialization validates schema",
+          "Round-trip preserves data"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-3-1": {
+      "type": "verify",
+      "title": "Verify Phase 3 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify scoring matches algorithm spec, locators correct format, hash is SHA256, serialization validates schema, chunking is deterministic",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-4": {
+      "type": "phase",
+      "title": "Digest Caching",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-4-1",
+        "task-4-2",
+        "task-4-3",
+        "task-4-4",
+        "task-4-5",
+        "verify-4-1"
+      ],
+      "total_tasks": 6,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Implement cache keys and invalidation per specification"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-5"
+        ],
+        "blocked_by": [
+          "phase-3"
+        ],
+        "depends": []
+      }
+    },
+    "task-4-1": {
+      "type": "task",
+      "title": "Implement cache key generation",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Generate cache keys in format digest:{impl_version}:{source_id}:{content_hash[:16]}:{query_hash[:8]}:{config_hash[:8]}",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Key format matches spec",
+          "All components included",
+          "Hash truncation correct"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-2": {
+      "type": "task",
+      "title": "Implement config hash computation",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Compute config_hash from tuple of digest policy, min_chars, max_sources, include_evidence, evidence_max_chars, max_evidence_snippets",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "All config fields included in hash",
+          "Hash is deterministic"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-3": {
+      "type": "task",
+      "title": "Integrate with SummaryCache",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add _get_cached_digest() and _cache_digest() methods using existing SummaryCache",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Cache lookup before digest",
+          "Cache store after successful digest",
+          "Cache miss triggers fresh digest"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-4": {
+      "type": "task",
+      "title": "Add DIGEST_IMPL_VERSION constant",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add DIGEST_IMPL_VERSION = '1.0' constant, bump on algorithm changes",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Constant defined",
+          "Used in cache key generation"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-4-5": {
+      "type": "task",
+      "title": "Add cache hit metadata flag",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Set source.metadata['_digest_cache_hit'] = True/False for observability",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Flag set on cache hit",
+          "Flag set on cache miss"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-4-1": {
+      "type": "verify",
+      "title": "Verify Phase 4 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-4",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify cache keys include all components, invalidation works on content/query/config change, impl_version included",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-5": {
+      "type": "phase",
+      "title": "Pipeline Integration",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-5-1",
+        "task-5-2",
+        "task-5-3",
+        "task-5-4",
+        "task-5-5",
+        "task-5-6",
+        "task-5-7",
+        "verify-5-1"
+      ],
+      "total_tasks": 8,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Wire digest step into deep research workflow per sequencing contract"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-6"
+        ],
+        "blocked_by": [
+          "phase-4"
+        ],
+        "depends": []
+      }
+    },
+    "task-5-1": {
+      "type": "task",
+      "title": "Add digest step to _execute_analysis_async",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Insert digest step in _execute_analysis_async with explicit PDF extraction timing: (1) For sources WITHOUT content: extract PDF/HTML in ANALYSIS phase start, (2) Compute ranking on extracted content, (3) Select top N eligible, (4) Digest selected sources. PDF extraction happens IN ANALYSIS, not GATHER. When fetch_pdfs=false and no content exists, rank on snippet only and mark ineligible for digest.",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "PDF extraction occurs at ANALYSIS phase start, not GATHER",
+          "Ranking computed after extraction completes",
+          "Selection uses deterministic sort",
+          "Sources without content (fetch disabled) ranked on snippet, ineligible for digest"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-2": {
+      "type": "task",
+      "title": "Implement _raw_content lifecycle",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Set _raw_content before digest, delete after digest (success or failure), never serialize",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "_raw_content set before digest call",
+          "_raw_content deleted in finally block",
+          "_raw_content never in serialization"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-3": {
+      "type": "task",
+      "title": "Update source.content with digest payload",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "On successful digest: set source.content = serialized payload, source.content_type = 'digest/v1'",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "content replaced with serialized JSON",
+          "content_type set correctly"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-4": {
+      "type": "task",
+      "title": "Record fidelity for digested sources",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Record FidelityLevel.DIGEST in state.content_fidelity with original_tokens and final_tokens",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Fidelity recorded with DIGEST level",
+          "Token counts accurate"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-5": {
+      "type": "task",
+      "title": "Update budget allocation for digest content",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Budget allocation uses source.content length (digest size) not original size",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Budget calculated on current content size",
+          "Digested sources use less budget"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-6": {
+      "type": "task",
+      "title": "Update citation formatting for evidence snippets",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "When source.is_digest, use EvidenceSnippet.text for quotes and locator for attribution",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Citations check is_digest",
+          "Evidence snippets used for quotes",
+          "Locators included in attribution"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-5-7": {
+      "type": "task",
+      "title": "Skip re-digesting in subsequent iterations",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Check source.is_digest before attempting digest, skip if already digested",
+        "file_path": "src/foundry_mcp/core/research/workflows/deep_research.py",
+        "acceptance_criteria": [
+          "Already-digested sources skipped",
+          "No double-digest in multi-iteration"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-5-1": {
+      "type": "verify",
+      "title": "Verify Phase 5 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-5",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify sequencing correct (rank->select->digest), _raw_content always deleted, citations use evidence snippets, budget uses digest size",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-6": {
+      "type": "phase",
+      "title": "Observability",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-6-1",
+        "task-6-2",
+        "task-6-3",
+        "task-6-4",
+        "verify-6-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Add audit events and metrics for monitoring"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-7"
+        ],
+        "blocked_by": [
+          "phase-5"
+        ],
+        "depends": []
+      }
+    },
+    "task-6-1": {
+      "type": "task",
+      "title": "Add digest audit events",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Emit digest.started (source_id, content_size, policy, query_hash), digest.completed (compression_ratio, cache_hit, duration_ms), digest.skipped (reason), digest.error (error_type, message)",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "All four event types emitted at correct points",
+          "No raw content in event payloads",
+          "Events include correlation_id"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-2": {
+      "type": "task",
+      "title": "Add digest metrics",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add digest_duration_seconds histogram, digest_sources_processed counter, digest_compression_ratio histogram, digest_cache_hits counter, digest_evidence_snippets histogram",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "All metrics emitted",
+          "Labels include policy and outcome",
+          "Histograms have appropriate buckets"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-3": {
+      "type": "task",
+      "title": "Add circuit breaker event",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Emit digest.circuit_breaker_triggered with window_failures and window_size",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Event emitted when breaker trips",
+          "Includes failure count and window size"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-6-4": {
+      "type": "task",
+      "title": "Ensure no raw content in audit events",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Audit events use content_size not content value, sanitize error messages",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "No _raw_content in any event",
+          "Error messages sanitized"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-6-1": {
+      "type": "verify",
+      "title": "Verify Phase 6 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-6",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify all events fire at correct points, metrics have correct labels, no raw content leaked in logs",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-7": {
+      "type": "phase",
+      "title": "Error Handling and Resilience",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-7-1",
+        "task-7-2",
+        "task-7-3",
+        "task-7-4",
+        "verify-7-1"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Define explicit failure policies with robust circuit breaker"
+      },
+      "dependencies": {
+        "blocks": [
+          "phase-8"
+        ],
+        "blocked_by": [
+          "phase-6"
+        ],
+        "depends": []
+      }
+    },
+    "task-7-1": {
+      "type": "task",
+      "title": "Implement error handling policy",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "On PDF extraction failure: skip digest, preserve original, emit warning. On summarization failure: skip digest, preserve original, emit warning. On timeout: cancel, preserve original, don't cache partial",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Failures skip digest gracefully",
+          "Original content preserved",
+          "Warnings emitted"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-2": {
+      "type": "task",
+      "title": "Record failures in fidelity",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "On failure: set FidelityLevel.FULL (unchanged), add warning to PhaseContentFidelityRecord.warnings",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Fidelity level stays FULL on failure",
+          "Warning recorded with reason"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-3": {
+      "type": "task",
+      "title": "Implement sliding-window circuit breaker",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Track last 10 attempts, disable if >70% fail with minimum 5 samples, re-enable after 60 seconds or new iteration, allow cache reads when open",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Window tracks 10 attempts",
+          "Threshold is 70% with 5 minimum",
+          "Auto-reset after 60s",
+          "Cache reads work when open"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-7-4": {
+      "type": "task",
+      "title": "Implement timeout budgets",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Per-source timeout = digest_timeout / max_concurrent, overall batch timeout = digest_timeout, use asyncio.timeout() with cancellation propagation",
+        "file_path": "src/foundry_mcp/core/research/document_digest.py",
+        "acceptance_criteria": [
+          "Per-source timeout calculated correctly",
+          "Batch timeout enforced",
+          "Cancellation propagates cleanly"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-7-1": {
+      "type": "verify",
+      "title": "Verify Phase 7 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-7",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify circuit breaker logic correct, timeout propagation works, no partial results cached, cache reads work when breaker open",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-8": {
+      "type": "phase",
+      "title": "Testing and Documentation",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-8-1",
+        "task-8-2",
+        "task-8-3",
+        "task-8-4",
+        "task-8-5",
+        "task-8-6",
+        "task-8-7",
+        "task-8-8",
+        "task-8-9",
+        "task-8-10",
+        "task-8-11",
+        "task-8-12",
+        "verify-8-1"
+      ],
+      "total_tasks": 13,
+      "completed_tasks": 0,
+      "metadata": {
+        "purpose": "",
+        "description": "Comprehensive test coverage and documentation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [
+          "phase-7"
+        ],
+        "depends": []
+      }
+    },
+    "task-8-1": {
+      "type": "task",
+      "title": "Add DigestPayload unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test DigestPayload JSON schema validation (valid and invalid payloads), serialization round-trip",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "Valid payloads pass schema",
+          "Invalid payloads rejected",
+          "Round-trip preserves data"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-2": {
+      "type": "task",
+      "title": "Add evidence scoring unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test evidence scoring algorithm determinism, empty query fallback, tie-breaker ordering",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "Same input produces same output",
+          "Empty query uses positional fallback",
+          "Tie-breakers applied in order"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-3": {
+      "type": "task",
+      "title": "Add eligibility unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test all policy/size/quality combinations for eligibility",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "off policy always ineligible",
+          "always policy eligible with content",
+          "auto policy checks thresholds"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-4": {
+      "type": "task",
+      "title": "Add PDF extraction unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test PDF extraction success, failure, SSRF blocked, magic bytes, page offsets, size limits",
+        "file_path": "tests/core/research/test_pdf_extractor.py",
+        "acceptance_criteria": [
+          "Valid PDFs extracted",
+          "SSRF attempts blocked",
+          "Invalid magic bytes rejected",
+          "Size limits enforced"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-5": {
+      "type": "task",
+      "title": "Add cache key unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test cache key generation, invalidation on content/query/config change, impl_version bump",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "Keys generated correctly",
+          "Content change invalidates",
+          "Config change invalidates",
+          "Version bump invalidates"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-6": {
+      "type": "task",
+      "title": "Add _raw_content lifecycle tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test _raw_content creation, deletion, never serialized assertions",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "_raw_content deleted after digest",
+          "_raw_content not in to_dict()",
+          "_raw_content not in state serialization"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-7": {
+      "type": "task",
+      "title": "Add circuit breaker unit tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test circuit breaker trigger threshold, auto-reset, cache-reads-while-open",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "Breaker trips at threshold",
+          "Breaker resets after timeout",
+          "Cache reads work when open"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-8": {
+      "type": "task",
+      "title": "Add integration tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Test full deep research flow with digest, ranking before digest, budget allocation uses digest size, citations from evidence snippets, multi-iteration no re-digest",
+        "file_path": "tests/core/research/test_deep_research_digest.py",
+        "acceptance_criteria": [
+          "End-to-end flow works",
+          "Ranking on raw content",
+          "Budget uses compressed size",
+          "Citations use snippets"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-9": {
+      "type": "task",
+      "title": "Add contract tests",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Contract tests: (1) Response envelope includes content_fidelity with DIGEST level, (2) DigestPayload validates against JSON schema including content_type and query_hash, (3) source_text_hash matches archived content hash, (4) Locator offset verification: archived_text[start:end] == snippet.text for all evidence snippets",
+        "file_path": "tests/core/research/test_document_digest.py",
+        "acceptance_criteria": [
+          "Fidelity in envelope with DIGEST level",
+          "Schema validation passes including content_type and query_hash",
+          "source_text_hash == SHA256 of archived canonical text",
+          "All evidence locators verifiable against archived text"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-10": {
+      "type": "task",
+      "title": "Update deep research documentation",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add digest phase explanation, evidence locators, caching behavior",
+        "file_path": "dev_docs/guides/deep-research.md",
+        "acceptance_criteria": [
+          "Digest phase documented",
+          "Locator formats explained",
+          "Caching described"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-11": {
+      "type": "task",
+      "title": "Update configuration documentation",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Document new digest config fields with defaults and valid values",
+        "file_path": "dev_docs/configuration.md",
+        "acceptance_criteria": [
+          "All config fields documented",
+          "Defaults listed",
+          "Valid values specified"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-8-12": {
+      "type": "task",
+      "title": "Update response schema documentation",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Add DigestPayload contract to response schema docs",
+        "file_path": "dev_docs/codebase_standards/mcp_response_schema.md",
+        "acceptance_criteria": [
+          "DigestPayload schema documented",
+          "EvidenceSnippet documented",
+          "Consumer rules explained"
+        ],
+        "task_category": "implementation"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "verify-8-1": {
+      "type": "verify",
+      "title": "Verify Phase 8 implementation fidelity",
+      "status": "pending",
+      "parent": "phase-8",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Verify all test categories covered, fixtures valid, documentation matches implementation, no regressions",
+        "verification_type": "fidelity"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "task-1-8": {
+      "type": "task",
+      "title": "Define archival contract for canonical text",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "description": "Define archival contract: When deep_research_archive_content=true, canonical text is stored at {archive_dir}/{source_id}/{source_text_hash}.txt. Retention: 30 days default (configurable). source_text_hash computed BEFORE archival, archived text is the canonical form. Locator offsets reference archived canonical text.",
+        "file_path": "src/foundry_mcp/core/research/models.py"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": []
+}

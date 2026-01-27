@@ -36,7 +36,7 @@ SEMANTIC_SCHOLAR_BASE_URL = "https://api.semanticscholar.org/graph/v1"
 PAPER_SEARCH_ENDPOINT = "/paper/search"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
-DEFAULT_RATE_LIMIT = 1.0  # requests per second
+DEFAULT_RATE_LIMIT = 0.9  # requests per second (slightly under 1 RPS across endpoints)
 
 # Fields to request from the API
 # See: https://api.semanticscholar.org/api-docs/graph#tag/Paper-Data/operation/get_graph_paper_relevance_search
@@ -128,7 +128,7 @@ class SemanticScholarProvider(SearchProvider):
     API keys are optional but recommended for higher rate limits.
 
     Without API key: Shared rate limit among all unauthenticated users
-    With API key: 1 request per second guaranteed
+    With API key: up to 1 request per second (provider enforces 0.9 RPS across endpoints)
 
     Features:
         - TLDR summaries (auto-generated paper summaries, used as snippet when available)
@@ -190,7 +190,7 @@ class SemanticScholarProvider(SearchProvider):
         """Return the rate limit in requests per second.
 
         Returns:
-            1.0 (one request per second)
+            0.9 (slightly under one request per second across endpoints)
         """
         return self._rate_limit_value
 
