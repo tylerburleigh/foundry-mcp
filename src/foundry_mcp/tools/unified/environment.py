@@ -1061,6 +1061,7 @@ def _handle_get_config(
     config: ServerConfig,  # noqa: ARG001 - config object available but we read TOML directly
     sections: Optional[List[str]] = None,
     key: Optional[str] = None,
+    path: Optional[str] = None,
     **_: Any,
 ) -> dict:
     """Read configuration sections from foundry-mcp.toml.
@@ -1068,10 +1069,19 @@ def _handle_get_config(
     Returns the requested sections from the TOML config file.
     Supported sections: implement, git.
 
+    Config file lookup order (first found wins):
+    1. Explicit path parameter (if provided)
+    2. FOUNDRY_MCP_CONFIG_FILE environment variable
+    3. Project directory: ./foundry-mcp.toml or ./.foundry-mcp.toml
+    4. User home: ~/.foundry-mcp.toml
+    5. XDG config: ~/.config/foundry-mcp/config.toml or $XDG_CONFIG_HOME/foundry-mcp/config.toml
+
     Args:
         sections: List of section names to return (default: all supported sections)
         key: Specific key within section (only valid when requesting single section)
+        path: Explicit path to config file (optional, overrides lookup hierarchy)
     """
+    import os
     import tomllib
 
     request_id = _request_id()
@@ -1117,14 +1127,60 @@ def _handle_get_config(
                 request_id=request_id,
             )
 
+    # Validate path parameter
+    if path is not None and not isinstance(path, str):
+        return _validation_error(
+            action="get-config",
+            field="path",
+            message="Expected a string path to config file",
+            request_id=request_id,
+            code=ErrorCode.INVALID_FORMAT,
+        )
+
     metric_key = _metric_name("get-config")
     try:
-        # Find the TOML config file
+        # Find the TOML config file using same hierarchy as ServerConfig.from_env()
         toml_path = None
-        for candidate in ["foundry-mcp.toml", ".foundry-mcp.toml"]:
-            if Path(candidate).exists():
-                toml_path = Path(candidate)
-                break
+        search_paths: List[str] = []
+
+        # 1. Explicit path parameter (highest priority)
+        if path:
+            explicit_path = Path(path).expanduser()
+            search_paths.append(str(explicit_path))
+            if explicit_path.exists():
+                toml_path = explicit_path
+
+        # 2. Environment variable
+        if not toml_path:
+            env_path = os.environ.get("FOUNDRY_MCP_CONFIG_FILE")
+            if env_path:
+                search_paths.append(env_path)
+                env_path_obj = Path(env_path).expanduser()
+                if env_path_obj.exists():
+                    toml_path = env_path_obj
+
+        # 3. Project directory (current working directory)
+        if not toml_path:
+            for candidate in ["foundry-mcp.toml", ".foundry-mcp.toml"]:
+                search_paths.append(candidate)
+                if Path(candidate).exists():
+                    toml_path = Path(candidate)
+                    break
+
+        # 4. User home directory
+        if not toml_path:
+            home_config = Path.home() / ".foundry-mcp.toml"
+            search_paths.append(str(home_config))
+            if home_config.exists():
+                toml_path = home_config
+
+        # 5. XDG config directory
+        if not toml_path:
+            xdg_config_home = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+            xdg_config = Path(xdg_config_home) / "foundry-mcp" / "config.toml"
+            search_paths.append(str(xdg_config))
+            if xdg_config.exists():
+                toml_path = xdg_config
 
         if not toml_path:
             _metrics.counter(metric_key, labels={"status": "not_found"})
@@ -1133,7 +1189,9 @@ def _handle_get_config(
                     "No foundry-mcp.toml config file found",
                     error_code=ErrorCode.NOT_FOUND,
                     error_type=ErrorType.NOT_FOUND,
-                    remediation="Run environment(action=setup) to create the config file",
+                    remediation="Run environment(action=setup) to create the config file, "
+                    "or provide path parameter to specify config location",
+                    details={"searched_paths": search_paths},
                     request_id=request_id,
                 )
             )
