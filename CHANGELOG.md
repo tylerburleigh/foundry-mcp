@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0b11] - 2026-01-28
+
+### Added
+
+- **Document Digest for Deep Research**: Integrated document digest pipeline into deep research workflows
+  - PDF extraction with security hardening (file size limits, page limits, malformed PDF handling)
+  - Foundation models and configuration for document digest processing
+  - Deep research integration for digest-based source analysis
+  - Comprehensive test coverage for document digest, deep research digest integration, and PDF extraction
+
+### Changed
+
+- Updated MCP response schema documentation with expanded contract details
+
 ## [0.9.0b10] - 2026-01-27
 
 ### Added
