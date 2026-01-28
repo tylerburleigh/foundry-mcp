@@ -576,7 +576,7 @@ class ResearchConfig:
     deep_research_digest_policy: str = "auto"  # "off", "auto", "always"
     deep_research_digest_min_chars: int = 10000  # Minimum chars before digest is applied
     deep_research_digest_max_sources: int = 8  # Max sources to digest per batch
-    deep_research_digest_timeout: float = 60.0  # Timeout per digest operation (seconds)
+    deep_research_digest_timeout: float = 120.0  # Timeout per digest operation (seconds)
     deep_research_digest_max_concurrent: int = 3  # Max concurrent digest operations
     deep_research_digest_include_evidence: bool = True  # Include evidence snippets
     deep_research_digest_evidence_max_chars: int = 400  # Max chars per evidence snippet
@@ -584,6 +584,9 @@ class ResearchConfig:
     deep_research_digest_fetch_pdfs: bool = False  # Whether to fetch and extract PDF content
     deep_research_archive_content: bool = False  # Archive canonical text for digested sources
     deep_research_archive_retention_days: int = 30  # Days to retain archived digest content (0 = keep indefinitely)
+    # Digest LLM provider configuration (uses analysis provider if not set)
+    deep_research_digest_provider: Optional[str] = None  # Primary provider for digest
+    deep_research_digest_providers: List[str] = field(default_factory=list)  # Fallback providers
 
     @classmethod
     def from_toml_dict(cls, data: Dict[str, Any]) -> "ResearchConfig":
@@ -771,6 +774,8 @@ class ResearchConfig:
             deep_research_archive_retention_days=int(
                 data.get("deep_research_archive_retention_days", 30)
             ),
+            deep_research_digest_provider=data.get("deep_research_digest_provider"),
+            deep_research_digest_providers=_parse_provider_list("deep_research_digest_providers"),
         )
         config.tavily_search_depth_configured = "tavily_search_depth" in data
         config.tavily_chunks_per_source_configured = "tavily_chunks_per_source" in data
@@ -1115,6 +1120,37 @@ class ResearchConfig:
             "refinement": self.deep_research_refinement_providers,
         }
         return phase_fallbacks.get(phase.lower(), [])
+
+    def get_digest_provider(self, analysis_provider: Optional[str] = None) -> str:
+        """Get LLM provider ID for document digest operations.
+
+        Returns the digest-specific provider if configured, otherwise
+        falls back to analysis_provider (if provided) or default_provider.
+
+        Args:
+            analysis_provider: Optional analysis provider to use as fallback
+
+        Returns:
+            Provider ID for digest operations (e.g., "gemini", "opencode")
+        """
+        if self.deep_research_digest_provider:
+            provider_id, _ = _parse_provider_spec(self.deep_research_digest_provider)
+            return provider_id
+        if analysis_provider:
+            return analysis_provider
+        provider_id, _ = _parse_provider_spec(self.default_provider)
+        return provider_id
+
+    def get_digest_fallback_providers(self) -> List[str]:
+        """Get fallback provider list for document digest operations.
+
+        Returns the digest-specific fallback provider list if configured,
+        otherwise returns an empty list (no fallback).
+
+        Returns:
+            List of fallback provider IDs to try on failure
+        """
+        return self.deep_research_digest_providers
 
     def get_search_provider_api_key(
         self,

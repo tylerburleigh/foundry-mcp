@@ -212,12 +212,14 @@ while preserving key information.
 | `deep_research_digest_policy` | string | `"auto"` | When to digest: `"off"`, `"auto"`, `"always"` |
 | `deep_research_digest_min_chars` | int | `500` | Minimum content length to trigger digest |
 | `deep_research_digest_max_sources` | int | `50` | Maximum sources to digest per iteration |
-| `deep_research_digest_timeout` | float | `60.0` | Timeout per digest operation (seconds) |
+| `deep_research_digest_timeout` | float | `120.0` | Timeout per digest operation (seconds) |
 | `deep_research_digest_max_concurrent` | int | `3` | Maximum concurrent digest operations |
 | `deep_research_digest_include_evidence` | bool | `true` | Include evidence snippets in output |
 | `deep_research_digest_evidence_max_chars` | int | `400` | Maximum characters per evidence snippet (1-500) |
 | `deep_research_digest_max_evidence_snippets` | int | `5` | Maximum evidence snippets per digest (1-10) |
 | `deep_research_digest_fetch_pdfs` | bool | `false` | Fetch and extract PDF content |
+| `deep_research_digest_provider` | string | `null` | Primary LLM provider for digest (uses analysis provider if not set) |
+| `deep_research_digest_providers` | list | `[]` | Fallback providers for digest (tried in order if primary fails) |
 
 **Digest Policies:**
 

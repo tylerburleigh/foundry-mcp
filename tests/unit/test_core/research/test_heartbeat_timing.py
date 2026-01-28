@@ -50,6 +50,19 @@ def mock_config():
     config.deep_research_refinement_provider = None
     config.deep_research_max_retries = 0
     config.deep_research_retry_delay = 1.0
+    # Digest configuration
+    config.deep_research_digest_policy = "off"  # Disable digest for these tests
+    config.deep_research_digest_min_chars = 10000
+    config.deep_research_digest_max_sources = 8
+    config.deep_research_digest_timeout = 60.0
+    config.deep_research_digest_max_concurrent = 3
+    config.deep_research_digest_include_evidence = True
+    config.deep_research_digest_evidence_max_chars = 400
+    config.deep_research_digest_max_evidence_snippets = 5
+    config.deep_research_digest_fetch_pdfs = False
+    config.deep_research_archive_content = False
+    config.deep_research_digest_provider = None
+    config.deep_research_digest_providers = []
 
     def get_phase_timeout(phase: str) -> float:
         mapping = {
@@ -72,9 +85,17 @@ def mock_config():
     def get_phase_fallback_providers(phase: str) -> list:
         return []
 
+    def get_digest_provider(analysis_provider: str = None) -> str:
+        return analysis_provider or config.default_provider
+
+    def get_digest_fallback_providers() -> list:
+        return []
+
     config.get_phase_timeout = get_phase_timeout
     config.get_phase_provider = get_phase_provider
     config.get_phase_fallback_providers = get_phase_fallback_providers
+    config.get_digest_provider = get_digest_provider
+    config.get_digest_fallback_providers = get_digest_fallback_providers
     return config
 
 

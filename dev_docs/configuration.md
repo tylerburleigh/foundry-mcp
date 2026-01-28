@@ -51,12 +51,14 @@ Settings for the document digest phase that compresses source content:
 | `deep_research_digest_policy` | string | `"auto"` | `"off"`, `"auto"`, `"always"` | Controls when digest is applied |
 | `deep_research_digest_min_chars` | int | `10000` | ≥0 | Minimum source chars for auto-policy eligibility |
 | `deep_research_digest_max_sources` | int | `8` | ≥1 | Maximum sources to digest per batch |
-| `deep_research_digest_timeout` | float | `60.0` | >0 | Timeout per digest operation (seconds) |
+| `deep_research_digest_timeout` | float | `120.0` | >0 | Timeout per digest operation (seconds) |
 | `deep_research_digest_max_concurrent` | int | `3` | ≥1 | Maximum concurrent digest operations |
 | `deep_research_digest_include_evidence` | bool | `true` | `true`, `false` | Include evidence snippets in output |
 | `deep_research_digest_evidence_max_chars` | int | `400` | 1-500 | Maximum characters per evidence snippet |
 | `deep_research_digest_max_evidence_snippets` | int | `5` | 1-10 | Maximum evidence snippets per digest |
 | `deep_research_digest_fetch_pdfs` | bool | `false` | `true`, `false` | Fetch and extract PDF content |
+| `deep_research_digest_provider` | string | `null` | provider spec | Primary LLM provider for digest (uses analysis provider if not set) |
+| `deep_research_digest_providers` | list | `[]` | provider specs | Fallback providers for digest (tried in order if primary fails) |
 
 Note: Evidence snippet limits are clamped to schema caps (500 chars, 10 snippets) to prevent validation errors.
 
@@ -98,7 +100,7 @@ For large research jobs, tune concurrency and timeouts:
 deep_research_digest_max_concurrent = 5
 
 # Increase timeout for complex documents
-deep_research_digest_timeout = 90.0
+deep_research_digest_timeout = 180.0
 
 # Process more sources per batch
 deep_research_digest_max_sources = 12

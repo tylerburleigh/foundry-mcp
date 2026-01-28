@@ -4322,9 +4322,16 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
             include_evidence=self.config.deep_research_digest_include_evidence,
         )
 
-        # Create summarizer for digestor (uses analysis provider)
+        # Create summarizer for digestor (uses digest provider with fallback chain)
+        digest_provider = self.config.get_digest_provider(analysis_provider=state.analysis_provider)
+        digest_providers = self.config.get_digest_fallback_providers()
+
         summarizer = ContentSummarizer(
-            summarization_provider=state.analysis_provider,
+            summarization_provider=digest_provider,
+            summarization_providers=digest_providers,
+            max_retries=self.config.deep_research_max_retries,
+            retry_delay=self.config.deep_research_retry_delay,
+            timeout=self.config.deep_research_digest_timeout,
         )
         pdf_extractor = PDFExtractor()
 
@@ -4631,21 +4638,58 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
                     # This ensures raw content is never persisted to disk
                     source.metadata.pop("_raw_content", None)
 
-        tasks = [asyncio.create_task(_digest_source(source)) for source in eligible_sources]
+        # Track which sources have been processed (set in _digest_source on completion)
+        processed_source_ids: set[str] = set()
+
+        async def _tracked_digest_source(source: ResearchSource) -> None:
+            await _digest_source(source)
+            processed_source_ids.add(source.id)
+
+        tasks = [asyncio.create_task(_tracked_digest_source(source)) for source in eligible_sources]
         try:
             await asyncio.wait_for(
                 asyncio.gather(*tasks),
                 timeout=batch_timeout,
             )
         except asyncio.TimeoutError:
+            remaining_count = sum(1 for t in tasks if not t.done())
             logger.warning(
                 "Batch timeout exceeded (%.1fs), cancelling remaining %d sources",
                 batch_timeout,
-                sum(1 for t in tasks if not t.done()),
+                remaining_count,
             )
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Record fidelity and set metadata for sources that weren't processed
+            for source in eligible_sources:
+                if source.id not in processed_source_ids:
+                    # Check if already handled by per-source timeout or error
+                    if not source.metadata.get("_digest_timeout") and not source.metadata.get("_digest_error"):
+                        source.metadata["_digest_timeout"] = True
+                        stats["digest_errors"].append(
+                            f"Source {source.id}: batch timeout after {batch_timeout:.1f}s"
+                        )
+                        state.record_item_fidelity(
+                            item_id=source.id,
+                            phase="digest",
+                            level=FidelityLevel.FULL,
+                            item_type="source",
+                            reason="digest_timeout",
+                            warnings=[f"Batch timeout after {batch_timeout:.1f}s"],
+                        )
+                        self._write_audit_event(
+                            state,
+                            "digest.error",
+                            data={
+                                "source_id": source.id,
+                                "error_type": "batch_timeout",
+                                "message": f"Batch timeout after {batch_timeout:.1f}s",
+                                "correlation_id": state.id,
+                            },
+                            level="warning",
+                        )
 
         logger.info(
             "Digest step complete: %d extracted, %d ranked, %d selected, %d digested",

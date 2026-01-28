@@ -171,12 +171,14 @@ Research sessions are persisted for resume and crash recovery:
 | `deep_research_digest_policy` | `auto` | Digest eligibility policy (off/auto/always) |
 | `deep_research_digest_min_chars` | `10000` | Minimum chars for auto-policy eligibility |
 | `deep_research_digest_max_sources` | `8` | Max sources to digest per batch |
-| `deep_research_digest_timeout` | `60.0` | Timeout per digest operation (seconds) |
+| `deep_research_digest_timeout` | `120.0` | Timeout per digest operation (seconds) |
 | `deep_research_digest_max_concurrent` | `3` | Max concurrent digest operations |
 | `deep_research_digest_include_evidence` | `true` | Include evidence snippets in output |
 | `deep_research_digest_evidence_max_chars` | `400` | Max chars per evidence snippet |
 | `deep_research_digest_max_evidence_snippets` | `5` | Max evidence snippets per digest |
 | `deep_research_digest_fetch_pdfs` | `false` | Fetch and extract PDF content |
+| `deep_research_digest_provider` | `null` | Primary LLM provider for digest (uses analysis provider if not set) |
+| `deep_research_digest_providers` | `[]` | Fallback providers for digest (tried in order if primary fails) |
 
 ### Example Configuration
 
@@ -185,10 +187,12 @@ Research sessions are persisted for resume and crash recovery:
 deep_research_digest_policy = "auto"
 deep_research_digest_min_chars = 10000
 deep_research_digest_max_sources = 8
-deep_research_digest_timeout = 60.0
+deep_research_digest_timeout = 120.0
 deep_research_digest_include_evidence = true
 deep_research_digest_evidence_max_chars = 400
 deep_research_digest_max_evidence_snippets = 5
+# deep_research_digest_provider = "[cli]gemini:flash"
+# deep_research_digest_providers = ["[cli]claude:haiku", "[cli]codex:gpt-4.1-mini"]
 ```
 
 ## Circuit Breaker

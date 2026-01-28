@@ -607,7 +607,7 @@ deep_research_digest_min_chars = 10000
 deep_research_digest_max_sources = 8
 
 # Timeout per digest operation in seconds
-deep_research_digest_timeout = 60.0
+deep_research_digest_timeout = 180.0
 
 # Maximum concurrent digest operations
 deep_research_digest_max_concurrent = 3
@@ -616,7 +616,7 @@ deep_research_digest_max_concurrent = 3
 deep_research_digest_include_evidence = true
 
 # Maximum characters per evidence snippet
-deep_research_digest_evidence_max_chars = 400
+deep_research_digest_evidence_max_chars = 600
 
 # Maximum evidence snippets per digest
 deep_research_digest_max_evidence_snippets = 5
@@ -632,6 +632,16 @@ deep_research_archive_content = false
 
 # Days to retain archived digest content (0 = keep indefinitely)
 deep_research_archive_retention_days = 30
+
+# Primary LLM provider for digest operations
+# Uses analysis provider if not set
+# deep_research_digest_provider = "[cli]gemini:flash"
+
+# Fallback providers for digest (tried in order if primary fails)
+# deep_research_digest_providers = [
+#     "[cli]claude:haiku",
+#     "[cli]codex:gpt-4.1-mini",
+# ]
 
 # -----------------------------------------------------------------------------
 # Perplexity Search Provider Configuration
