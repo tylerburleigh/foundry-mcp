@@ -23,10 +23,14 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import hashlib
+import math
 import json
 import logging
+import os
 import re
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -47,6 +51,7 @@ from foundry_mcp.core.research.models import (
     DeepResearchPhase,
     DeepResearchState,
     DOMAIN_TIERS,
+    FidelityLevel,
     PhaseMetrics,
     ResearchMode,
     ResearchSource,
@@ -86,6 +91,16 @@ from foundry_mcp.core.research.context_budget import (
 # Note: ContentSummarizer and SummarizationLevel are available for async summarization
 # but refinement phase uses synchronous heuristic truncation for now to avoid
 # complexity of async summarization within the refinement flow.
+from foundry_mcp.core.research.document_digest import (
+    DocumentDigestor,
+    DigestConfig,
+    DigestPolicy,
+    DigestResult,
+    deserialize_payload,
+    serialize_payload,
+)
+from foundry_mcp.core.research.pdf_extractor import PDFExtractor
+from foundry_mcp.core.research.summarization import ContentSummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -1222,11 +1237,12 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
 
         # Override with config values (if explicitly set/non-default)
         config = self.config
-        default_search_depth = "basic"
         default_topic = "general"
-        default_chunks_per_source = 3
 
-        if config.tavily_search_depth != default_search_depth:
+        if (
+            getattr(config, "tavily_search_depth_configured", False)
+            or config.tavily_search_depth != "basic"
+        ):
             kwargs["search_depth"] = config.tavily_search_depth
         if config.tavily_topic != default_topic or config.tavily_news_days is not None:
             kwargs["topic"] = config.tavily_topic
@@ -1235,7 +1251,10 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
         kwargs["include_favicon"] = False  # Not typically needed for research
         if config.tavily_auto_parameters:
             kwargs["auto_parameters"] = True
-        if config.tavily_chunks_per_source != default_chunks_per_source:
+        if (
+            getattr(config, "tavily_chunks_per_source_configured", False)
+            or config.tavily_chunks_per_source != 3
+        ):
             kwargs["chunks_per_source"] = config.tavily_chunks_per_source
 
         # Only include optional parameters when explicitly set
@@ -1643,6 +1662,17 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 # Unregister from active sessions (under lock)
                 with _active_sessions_lock:
                     _active_research_sessions.pop(state.id, None)
+                # Ensure final state is persisted for completed/cancelled/failed workflows
+                try:
+                    workflow._flush_state(state)
+                except Exception:
+                    pass
+                # Remove completed task from registries to avoid leaks
+                try:
+                    workflow._cleanup_completed_task(state.id)
+                    task_registry.remove(state.id)
+                except Exception:
+                    pass
 
         # Create and start the daemon thread
         thread = threading.Thread(
@@ -2009,6 +2039,13 @@ class DeepResearchWorkflow(ResearchWorkflowBase):
                 content = "\n".join(status_lines)
             else:
                 content = f"Task status: {bg_task.status.value}"
+            # Cleanup registries for completed tasks to prevent leaks.
+            if not is_active:
+                try:
+                    self._cleanup_completed_task(research_id)
+                    task_registry.remove(research_id)
+                except Exception:
+                    pass
             return WorkflowResult(
                 success=True,
                 content=content,
@@ -3786,6 +3823,30 @@ Generate the research plan as JSON."""
             },
         )
 
+        # Execute digest step: extract content, rank, select, and digest sources
+        # This step runs BEFORE budget allocation to ensure digested content is used
+        # for token counting and allocation decisions
+        digest_stats = await self._execute_digest_step_async(
+            state=state,
+            query=state.original_query,
+        )
+
+        # Record digest statistics in state metadata
+        if digest_stats["sources_digested"] > 0:
+            state.metadata = state.metadata or {}
+            state.metadata["digest_stats"] = digest_stats
+            self._write_audit_event(
+                state,
+                "digest.completed",
+                data={
+                    "sources_extracted": digest_stats["sources_extracted"],
+                    "sources_ranked": digest_stats["sources_ranked"],
+                    "sources_selected": digest_stats["sources_selected"],
+                    "sources_digested": digest_stats["sources_digested"],
+                    "errors": len(digest_stats["digest_errors"]),
+                },
+            )
+
         # Allocate token budget for sources
         allocation_result = self._allocate_source_budget(
             state=state,
@@ -4126,6 +4187,629 @@ Guidelines for quality_updates:
 
 IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
 
+    async def _execute_digest_step_async(
+        self,
+        state: DeepResearchState,
+        query: str,
+    ) -> dict[str, Any]:
+        """Execute digest step: extract content, rank, select, and digest sources.
+
+        This method implements the digest pipeline for the ANALYSIS phase:
+        1. For sources WITHOUT content: extract PDFs (if fetch_pdfs enabled)
+        2. Compute ranking on extracted content
+        3. Select top N eligible sources
+        4. Digest selected sources
+
+        Sources without content (when fetch disabled) are ranked on snippet only
+        and marked ineligible for digest.
+
+        Args:
+            state: Current research state with sources
+            query: Research query for digest conditioning
+
+        Returns:
+            Dict with digest statistics:
+            - sources_extracted: Number of sources with content extracted
+            - sources_ranked: Number of sources ranked
+            - sources_selected: Number of sources selected for digest
+            - sources_digested: Number of sources successfully digested
+            - digest_errors: List of error messages for failed digests
+        """
+        stats: dict[str, Any] = {
+            "sources_extracted": 0,
+            "sources_ranked": 0,
+            "sources_selected": 0,
+            "sources_digested": 0,
+            "digest_errors": [],
+        }
+
+        # Check if digest is enabled via policy
+        policy_str = self.config.deep_research_digest_policy
+        if policy_str == "off":
+            logger.debug("Digest step skipped: policy is OFF")
+            return stats
+
+        policy = DigestPolicy(policy_str)
+        fetch_pdfs = self.config.deep_research_digest_fetch_pdfs
+
+        # Step 1: Extract PDF content for sources without content (if fetch enabled)
+        if fetch_pdfs:
+            pdf_extractor = PDFExtractor()
+            for source in state.sources:
+                if not source.content and source.url:
+                    try:
+                        # Check if URL points to a PDF
+                        if source.url.lower().endswith(".pdf"):
+                            result = await pdf_extractor.extract_from_url(source.url)
+                            if result.success and result.text:
+                                source.content = result.text
+                                source.metadata["_pdf_extracted"] = True
+                                source.metadata["_pdf_page_count"] = result.page_count
+                                if result.page_offsets:
+                                    source.metadata["_pdf_page_offsets"] = result.page_offsets
+                                stats["sources_extracted"] += 1
+                                logger.debug(
+                                    "Extracted PDF content for source %s: %d chars, %d pages",
+                                    source.id,
+                                    len(result.text),
+                                    result.page_count or 0,
+                                )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to extract PDF for source %s: %s",
+                            source.id,
+                            str(e),
+                        )
+                        source.metadata["_pdf_extract_error"] = str(e)
+
+                        # Emit audit event for PDF extraction failure
+                        # Error handling policy: skip digest, preserve original, emit warning
+                        error_msg = str(e)
+                        if len(error_msg) > 200:
+                            error_msg = error_msg[:200] + "...[truncated]"
+                        self._write_audit_event(
+                            state,
+                            "digest.pdf_extract_error",
+                            data={
+                                "source_id": source.id,
+                                "error_type": type(e).__name__,
+                                "message": error_msg,
+                                "url": source.url,
+                                "correlation_id": state.id,
+                            },
+                            level="warning",
+                        )
+
+        # Step 2: Rank sources based on content/snippet
+        # Sources with content are ranked higher than snippet-only sources
+        ranked_sources: list[tuple[ResearchSource, float]] = []
+        for source in state.sources:
+            # Compute ranking score
+            score = 0.0
+
+            # Quality contributes to score
+            quality_scores = {
+                SourceQuality.HIGH: 1.0,
+                SourceQuality.MEDIUM: 0.7,
+                SourceQuality.LOW: 0.4,
+                SourceQuality.UNKNOWN: 0.2,
+            }
+            score += quality_scores.get(source.quality, 0.2)
+
+            # Content presence boosts score significantly
+            if source.content:
+                content_len = len(source.content)
+                # Normalize content length contribution (max 1.0 at 10k+ chars)
+                score += min(1.0, content_len / 10000)
+            elif source.snippet:
+                # Snippet-only sources get smaller boost
+                score += 0.1
+
+            ranked_sources.append((source, score))
+            stats["sources_ranked"] += 1
+
+        # Step 3: Sort by score (descending) then by ID (deterministic tiebreaker)
+        ranked_sources.sort(key=lambda x: (-x[1], x[0].id))
+
+        # Create digestor with config (used for eligibility + digest)
+        max_sources = self.config.deep_research_digest_max_sources
+        min_chars = self.config.deep_research_digest_min_chars
+        digest_config = DigestConfig(
+            policy=policy,
+            min_content_length=min_chars,
+            max_evidence_snippets=self.config.deep_research_digest_max_evidence_snippets,
+            max_snippet_length=self.config.deep_research_digest_evidence_max_chars,
+            include_evidence=self.config.deep_research_digest_include_evidence,
+        )
+
+        # Create summarizer for digestor (uses digest provider with fallback chain)
+        digest_provider = self.config.get_digest_provider(analysis_provider=state.analysis_provider)
+        digest_providers = self.config.get_digest_fallback_providers()
+
+        summarizer = ContentSummarizer(
+            summarization_provider=digest_provider,
+            summarization_providers=digest_providers,
+            max_retries=self.config.deep_research_max_retries,
+            retry_delay=self.config.deep_research_retry_delay,
+            timeout=self.config.deep_research_digest_timeout,
+        )
+        pdf_extractor = PDFExtractor()
+
+        digestor = DocumentDigestor(
+            summarizer=summarizer,
+            pdf_extractor=pdf_extractor,
+            config=digest_config,
+        )
+
+        # Step 4: Select top N eligible for digest
+        eligible_sources: list[ResearchSource] = []
+
+        for source, score in ranked_sources:
+            if len(eligible_sources) >= max_sources:
+                break
+
+            # Skip already-digested sources (prevents double-digest in multi-iteration)
+            if source.is_digest:
+                source.metadata["_digest_eligible"] = False
+                source.metadata["_digest_skip_reason"] = "already_digested"
+                continue
+
+            if not source.content:
+                source.metadata["_digest_eligible"] = False
+                source.metadata["_digest_skip_reason"] = "no_content"
+                continue
+
+            # Check eligibility using digestor policy/quality/length rules
+            if digestor._is_eligible(source.content, source.quality):
+                eligible_sources.append(source)
+                source.metadata["_digest_eligible"] = True
+                stats["sources_selected"] += 1
+            else:
+                source.metadata["_digest_eligible"] = False
+                source.metadata["_digest_skip_reason"] = digestor._get_skip_reason(
+                    source.content,
+                    source.quality,
+                )
+
+        # Step 5: Digest selected sources
+        if not eligible_sources:
+            logger.debug("No eligible sources for digest")
+            return stats
+
+        # Digest each eligible source with timeout budgets
+        # Configured timeout is per-source; batch scales with concurrency
+        per_source_timeout = self.config.deep_research_digest_timeout
+        max_concurrent = self.config.deep_research_digest_max_concurrent
+
+        # Batch timeout = per_source_timeout * number of concurrent batches
+        batch_count = max(1, math.ceil(len(eligible_sources) / max_concurrent))
+        batch_timeout = per_source_timeout * batch_count
+        logger.debug(
+            "Digest timeout budgets: per_source=%.1fs, batch=%.1fs (batches=%d, max_concurrent=%d)",
+            per_source_timeout,
+            batch_timeout,
+            batch_count,
+            max_concurrent,
+        )
+
+        query_hash = hashlib.sha256(query.encode("utf-8")).hexdigest()[:8]
+        semaphore = asyncio.Semaphore(max_concurrent)
+        stats_lock = asyncio.Lock()
+
+        async def _digest_source(source: ResearchSource) -> None:
+            async with semaphore:
+                # Store raw content BEFORE digest call for potential archival
+                # This is set before and deleted in finally to ensure cleanup
+                source.metadata["_raw_content"] = source.content
+                content_size = len(source.content) if source.content else 0
+
+                # Emit digest.started audit event (no raw content)
+                self._write_audit_event(
+                    state,
+                    "digest.started",
+                    data={
+                        "source_id": source.id,
+                        "content_size": content_size,
+                        "policy": policy.value,
+                        "query_hash": query_hash,
+                        "correlation_id": state.id,
+                    },
+                )
+
+                # Page boundaries for PDF locators (if available)
+                page_offsets = source.metadata.get("_pdf_page_offsets")
+                page_boundaries = None
+                if page_offsets:
+                    page_boundaries = [
+                        (idx + 1, start, end)
+                        for idx, (start, end) in enumerate(page_offsets)
+                    ]
+
+                try:
+                    # Use per-source timeout with cancellation propagation
+                    result: DigestResult = await asyncio.wait_for(
+                        digestor.digest(
+                            source=source.metadata["_raw_content"] or "",
+                            query=query,
+                            source_id=source.id,
+                            quality=source.quality,
+                            page_boundaries=page_boundaries,
+                        ),
+                        timeout=per_source_timeout,
+                    )
+
+                    if result.success and result.payload:
+                        # Update source with digest payload
+                        source.content = serialize_payload(result.payload)
+                        source.content_type = "digest/v1"
+                        source.metadata["_digest_cache_hit"] = result.cache_hit
+                        source.metadata["_digest_duration_ms"] = result.duration_ms
+                        async with stats_lock:
+                            stats["sources_digested"] += 1
+                        if self.config.deep_research_archive_content:
+                            try:
+                                await asyncio.to_thread(
+                                    self._archive_digest_source,
+                                    source=source,
+                                    digestor=digestor,
+                                    raw_content=source.metadata.get("_raw_content") or "",
+                                    page_boundaries=page_boundaries,
+                                    source_text_hash=result.payload.source_text_hash,
+                                )
+                            except Exception as archive_error:
+                                error_msg = str(archive_error)
+                                if len(error_msg) > 200:
+                                    error_msg = error_msg[:200] + "...[truncated]"
+                                source.metadata["_digest_archive_error"] = error_msg
+                                logger.warning(
+                                    "Digest archive failed for source %s: %s",
+                                    source.id,
+                                    error_msg,
+                                )
+
+                        # Record fidelity for digested source
+                        # Estimate tokens: ~4 chars per token is a reasonable approximation
+                        original_tokens = result.payload.original_chars // 4
+                        final_tokens = result.payload.digest_chars // 4
+                        state.record_item_fidelity(
+                            item_id=source.id,
+                            phase="digest",
+                            level=FidelityLevel.DIGEST,
+                            item_type="source",
+                            reason="digest_compression",
+                            original_tokens=original_tokens,
+                            final_tokens=final_tokens,
+                        )
+
+                        logger.debug(
+                            "Digested source %s: %d -> %d chars (%.1f%% compression)",
+                            source.id,
+                            result.payload.original_chars,
+                            result.payload.digest_chars,
+                            result.payload.compression_ratio * 100,
+                        )
+
+                        # Emit digest.completed audit event (no raw content)
+                        self._write_audit_event(
+                            state,
+                            "digest.completed",
+                            data={
+                                "source_id": source.id,
+                                "compression_ratio": result.payload.compression_ratio,
+                                "cache_hit": result.cache_hit,
+                                "duration_ms": result.duration_ms,
+                                "correlation_id": state.id,
+                            },
+                        )
+                    elif result.skipped:
+                        source.metadata["_digest_skipped"] = True
+                        source.metadata["_digest_skip_reason"] = result.skip_reason
+
+                        # Record fidelity as FULL (content unchanged) with warning
+                        state.record_item_fidelity(
+                            item_id=source.id,
+                            phase="digest",
+                            level=FidelityLevel.FULL,
+                            item_type="source",
+                            reason="digest_skipped",
+                            warnings=[f"Digest skipped: {result.skip_reason}"],
+                        )
+
+                        # Emit digest.skipped audit event
+                        self._write_audit_event(
+                            state,
+                            "digest.skipped",
+                            data={
+                                "source_id": source.id,
+                                "reason": result.skip_reason,
+                                "correlation_id": state.id,
+                            },
+                        )
+                    else:
+                        async with stats_lock:
+                            stats["digest_errors"].append(
+                                f"Source {source.id}: digest failed with warnings: {result.warnings}"
+                            )
+
+                        # Record fidelity as FULL (content unchanged) with warnings
+                        state.record_item_fidelity(
+                            item_id=source.id,
+                            phase="digest",
+                            level=FidelityLevel.FULL,
+                            item_type="source",
+                            reason="digest_failed",
+                            warnings=result.warnings or ["Digest failed without specific error"],
+                        )
+
+                        # Emit digest.error audit event for non-exception failures
+                        error_msg = (
+                            "; ".join(result.warnings)
+                            if result.warnings
+                            else "Digest failed without specific error"
+                        )
+                        if len(error_msg) > 200:
+                            error_msg = error_msg[:200] + "...[truncated]"
+                        self._write_audit_event(
+                            state,
+                            "digest.error",
+                            data={
+                                "source_id": source.id,
+                                "error_type": "digest_failed",
+                                "message": error_msg,
+                                "correlation_id": state.id,
+                            },
+                            level="warning",
+                        )
+
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "Digest timeout for source %s after %.1fs (budget: per_source=%.1fs)",
+                        source.id,
+                        per_source_timeout,
+                        per_source_timeout,
+                    )
+                    source.metadata["_digest_timeout"] = True
+                    async with stats_lock:
+                        stats["digest_errors"].append(
+                            f"Source {source.id}: timeout after {per_source_timeout:.1f}s"
+                        )
+
+                    # Record fidelity as FULL (content unchanged) with timeout warning
+                    state.record_item_fidelity(
+                        item_id=source.id,
+                        phase="digest",
+                        level=FidelityLevel.FULL,
+                        item_type="source",
+                        reason="digest_timeout",
+                        warnings=[f"Digest timeout after {per_source_timeout:.1f}s"],
+                    )
+
+                    # Emit digest.error audit event for timeout
+                    self._write_audit_event(
+                        state,
+                        "digest.error",
+                        data={
+                            "source_id": source.id,
+                            "error_type": "timeout",
+                            "message": f"Digest timeout after {per_source_timeout:.1f}s (budget: {per_source_timeout:.1f}s)",
+                            "correlation_id": state.id,
+                        },
+                        level="warning",
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Digest error for source %s: %s",
+                        source.id,
+                        str(e),
+                    )
+                    source.metadata["_digest_error"] = str(e)
+                    async with stats_lock:
+                        stats["digest_errors"].append(f"Source {source.id}: {str(e)}")
+
+                    # Record fidelity as FULL (content unchanged) with error warning
+                    # Sanitize error message for fidelity record
+                    error_msg = str(e)
+                    if len(error_msg) > 200:
+                        error_msg = error_msg[:200] + "...[truncated]"
+                    state.record_item_fidelity(
+                        item_id=source.id,
+                        phase="digest",
+                        level=FidelityLevel.FULL,
+                        item_type="source",
+                        reason="digest_error",
+                        warnings=[f"Digest error ({type(e).__name__}): {error_msg}"],
+                    )
+
+                    # Emit digest.error audit event for exception
+                    # Sanitize error message: truncate to prevent raw content leakage
+                    self._write_audit_event(
+                        state,
+                        "digest.error",
+                        data={
+                            "source_id": source.id,
+                            "error_type": type(e).__name__,
+                            "message": error_msg,
+                            "correlation_id": state.id,
+                        },
+                        level="warning",
+                    )
+                finally:
+                    # Always delete _raw_content to prevent serialization
+                    # This ensures raw content is never persisted to disk
+                    source.metadata.pop("_raw_content", None)
+
+        # Track which sources have been processed (set in _digest_source on completion)
+        processed_source_ids: set[str] = set()
+
+        async def _tracked_digest_source(source: ResearchSource) -> None:
+            await _digest_source(source)
+            processed_source_ids.add(source.id)
+
+        tasks = [asyncio.create_task(_tracked_digest_source(source)) for source in eligible_sources]
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*tasks),
+                timeout=batch_timeout,
+            )
+        except asyncio.TimeoutError:
+            remaining_count = sum(1 for t in tasks if not t.done())
+            logger.warning(
+                "Batch timeout exceeded (%.1fs), cancelling remaining %d sources",
+                batch_timeout,
+                remaining_count,
+            )
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Record fidelity and set metadata for sources that weren't processed
+            for source in eligible_sources:
+                if source.id not in processed_source_ids:
+                    # Check if already handled by per-source timeout or error
+                    if not source.metadata.get("_digest_timeout") and not source.metadata.get("_digest_error"):
+                        source.metadata["_digest_timeout"] = True
+                        stats["digest_errors"].append(
+                            f"Source {source.id}: batch timeout after {batch_timeout:.1f}s"
+                        )
+                        state.record_item_fidelity(
+                            item_id=source.id,
+                            phase="digest",
+                            level=FidelityLevel.FULL,
+                            item_type="source",
+                            reason="digest_timeout",
+                            warnings=[f"Batch timeout after {batch_timeout:.1f}s"],
+                        )
+                        self._write_audit_event(
+                            state,
+                            "digest.error",
+                            data={
+                                "source_id": source.id,
+                                "error_type": "batch_timeout",
+                                "message": f"Batch timeout after {batch_timeout:.1f}s",
+                                "correlation_id": state.id,
+                            },
+                            level="warning",
+                        )
+
+        logger.info(
+            "Digest step complete: %d extracted, %d ranked, %d selected, %d digested",
+            stats["sources_extracted"],
+            stats["sources_ranked"],
+            stats["sources_selected"],
+            stats["sources_digested"],
+        )
+
+        return stats
+
+    def _archive_digest_source(
+        self,
+        *,
+        source: ResearchSource,
+        digestor: DocumentDigestor,
+        raw_content: str,
+        page_boundaries: Optional[list[tuple[int, int, int]]],
+        source_text_hash: str,
+    ) -> None:
+        """Archive canonical text for a digested source.
+
+        Raises ValueError if canonical text is empty or hashes do not match.
+        """
+        if not raw_content:
+            raise ValueError("No raw content available for digest archival")
+
+        if page_boundaries:
+            canonical_text, _ = digestor._canonicalize_pages(raw_content, page_boundaries)
+        else:
+            canonical_text = digestor._normalize_text(raw_content)
+
+        if not canonical_text.strip():
+            raise ValueError("Canonical text is empty after normalization")
+
+        computed_hash = digestor._compute_source_hash(canonical_text)
+        if computed_hash != source_text_hash:
+            raise ValueError(
+                "Canonical text hash mismatch: "
+                f"computed={computed_hash}, payload={source_text_hash}"
+            )
+
+        archive_path = self._write_digest_archive(
+            source_id=source.id,
+            source_text_hash=source_text_hash,
+            canonical_text=canonical_text,
+            retention_days=self.config.deep_research_archive_retention_days,
+        )
+        source.metadata["_digest_archive_hash"] = source_text_hash
+        logger.debug("Archived digest source %s to %s", source.id, archive_path)
+
+    def _write_digest_archive(
+        self,
+        *,
+        source_id: str,
+        source_text_hash: str,
+        canonical_text: str,
+        retention_days: int,
+    ) -> Path:
+        """Write canonical text to the digest archive directory."""
+        archive_root = Path.home() / ".foundry-mcp" / "research_archives"
+        self._ensure_private_dir(archive_root)
+
+        self._validate_archive_source_id(source_id)
+        source_dir = archive_root / source_id
+        self._ensure_private_dir(source_dir)
+
+        target_path = source_dir / f"{source_text_hash}.txt"
+        if not target_path.exists():
+            fd, tmp_path = tempfile.mkstemp(dir=source_dir, prefix="tmp-", suffix=".txt")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as tmp_file:
+                    tmp_file.write(canonical_text)
+                os.replace(tmp_path, target_path)
+                try:
+                    os.chmod(target_path, 0o600)
+                except OSError:
+                    pass
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+        else:
+            try:
+                os.utime(target_path, None)
+            except OSError:
+                pass
+
+        if retention_days > 0:
+            self._cleanup_digest_archives(source_dir, retention_days)
+
+        return target_path
+
+    def _validate_archive_source_id(self, source_id: str) -> None:
+        """Validate source_id is safe to use as an archive path component."""
+        if not source_id or not source_id.strip():
+            raise ValueError("Invalid source_id for digest archive (empty)")
+        source_path = Path(source_id)
+        if source_path.is_absolute() or source_path.drive:
+            raise ValueError("Invalid source_id for digest archive (absolute path)")
+        if ".." in source_path.parts or len(source_path.parts) != 1:
+            raise ValueError("Invalid source_id for digest archive (path traversal)")
+
+    def _cleanup_digest_archives(self, source_dir: Path, retention_days: int) -> None:
+        """Remove archived digest files older than retention_days."""
+        cutoff = time.time() - (retention_days * 86400)
+        for path in source_dir.glob("*.txt"):
+            try:
+                if path.stat().st_mtime < cutoff:
+                    path.unlink()
+            except OSError:
+                continue
+
+    def _ensure_private_dir(self, path: Path) -> None:
+        """Ensure directory exists with owner-only permissions."""
+        path.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(path, 0o700)
+        except OSError:
+            pass
+
     def _allocate_source_budget(
         self,
         state: DeepResearchState,
@@ -4189,6 +4873,18 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
 
             # Build content for token estimation
             content = source.content or source.snippet or ""
+            if source.is_digest and source.content:
+                try:
+                    payload = deserialize_payload(source.content)
+                    digest_parts = [
+                        payload.summary,
+                        *payload.key_points,
+                        *[ev.text for ev in payload.evidence_snippets],
+                    ]
+                    content = "\n".join(part for part in digest_parts if part)
+                except Exception:
+                    # Fallback to raw digest JSON if parsing fails
+                    content = source.content or source.snippet or ""
 
             content_items.append(ContentItem(
                 id=source.id,
@@ -4704,10 +5400,29 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text."""
                 prompt_parts.append(f"  Snippet: {snippet}")
 
             if source.content:
-                content = source.content[:content_limit]
-                if len(source.content) > content_limit:
-                    content += "..."
-                prompt_parts.append(f"  Content: {content}")
+                # Check if source contains a digest payload
+                if source.is_digest:
+                    # Parse digest and use evidence snippets for citations
+                    try:
+                        payload = deserialize_payload(source.content)
+                        prompt_parts.append(f"  Summary: {payload.summary[:content_limit]}")
+                        if payload.key_points:
+                            prompt_parts.append("  Key Points:")
+                            for kp in payload.key_points[:5]:
+                                prompt_parts.append(f"    - {kp}")
+                        if payload.evidence_snippets:
+                            prompt_parts.append("  Evidence:")
+                            for ev in payload.evidence_snippets[:3]:
+                                prompt_parts.append(f"    - \"{ev.text[:200]}\" [{ev.locator}]")
+                    except Exception:
+                        # Fallback to raw content if parsing fails
+                        content = source.content[:content_limit]
+                        prompt_parts.append(f"  Content: {content}")
+                else:
+                    content = source.content[:content_limit]
+                    if len(source.content) > content_limit:
+                        content += "..."
+                    prompt_parts.append(f"  Content: {content}")
 
             prompt_parts.append("")
 

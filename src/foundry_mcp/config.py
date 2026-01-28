@@ -542,6 +542,9 @@ class ResearchConfig:
     tavily_country: Optional[str] = None  # ISO 3166-1 alpha-2 code (e.g., "US")
     tavily_chunks_per_source: int = 3  # 1-5, only for advanced search
     tavily_auto_parameters: bool = False  # Let Tavily auto-configure based on query
+    # Internal flags to track explicit config overrides
+    tavily_search_depth_configured: bool = field(default=False, init=False, repr=False)
+    tavily_chunks_per_source_configured: bool = field(default=False, init=False, repr=False)
 
     # Tavily extract configuration
     tavily_extract_depth: str = "basic"  # "basic", "advanced"
@@ -568,6 +571,22 @@ class ResearchConfig:
 
     # Audit verbosity level for deep research artifact writes
     audit_verbosity: str = "full"  # "full" or "minimal" - controls JSONL audit payload size
+
+    # Document digest configuration (for large content compression in deep research)
+    deep_research_digest_policy: str = "auto"  # "off", "auto", "always"
+    deep_research_digest_min_chars: int = 10000  # Minimum chars before digest is applied
+    deep_research_digest_max_sources: int = 8  # Max sources to digest per batch
+    deep_research_digest_timeout: float = 120.0  # Timeout per digest operation (seconds)
+    deep_research_digest_max_concurrent: int = 3  # Max concurrent digest operations
+    deep_research_digest_include_evidence: bool = True  # Include evidence snippets
+    deep_research_digest_evidence_max_chars: int = 400  # Max chars per evidence snippet
+    deep_research_digest_max_evidence_snippets: int = 5  # Max evidence snippets per digest
+    deep_research_digest_fetch_pdfs: bool = False  # Whether to fetch and extract PDF content
+    deep_research_archive_content: bool = False  # Archive canonical text for digested sources
+    deep_research_archive_retention_days: int = 30  # Days to retain archived digest content (0 = keep indefinitely)
+    # Digest LLM provider configuration (uses analysis provider if not set)
+    deep_research_digest_provider: Optional[str] = None  # Primary provider for digest
+    deep_research_digest_providers: List[str] = field(default_factory=list)  # Fallback providers
 
     @classmethod
     def from_toml_dict(cls, data: Dict[str, Any]) -> "ResearchConfig":
@@ -625,7 +644,7 @@ class ResearchConfig:
                 k: int(v) for k, v in per_provider_rate_limits.items()
             }
 
-        return cls(
+        config = cls(
             enabled=_parse_bool(data.get("enabled", True)),
             ttl_hours=int(data.get("ttl_hours", 24)),
             max_messages_per_thread=int(data.get("max_messages_per_thread", 100)),
@@ -731,7 +750,36 @@ class ResearchConfig:
             ),
             # Audit verbosity
             audit_verbosity=str(data.get("audit_verbosity", "full")),
+            # Document digest configuration
+            deep_research_digest_policy=str(data.get("deep_research_digest_policy", "auto")),
+            deep_research_digest_min_chars=int(data.get("deep_research_digest_min_chars", 10000)),
+            deep_research_digest_max_sources=int(data.get("deep_research_digest_max_sources", 8)),
+            deep_research_digest_timeout=float(data.get("deep_research_digest_timeout", 60.0)),
+            deep_research_digest_max_concurrent=int(data.get("deep_research_digest_max_concurrent", 3)),
+            deep_research_digest_include_evidence=_parse_bool(
+                data.get("deep_research_digest_include_evidence", True)
+            ),
+            deep_research_digest_evidence_max_chars=int(
+                data.get("deep_research_digest_evidence_max_chars", 400)
+            ),
+            deep_research_digest_max_evidence_snippets=int(
+                data.get("deep_research_digest_max_evidence_snippets", 5)
+            ),
+            deep_research_digest_fetch_pdfs=_parse_bool(
+                data.get("deep_research_digest_fetch_pdfs", False)
+            ),
+            deep_research_archive_content=_parse_bool(
+                data.get("deep_research_archive_content", False)
+            ),
+            deep_research_archive_retention_days=int(
+                data.get("deep_research_archive_retention_days", 30)
+            ),
+            deep_research_digest_provider=data.get("deep_research_digest_provider"),
+            deep_research_digest_providers=_parse_provider_list("deep_research_digest_providers"),
         )
+        config.tavily_search_depth_configured = "tavily_search_depth" in data
+        config.tavily_chunks_per_source_configured = "tavily_chunks_per_source" in data
+        return config
 
     def __post_init__(self) -> None:
         """Validate configuration fields after initialization."""
@@ -740,6 +788,7 @@ class ResearchConfig:
         self._validate_semantic_scholar_config()
         self._validate_status_persistence_config()
         self._validate_audit_verbosity_config()
+        self._validate_digest_config()
 
     def _validate_tavily_config(self) -> None:
         """Validate all Tavily configuration fields.
@@ -916,6 +965,69 @@ class ResearchConfig:
                 f"Must be one of: {sorted(valid_verbosity_levels)}"
             )
 
+    def _validate_digest_config(self) -> None:
+        """Validate document digest configuration fields.
+
+        Raises:
+            ValueError: If any digest config field has an invalid value.
+        """
+        # Validate digest_policy
+        valid_policies = {"off", "auto", "always"}
+        if self.deep_research_digest_policy not in valid_policies:
+            raise ValueError(
+                f"Invalid deep_research_digest_policy: {self.deep_research_digest_policy!r}. "
+                f"Must be one of: {sorted(valid_policies)}"
+            )
+
+        # Validate min_chars (must be positive)
+        if self.deep_research_digest_min_chars < 0:
+            raise ValueError(
+                f"Invalid deep_research_digest_min_chars: {self.deep_research_digest_min_chars!r}. "
+                "Must be >= 0."
+            )
+
+        # Validate max_sources (must be positive)
+        if self.deep_research_digest_max_sources < 1:
+            raise ValueError(
+                f"Invalid deep_research_digest_max_sources: {self.deep_research_digest_max_sources!r}. "
+                "Must be >= 1."
+            )
+
+        # Validate timeout (must be positive)
+        if self.deep_research_digest_timeout <= 0:
+            raise ValueError(
+                f"Invalid deep_research_digest_timeout: {self.deep_research_digest_timeout!r}. "
+                "Must be > 0."
+            )
+
+        # Validate max_concurrent (must be positive)
+        if self.deep_research_digest_max_concurrent < 1:
+            raise ValueError(
+                f"Invalid deep_research_digest_max_concurrent: {self.deep_research_digest_max_concurrent!r}. "
+                "Must be >= 1."
+            )
+
+        # Validate evidence_max_chars (must be positive)
+        if self.deep_research_digest_evidence_max_chars < 1:
+            raise ValueError(
+                f"Invalid deep_research_digest_evidence_max_chars: {self.deep_research_digest_evidence_max_chars!r}. "
+                "Must be >= 1."
+            )
+
+        # Validate max_evidence_snippets (must be positive)
+        if self.deep_research_digest_max_evidence_snippets < 1:
+            raise ValueError(
+                f"Invalid deep_research_digest_max_evidence_snippets: {self.deep_research_digest_max_evidence_snippets!r}. "
+                "Must be >= 1."
+            )
+
+        # Validate retention days (0 means keep indefinitely)
+        if self.deep_research_archive_retention_days < 0:
+            raise ValueError(
+                f"Invalid deep_research_archive_retention_days: {self.deep_research_archive_retention_days!r}. "
+                "Must be >= 0."
+            )
+
     def get_provider_rate_limit(self, provider: str) -> int:
         """Get rate limit for a specific provider.
 
@@ -1008,6 +1120,37 @@ class ResearchConfig:
             "refinement": self.deep_research_refinement_providers,
         }
         return phase_fallbacks.get(phase.lower(), [])
+
+    def get_digest_provider(self, analysis_provider: Optional[str] = None) -> str:
+        """Get LLM provider ID for document digest operations.
+
+        Returns the digest-specific provider if configured, otherwise
+        falls back to analysis_provider (if provided) or default_provider.
+
+        Args:
+            analysis_provider: Optional analysis provider to use as fallback
+
+        Returns:
+            Provider ID for digest operations (e.g., "gemini", "opencode")
+        """
+        if self.deep_research_digest_provider:
+            provider_id, _ = _parse_provider_spec(self.deep_research_digest_provider)
+            return provider_id
+        if analysis_provider:
+            return analysis_provider
+        provider_id, _ = _parse_provider_spec(self.default_provider)
+        return provider_id
+
+    def get_digest_fallback_providers(self) -> List[str]:
+        """Get fallback provider list for document digest operations.
+
+        Returns the digest-specific fallback provider list if configured,
+        otherwise returns an empty list (no fallback).
+
+        Returns:
+            List of fallback provider IDs to try on failure
+        """
+        return self.deep_research_digest_providers
 
     def get_search_provider_api_key(
         self,
